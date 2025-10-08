@@ -1,0 +1,31 @@
+{
+  "name": "sep2025",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/app.js",
+  "scripts": {
+    "init": "pnpm i && pnpm run prisma:all",
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prisma:merge": "npx prisma-merge --baseFile=prisma/schema.prisma --schemaFilePatterns=prisma/**/*.prisma --outputFile=prisma/schema.merged.prisma",
+    "prisma:gen": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma",
+    "prisma:migrate": "pnpm run prisma:merge && npx prisma migrate dev --schema=prisma/schema.merged.prisma",
+    "prisma:all": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma && npx prisma migrate dev --schema=prisma/schema.merged.prisma && del prisma\\schema.merged.prisma"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@prisma/client": "^6.16.3",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "prisma-merge": "^0.2.0"
+  }
+}

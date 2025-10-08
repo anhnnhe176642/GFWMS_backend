@@ -1,0 +1,13 @@
+model CreditRegistration {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  creditLimit   Float
+  approvedBy    String?
+  approvalDate  DateTime?
+  status        RegistrationStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+  approver      User?    @relation("Approver", fields: [approvedBy], references: [id])
+  @@map("credit_registrations")
+}

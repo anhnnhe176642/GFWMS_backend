@@ -1,0 +1,8 @@
+model Permission {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(100)
+  description String? @db.VarChar(255)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rolePermissions  RolePermission[]   
+}

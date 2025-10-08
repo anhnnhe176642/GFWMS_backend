@@ -1,0 +1,15 @@
+model Fabric {
+    id        Int      @id @default(autoincrement())
+    thickness Float
+    glossId   Int
+    gloss     FabricGloss @relation(fields: [glossId], references: [id])
+    length    Float
+    width     Float
+    weight    Float
+    sellingPrice Float
+    quantityInStock Int
+    categoryId Int
+    category FabricCategory @relation(fields: [categoryId], references: [id])
+    colorId   Int
+    color FabricColor @relation(fields: [colorId], references: [id])
+}
