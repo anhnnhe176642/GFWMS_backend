@@ -1,11 +1,11 @@
 model RolePermission {
-  roleId       Int
+  role         String    @db.VarChar(50)
   permissionId Int
-  role         Role       @relation(fields: [roleId], references: [id])
+  roleRel      Role       @relation(fields: [role], references: [name])
   permission   Permission @relation(fields: [permissionId], references: [id])
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  @@id([roleId, permissionId])
+  @@id([role, permissionId])
   @@map("role_permissions")
 }
