@@ -11,7 +11,7 @@ const router = express.Router();
 router.post('/register', validate(registerSchema), register);
 router.post('/login', validate(loginSchema), login);
 
-// Protected routes - cần authentication
+// Protected routes 
 router.get('/profile', 
   authenticateToken, 
   requirePermission(PERMISSIONS.USERS.VIEW_OWN_PROFILE),

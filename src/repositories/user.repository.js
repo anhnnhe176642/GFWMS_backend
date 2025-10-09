@@ -223,6 +223,47 @@ export class UserRepository {
     };
   }
 
+  // Lấy danh sách tất cả permissions của user theo role
+  async getUserPermissions(userId) {
+    const result = await prisma.user.findUnique({
+      where: {
+        id: userId,
+        status: {
+          not: 'DELETED'
+        }
+      },
+      select: {
+        role: true,
+        roleRel: {
+          select: {
+            rolePermissions: {
+              select: {
+                permission: {
+                  select: {
+                    key: true,
+                    description: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!result) {
+      return [];
+    }
+
+    return result.roleRel?.rolePermissions?.map(rp => rp.permission) || [];
+  }
+
+  // Lấy danh sách permission keys của user (chỉ trả về array string)
+  async getUserPermissionKeys(userId) {
+    const permissions = await this.getUserPermissions(userId);
+    return permissions.map(p => p.key);
+  }
+
   // Kiểm tra user có permission cụ thể không
   async hasPermission(userId, permissionKey) {
     const result = await prisma.user.findFirst({

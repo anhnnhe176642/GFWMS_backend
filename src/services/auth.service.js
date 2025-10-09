@@ -53,6 +53,7 @@ export const loginUser = async (usernameOrEmail, password) => {
   );
 
   delete user.password;
+  user.permissionKeys = await userRepository.getUserPermissionKeys(user.id);
 
   return {
     user,
