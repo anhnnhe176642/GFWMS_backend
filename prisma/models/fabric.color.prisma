@@ -1,5 +1,5 @@
 model FabricColor {
-    id        Int      @id @default(autoincrement())
+    id        String   @id @db.VarChar(50)
     name      String   @db.VarChar(100) @unique
 
     createdAt DateTime @default(now())

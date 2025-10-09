@@ -10,6 +10,6 @@ model Fabric {
     quantityInStock Int
     categoryId Int
     category FabricCategory @relation(fields: [categoryId], references: [id])
-    colorId   Int
+    colorId   String  @db.VarChar(50)
     color FabricColor @relation(fields: [colorId], references: [id])
 }

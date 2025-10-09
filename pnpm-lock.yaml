@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@prisma/client':
-        specifier: ^6.16.3
-        version: 6.16.3(prisma@6.16.3)
+        specifier: ^6.17.0
+        version: 6.17.0(prisma@6.16.3)
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.2
@@ -126,8 +126,8 @@ packages:
     resolution: {integrity: sha512-QuSiseNRJygaqAdABYFWn/H1CwIZCp9zp/PLid6yXvy6VcQV7OenEFF5XuYaCvSARe2Tg9r8Jqls5+fw1A9CbQ==}
     engines: {node: '>=8.0.0'}
 
-  '@prisma/client@6.16.3':
-    resolution: {integrity: sha512-JfNfAtXG+/lIopsvoZlZiH2k5yNx87mcTS4t9/S5oufM1nKdXYxOvpDC1XoTCFBa5cQh7uXnbMPsmZrwZY80xw==}
+  '@prisma/client@6.17.0':
+    resolution: {integrity: sha512-b42mTLOdLEZ6e/igu8CLdccAUX9AwHknQQ1+pHOftnzDP2QoyZyFvcANqSLs5ockimFKJnV7Ljf+qrhNYf6oAg==}
     engines: {node: '>=18.18'}
     peerDependencies:
       prisma: '*'
@@ -1027,7 +1027,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@prisma/client@6.16.3(prisma@6.16.3)':
+  '@prisma/client@6.17.0(prisma@6.16.3)':
     optionalDependencies:
       prisma: 6.16.3
 
