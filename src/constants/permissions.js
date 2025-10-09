@@ -64,7 +64,7 @@ export const getPermissionsByGroup = (groupName) => {
 };
 
 export const checkPermission = (userPermissions, permission) => {
-  return userPermissions?.has(permission) || false;
+  return userPermissions.includes(permission);
 };
 
 // Predefined role permissions

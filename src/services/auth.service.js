@@ -52,11 +52,10 @@ export const loginUser = async (usernameOrEmail, password) => {
     { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
   );
 
-  // Remove password từ response
-  const { password: _, ...userWithoutPassword } = user;
+  delete user.password;
 
   return {
-    user: userWithoutPassword,
+    user,
     token
   };
 };

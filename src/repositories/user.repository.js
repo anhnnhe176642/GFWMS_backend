@@ -75,12 +75,10 @@ export class UserRepository {
       return null;
     }
 
-    // Chuyển đổi permissions thành Set của các key strings
     const permissionKeys = user.roleRel?.rolePermissions?.map(rp => rp.permission.key) || [];
     
     delete user.roleRel;
-    user.permissions = new Set(permissionKeys);
-
+    user.permissions = permissionKeys;
     return user;
   }
 
