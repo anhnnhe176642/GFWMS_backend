@@ -1,5 +1,4 @@
 import * as userService from '../services/user.service.js';
-import { hasPermission, PERMISSIONS } from '../constants/permissions.js';
 
 export const getAllUsers = async (req, res, next) => {
   try {

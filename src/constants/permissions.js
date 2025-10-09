@@ -110,18 +110,3 @@ export const ROLE_PERMISSIONS = {
     ]
   }
 };
-
-// Hàm helper để check permission
-export const hasPermission = (userPermissions, requiredPermission) => {
-  return userPermissions.includes(requiredPermission);
-};
-
-// Hàm helper để check multiple permissions (OR logic)
-export const hasAnyPermission = (userPermissions, requiredPermissions) => {
-  return requiredPermissions.some(permission => userPermissions.includes(permission));
-};
-
-// Hàm helper để check multiple permissions (AND logic)  
-export const hasAllPermissions = (userPermissions, requiredPermissions) => {
-  return requiredPermissions.every(permission => userPermissions.includes(permission));
-};

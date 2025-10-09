@@ -12,7 +12,7 @@ export const errorHandler = (err, req, res, next) => {
     return res.status(err.status).json(response);
   }
 
-  // Lỗi JWT (vẫn cần xử lý ở middleware vì là system level)
+  // Lỗi JWT 
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({ 
       message: 'Token không hợp lệ' 
@@ -25,7 +25,7 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Lỗi validation Joi (vẫn cần xử lý ở middleware)
+  // Lỗi validation Joi
   if (err.isJoi) {
     const errorDetails = err.details.map(detail => ({
       field: detail.path.join('.'),
@@ -38,7 +38,7 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Lỗi Prisma chưa được xử lý (fallback)
+  // Lỗi Prisma chưa được xử lý 
   if (err.code && err.code.startsWith('P')) {
     console.error('Unhandled Prisma error:', err);
     return res.status(500).json({ 

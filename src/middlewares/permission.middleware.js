@@ -49,7 +49,6 @@ export const requirePermission = (permission) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      // Kiểm tra permission trực tiếp từ database
       const hasPermission = await userRepository.hasPermission(req.user.id, permission);
       
       if (!hasPermission) {
@@ -71,7 +70,6 @@ export const requireAnyPermission = (permissions) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      // Kiểm tra có bất kỳ permission nào từ database
       const hasAnyPermission = await userRepository.hasAnyPermission(req.user.id, permissions);
       
       if (!hasAnyPermission) {
@@ -93,7 +91,6 @@ export const requireAllPermissions = (permissions) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      // Kiểm tra có tất cả permissions từ database
       const hasAllPermissions = await userRepository.hasAllPermissions(req.user.id, permissions);
       
       if (!hasAllPermissions) {
@@ -115,7 +112,6 @@ export const requireOwnershipOrPermission = (permission, getResourceOwnerId) => 
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      // Kiểm tra permission từ database
       const hasPermission = await userRepository.hasPermission(req.user.id, permission);
       if (hasPermission) {
         return next();
