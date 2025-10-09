@@ -63,6 +63,10 @@ export const getPermissionsByGroup = (groupName) => {
   return PERMISSIONS[groupName] ? Object.values(PERMISSIONS[groupName]) : [];
 };
 
+export const checkPermission = (userPermissions, permission) => {
+  return userPermissions?.has(permission) || false;
+};
+
 // Predefined role permissions
 export const ROLE_PERMISSIONS = {
   ADMIN: {

@@ -45,6 +45,45 @@ export class UserRepository {
     });
   }
 
+  async findByIdWithPermissions(id) {
+    const user = await prisma.user.findFirst({
+      where: { 
+        id,
+        status: {
+          not: 'DELETED'
+        }
+      },
+      select: {
+        ...this.#userSelectOptions,
+        roleRel: {
+          select: {
+            rolePermissions: {
+              select: {
+                permission: {
+                  select: {
+                    key: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    // Chuyển đổi permissions thành Set của các key strings
+    const permissionKeys = user.roleRel?.rolePermissions?.map(rp => rp.permission.key) || [];
+    
+    delete user.roleRel;
+    user.permissions = new Set(permissionKeys);
+
+    return user;
+  }
+
   async findByUsername(username) {
     return await prisma.user.findFirst({
       where: { 

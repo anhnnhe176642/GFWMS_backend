@@ -9,7 +9,7 @@ export {
   requireAnyPermission, 
   requireAllPermissions,
   requireOwnershipOrPermission,
-  isAdmin
+  requireAdmin
 } from './permission.middleware.js';
 
 export const optionalAuth = async (req, res, next) => {

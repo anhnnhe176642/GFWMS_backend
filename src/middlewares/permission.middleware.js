@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { AuthenticationError, AuthorizationError } from '../utils/errors.js';
 import { userRepository } from '../repositories/user.repository.js';
+import { checkPermission } from '../constants/permissions.js';
 
 // Middleware xác thực JWT token
 export const authenticateToken = async (req, res, next) => {
@@ -15,8 +16,8 @@ export const authenticateToken = async (req, res, next) => {
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Lấy thông tin user cơ bản từ database
-    const user = await userRepository.findById(decoded.userId);
+    // Lấy thông tin user và tất cả permissions của user đó
+    const user = await userRepository.findByIdWithPermissions(decoded.userId);
     
     if (!user) {
       throw new AuthenticationError('User không tồn tại');
@@ -26,7 +27,7 @@ export const authenticateToken = async (req, res, next) => {
       throw new AuthenticationError('Tài khoản đã bị khóa hoặc chưa kích hoạt');
     }
 
-    // Attach user info vào request 
+    // Attach user info và permissions vào request 
     req.user = user
     
     next();
@@ -49,9 +50,7 @@ export const requirePermission = (permission) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      const hasPermission = await userRepository.hasPermission(req.user.id, permission);
-      
-      if (!hasPermission) {
+      if (!checkPermission(req.user.permissions, permission)) {
         throw new AuthorizationError(`Không có quyền: ${permission}`);
       }
 
@@ -70,9 +69,8 @@ export const requireAnyPermission = (permissions) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      const hasAnyPermission = await userRepository.hasAnyPermission(req.user.id, permissions);
-      
-      if (!hasAnyPermission) {
+      const hasAny = permissions.some(p => checkPermission(req.user.permissions, p));
+      if (!hasAny) {
         throw new AuthorizationError(`Không có quyền: ${permissions.join(' hoặc ')}`);
       }
 
@@ -91,9 +89,8 @@ export const requireAllPermissions = (permissions) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      const hasAllPermissions = await userRepository.hasAllPermissions(req.user.id, permissions);
-      
-      if (!hasAllPermissions) {
+      const hasAll = permissions.every(p => checkPermission(req.user.permissions, p));
+      if (!hasAll) {
         throw new AuthorizationError(`Không có đủ quyền: ${permissions.join(', ')}`);
       }
 
@@ -112,18 +109,16 @@ export const requireOwnershipOrPermission = (permission, getResourceOwnerId) => 
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      const hasPermission = await userRepository.hasPermission(req.user.id, permission);
-      if (hasPermission) {
-        return next();
-      }
-
-      // Nếu không có permission, check ownership
+      // Check quyền hoặc ownership
+      const hasPermission = checkPermission(req.user.permissions, permission);
       const resourceOwnerId = await getResourceOwnerId(req);
-      if (resourceOwnerId === req.user.id) {
-        return next();
+      const isOwner = resourceOwnerId === req.user.id;
+
+      if (!hasPermission && !isOwner) {
+        throw new AuthorizationError('Không có quyền truy cập resource này');
       }
 
-      throw new AuthorizationError('Không có quyền truy cập resource này');
+      next();
     } catch (error) {
       next(error);
     }
@@ -131,6 +126,6 @@ export const requireOwnershipOrPermission = (permission, getResourceOwnerId) => 
 };
 
 // Helper function để check admin role
-export const isAdmin = (req, res, next) => {
+export const requireAdmin = (req, res, next) => {
   return requirePermission('system:manage_permissions')(req, res, next);
 };
