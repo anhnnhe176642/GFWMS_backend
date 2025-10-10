@@ -16,7 +16,8 @@ import {
   limitSchema,
   querySchema,
   dateFromSchema,
-  dateToSchema
+  dateToSchema,
+  createMultiValueFilterSchema
 } from './common.validation.js';
 
 // Schema validation cho tạo user
@@ -57,10 +58,10 @@ export const paginationQuerySchema = Joi.object({
 
 // Advanced query schema cho user với search, filter, sort
 export const userQuerySchema = querySchema.keys({
-  // Filter fields
-  status: userStatusSchema.optional(),
-  role: roleSchema.optional(),
-  gender: genderSchema.optional(),
+  // Filter fields - support single value or comma-separated multiple values
+  status: createMultiValueFilterSchema(userStatusSchema, 'Status'),
+  role: createMultiValueFilterSchema(roleSchema, 'Role'),
+  gender: createMultiValueFilterSchema(genderSchema, 'Gender'),
   
   // Date range filter
   createdFrom: dateFromSchema,

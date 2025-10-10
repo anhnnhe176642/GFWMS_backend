@@ -59,15 +59,36 @@ export const buildPagination = (page = 1, limit = 10) => {
 };
 
 /**
- * Build sort options
- * @param {string} sortBy - Field to sort by
- * @param {string} order - Sort order (asc/desc)
+ * Build sort options - support multiple fields
+ * @param {string|array} sortBy - Field(s) to sort by (comma-separated string or array)
+ * @param {string|array} order - Sort order(s) (comma-separated string or array)
  * @param {Object} sortMapping - Mapping cho sort fields
- * @returns {Object} Prisma orderBy clause
+ * @returns {Object|Array} Prisma orderBy clause
+ * 
+ * Examples:
+ * - Single: buildSort('createdAt', 'desc') => { createdAt: 'desc' }
+ * - Multiple: buildSort('status,createdAt', 'asc,desc') => [{ status: 'asc' }, { createdAt: 'desc' }]
+ * - Multiple: buildSort(['status', 'createdAt'], ['asc', 'desc']) => [{ status: 'asc' }, { createdAt: 'desc' }]
  */
 export const buildSort = (sortBy = 'createdAt', order = 'desc', sortMapping = {}) => {
-  const mappedField = sortMapping[sortBy] || sortBy;
-  const sortOrder = order.toLowerCase() === 'asc' ? 'asc' : 'desc';
+  // Parse comma-separated strings to arrays
+  const sortFields = typeof sortBy === 'string' ? sortBy.split(',').map(s => s.trim()) : sortBy;
+  const orderFields = typeof order === 'string' ? order.split(',').map(s => s.trim()) : order;
+  
+  // Support array of sort fields
+  if (Array.isArray(sortFields) && sortFields.length > 1) {
+    const orders = Array.isArray(orderFields) ? orderFields : Array(sortFields.length).fill(orderFields[0] || 'desc');
+    return sortFields.map((field, index) => {
+      const mappedField = sortMapping[field] || field;
+      const sortOrder = (orders[index] || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+      return { [mappedField]: sortOrder };
+    });
+  }
+  
+  // Single field sort (backward compatible)
+  const field = Array.isArray(sortFields) ? sortFields[0] : sortFields;
+  const mappedField = sortMapping[field] || field;
+  const sortOrder = (Array.isArray(orderFields) ? orderFields[0] : orderFields).toLowerCase() === 'asc' ? 'asc' : 'desc';
   
   return {
     [mappedField]: sortOrder

@@ -25,6 +25,11 @@ export const buildDateRangeFilter = (from, to, field = 'createdAt') => {
  * @param {Array<string>} filterFields - Danh sách fields cần filter
  * @param {Object} dateRangeConfig - Config cho date range filter
  * @returns {Object} Filters object
+ * 
+ * Examples:
+ * - Single value: { status: 'ACTIVE' } => { status: 'ACTIVE' }
+ * - Multiple values (comma-separated): { status: 'ACTIVE,INACTIVE' } => { status: ['ACTIVE', 'INACTIVE'] }
+ * - Multiple values (array): { status: ['ACTIVE', 'INACTIVE'] } => { status: ['ACTIVE', 'INACTIVE'] }
  */
 export const buildFilters = (params, filterFields = [], dateRangeConfig = null) => {
   const filters = {};
@@ -32,7 +37,15 @@ export const buildFilters = (params, filterFields = [], dateRangeConfig = null) 
   // Build simple filters
   filterFields.forEach(field => {
     if (params[field] !== undefined && params[field] !== null && params[field] !== '') {
-      filters[field] = params[field];
+      let value = params[field];
+      
+      // Parse comma-separated values to array
+      if (typeof value === 'string' && value.includes(',')) {
+        value = value.split(',').map(v => v.trim()).filter(v => v !== '');
+      }
+      
+      // Convert array to filter format (buildWhereClause will handle the 'in' operator)
+      filters[field] = value;
     }
   });
   
