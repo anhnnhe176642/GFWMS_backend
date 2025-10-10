@@ -7,6 +7,7 @@ import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
+import { swaggerUi, swaggerSpec } from './config/swagger.js';
 
 dotenv.config();
 
@@ -15,13 +16,19 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(morgan("dev"));
 
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'GFWMS API Documentation'
+}));
+
 // Routes
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
 
 // Health check route
-app.get('/health', (req, res) => {
+app.get('/check', (req, res) => {
   res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
 });
 
