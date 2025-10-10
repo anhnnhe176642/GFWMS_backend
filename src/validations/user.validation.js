@@ -13,7 +13,10 @@ import {
   userStatusSchema,
   uuidSchema,
   pageSchema,
-  limitSchema
+  limitSchema,
+  querySchema,
+  dateFromSchema,
+  dateToSchema
 } from './common.validation.js';
 
 // Schema validation cho tạo user
@@ -50,4 +53,18 @@ export const uuidParamSchema = Joi.object({
 export const paginationQuerySchema = Joi.object({
   page: pageSchema,
   limit: limitSchema
+});
+
+// Advanced query schema cho user với search, filter, sort
+export const userQuerySchema = querySchema.keys({
+  // Filter fields
+  status: userStatusSchema.optional(),
+  role: roleSchema.optional(),
+  gender: genderSchema.optional(),
+  
+  // Date range filter
+  createdFrom: dateFromSchema,
+  createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({
+    'date.min': 'createdTo phải lớn hơn hoặc bằng createdFrom'
+  })
 });
