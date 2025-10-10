@@ -49,10 +49,12 @@ export const requirePermission = (permission) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      const hasPermission = await userRepository.hasPermission(req.user.id, permission);
+      // Hỗ trợ cả object {key, description} và string
+      const permissionKey = permission?.key || permission;
+      const hasPermission = await userRepository.hasPermission(req.user.id, permissionKey);
       
       if (!hasPermission) {
-        throw new AuthorizationError(`Không có quyền: ${permission}`);
+        throw new AuthorizationError(`Không có quyền: ${permissionKey}`);
       }
 
       next();
@@ -70,10 +72,12 @@ export const requireAnyPermission = (permissions) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      const hasAnyPermission = await userRepository.hasAnyPermission(req.user.id, permissions);
+      // Hỗ trợ cả object {key, description} và string
+      const permissionKeys = permissions.map(p => p?.key || p);
+      const hasAnyPermission = await userRepository.hasAnyPermission(req.user.id, permissionKeys);
       
       if (!hasAnyPermission) {
-        throw new AuthorizationError(`Không có quyền: ${permissions.join(' hoặc ')}`);
+        throw new AuthorizationError(`Không có quyền: ${permissionKeys.join(' hoặc ')}`);
       }
 
       next();
@@ -91,10 +95,12 @@ export const requireAllPermissions = (permissions) => {
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      const hasAllPermissions = await userRepository.hasAllPermissions(req.user.id, permissions);
+      // Hỗ trợ cả object {key, description} và string
+      const permissionKeys = permissions.map(p => p?.key || p);
+      const hasAllPermissions = await userRepository.hasAllPermissions(req.user.id, permissionKeys);
       
       if (!hasAllPermissions) {
-        throw new AuthorizationError(`Không có đủ quyền: ${permissions.join(', ')}`);
+        throw new AuthorizationError(`Không có đủ quyền: ${permissionKeys.join(', ')}`);
       }
 
       next();
@@ -112,7 +118,9 @@ export const requireOwnershipOrPermission = (permission, getResourceOwnerId) => 
         throw new AuthenticationError('User chưa được xác thực');
       }
 
-      const hasPermission = await userRepository.hasPermission(req.user.id, permission);
+      // Hỗ trợ cả object {key, description} và string
+      const permissionKey = permission?.key || permission;
+      const hasPermission = await userRepository.hasPermission(req.user.id, permissionKey);
       if (hasPermission) {
         return next();
       }

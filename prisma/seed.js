@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { allPermissions, ROLE_PERMISSIONS } from '../src/constants/permissions.js';
+import { allPermissionObjects, ROLE_PERMISSIONS } from '../src/constants/permissions.js';
 
 const prisma = new PrismaClient();
 
@@ -9,19 +9,21 @@ async function main() {
 
   // 1. Tạo tất cả permissions
   console.log('Creating permissions...');
-  const permissions = allPermissions();
+  const permissions = allPermissionObjects();
   const createdPermissions = [];
   
-  for (const permissionKey of permissions) {
-    const permission = await prisma.permission.upsert({
-      where: { key: permissionKey },
-      update: {},
+  for (const permission of permissions) {
+    const createdPermission = await prisma.permission.upsert({
+      where: { key: permission.key },
+      update: {
+        description: permission.description
+      },
       create: {
-        key: permissionKey,
-        description: `Permission: ${permissionKey}`
+        key: permission.key,
+        description: permission.description
       }
     });
-    createdPermissions.push(permission);
+    createdPermissions.push(createdPermission);
   }
   console.log(`Created ${createdPermissions.length} permissions`);
 
