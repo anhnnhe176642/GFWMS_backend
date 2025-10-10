@@ -1,0 +1,12 @@
+model UserNotification {
+    userId         String
+    notificationId Int
+    isRead         Boolean   @default(false)
+    createdAt      DateTime  @default(now())
+    updatedAt      DateTime  @updatedAt
+
+    user           User         @relation(fields: [userId], references: [id])
+    notification   Notification @relation(fields: [notificationId], references: [id])
+
+    @@id([userId, notificationId])
+}

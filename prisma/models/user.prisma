@@ -16,4 +16,10 @@ model User {
   roleRel   Role     @relation(fields: [role], references: [name])
   creditRegistration CreditRegistration?
   approvedRegistrations CreditRegistration[] @relation("Approver")
+  warehouseManages WarehouseManage[]
+  assignedWarehouses WarehouseManage[] @relation("AssignedBy")
+  importFabrics      ImportFabric[]    @relation("Importer")
+  orders     Order[]
+  userNotifications UserNotification[]
+  notifications  Notification[]
 }

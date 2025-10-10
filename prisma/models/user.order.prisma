@@ -1,0 +1,13 @@
+model Order {
+    id          Int       @id @default(autoincrement())
+    userId      String
+    user        User      @relation(fields: [userId], references: [id])
+    orderDate   DateTime  @default(now())
+    status      OrderStatus @default(PENDING)
+    totalAmount Float     
+    notes       String?   @db.VarChar(255)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    orderItems  OrderItem[]
+    invoice     Invoice?
+}

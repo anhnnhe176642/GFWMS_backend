@@ -1,0 +1,13 @@
+model ImportFabric {
+    id            Int       @id @default(autoincrement())
+    warehouseId   Int
+    importDate    DateTime  @default(now())
+    importer      String
+    totalPrice    Float     
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+
+    warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
+    importUser    User      @relation("Importer", fields: [importer], references: [id])
+    importItems   ImportFabricItem[]
+}

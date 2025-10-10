@@ -1,0 +1,12 @@
+model Banner {
+    id          Int       @id @default(autoincrement())
+    title       String    @db.VarChar(100)
+    imageUrl    String    @db.VarChar(255)
+    description String?   @db.VarChar(255)
+    startDate   DateTime
+    endDate     DateTime
+    isActive    Boolean   @default(true)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    BannerDiscounts BannerDiscount[]
+}

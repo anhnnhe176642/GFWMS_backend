@@ -1,0 +1,11 @@
+model BannerDiscount {
+    id            Int       @id @default(autoincrement())
+    code          String    @unique @db.VarChar(50)
+    bannerId      Int
+    banner        Banner    @relation(fields: [bannerId], references: [id])
+    fabricId      Int
+    fabric        Fabric    @relation(fields: [fabricId], references: [id])
+    discountType  DiscountType
+    discountValue Float
+    minQuantity   Int?
+}

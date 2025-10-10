@@ -1,0 +1,13 @@
+model Invoice {
+    id          Int       @id @default(autoincrement())
+    orderId     Int       @unique
+    order       Order     @relation(fields: [orderId], references: [id])
+    invoiceDate DateTime  @default(now())
+    dueDate     DateTime
+    invoiceStatus InvoiceStatus @default(UNPAID)
+    totalAmount Float     
+    notes       String?   @db.VarChar(255)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    payment     Payment?
+}

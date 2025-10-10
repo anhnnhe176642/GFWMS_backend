@@ -1,0 +1,10 @@
+model Store {
+    id          Int       @id @default(autoincrement())
+    name        String    @db.VarChar(100)
+    address     String    @db.VarChar(255)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    isActive    Boolean   @default(true)
+    fabrics     FabricStore[]
+    exportFabrics ExportFabric[]
+}

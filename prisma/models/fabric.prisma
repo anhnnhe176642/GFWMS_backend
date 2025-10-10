@@ -1,15 +1,26 @@
 model Fabric {
-    id        Int      @id @default(autoincrement())
-    thickness Float
-    glossId   Int
-    gloss     FabricGloss @relation(fields: [glossId], references: [id])
-    length    Float
-    width     Float
-    weight    Float
-    sellingPrice Float
+    id              Int      @id @default(autoincrement())
+    thickness       Float
+    glossId         Int
+    gloss           FabricGloss @relation(fields: [glossId], references: [id])
+    length          Float
+    width           Float
+    weight          Float
+    sellingPrice    Float
     quantityInStock Int
-    categoryId Int
-    category FabricCategory @relation(fields: [categoryId], references: [id])
-    colorId   String  @db.VarChar(50)
-    color FabricColor @relation(fields: [colorId], references: [id])
+    categoryId      Int
+    category        FabricCategory @relation(fields: [categoryId], references: [id])
+    colorId         String  @db.VarChar(50)
+    color           FabricColor @relation(fields: [colorId], references: [id])
+    supplierId      Int
+    supplier        Supplier @relation(fields: [supplierId], references: [id])
+    fabricShelf     FabricShelf[]
+    destroyFabric   DestroyFabric[]
+    fabricStores    FabricStore[]
+    importItems    ImportFabricItem[]
+    exportItems    ExportFabricItem[]
+    orderItems    OrderItem[]
+    bannerDiscounts BannerDiscount[]
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 }

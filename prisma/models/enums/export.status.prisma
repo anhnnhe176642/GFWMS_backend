@@ -1,0 +1,5 @@
+enum ExportStatus {
+    PENDING
+    APPROVED
+    REJECTED
+}

@@ -1,0 +1,8 @@
+enum InvoiceStatus {
+    UNPAID
+    PAID
+    OVERDUE
+    CREDIT
+    REFUNDED
+    CANCELED
+}

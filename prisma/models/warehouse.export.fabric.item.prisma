@@ -1,0 +1,12 @@
+model ExportFabricItem {
+    exportFabricId  Int
+    fabricId        Int
+    quantity        Int
+    price           Float
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
+
+    exportFabric    ExportFabric @relation(fields: [exportFabricId], references: [id])
+    fabric          Fabric       @relation(fields: [fabricId], references: [id])
+    @@id([exportFabricId, fabricId])
+}

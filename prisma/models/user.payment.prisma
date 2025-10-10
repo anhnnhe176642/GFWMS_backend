@@ -1,0 +1,12 @@
+model Payment {
+    id            Int       @id @default(autoincrement())
+    invoiceId     Int       @unique
+    invoice       Invoice     @relation(fields: [invoiceId], references: [id])
+    paymentDate   DateTime  @default(now())
+    amount        Float     
+    paymentMethod String    @db.VarChar(50)
+    transactionId String?   @db.VarChar(100) @unique
+    notes         String?   @db.VarChar(255)
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+}

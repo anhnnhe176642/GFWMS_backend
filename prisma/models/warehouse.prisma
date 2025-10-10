@@ -1,0 +1,11 @@
+model Warehouse {
+    id        Int      @id @default(autoincrement())
+    name      String   @db.VarChar(100) @unique
+    address   String   @db.VarChar(255)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    shelf     Shelf[]
+    warehouseManages WarehouseManage[]
+    importFabrics    ImportFabric[] 
+    exportFabrics    ExportFabric[]  
+}

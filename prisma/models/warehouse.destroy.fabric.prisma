@@ -1,0 +1,12 @@
+model DestroyFabric {
+    id          Int       @id @default(autoincrement())
+    fabricId    Int
+    shelfId     Int
+    quantity    Int       @default(0)
+    reason      String    @db.VarChar(255)
+    fabric      Fabric    @relation(fields: [fabricId], references: [id])
+    shelf       Shelf     @relation(fields: [shelfId], references: [id])
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    @@map("destroy_fabric")
+}
