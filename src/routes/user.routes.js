@@ -71,20 +71,17 @@ router.use(authenticateToken);
  *           type: string
  *           format: date
  *         description: Filter users created until this date (must be >= createdFrom)
- *         example: "2024-12-31"
+ *         example: "2025-12-31"
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *           pattern: '^[a-zA-Z_]+(,[a-zA-Z_]+)*$'
  *         description: Field(s) to sort by. Single field or comma-separated (field1,field2)
- *         example: created_at,username
+ *         example: createdAt,username
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *           enum: [asc, desc]
- *           default: desc
  *         description: Sort order. Can be comma-separated for multiple fields (asc,desc)
  *         example: desc
  *     responses:
@@ -122,8 +119,8 @@ router.use(authenticateToken);
  *                   dob: "1990-01-01"
  *                   address: "123 Main St"
  *                   avatar: null
- *                   created_at: "2024-10-01T10:00:00.000Z"
- *                   updated_at: "2024-10-01T10:00:00.000Z"
+ *                   createdAt: "2024-10-01T10:00:00.000Z"
+ *                   updatedAt: "2024-10-01T10:00:00.000Z"
  *               pagination:
  *                 page: 1
  *                 limit: 10
@@ -167,7 +164,6 @@ router.get('/',
  *                 type: string
  *                 minLength: 3
  *                 maxLength: 50
- *                 pattern: '^[a-zA-Z0-9]+$'
  *                 description: Alphanumeric only, 3-50 characters
  *                 example: johndoe123
  *               password:
@@ -186,7 +182,6 @@ router.get('/',
  *                 type: string
  *                 minLength: 10
  *                 maxLength: 15
- *                 pattern: '^[0-9+\-\s()]+$'
  *                 example: "+84123456789"
  *               fullname:
  *                 type: string

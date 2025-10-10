@@ -153,11 +153,11 @@ const options = {
               enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED'],
               description: 'User status'
             },
-            created_at: {
+            createdAt: {
               type: 'string',
               format: 'date-time'
             },
-            updated_at: {
+            updatedAt: {
               type: 'string',
               format: 'date-time'
             }
@@ -175,11 +175,11 @@ const options = {
               description: 'Role description',
               nullable: true
             },
-            created_at: {
+            createdAt: {
               type: 'string',
               format: 'date-time'
             },
-            updated_at: {
+            updatedAt: {
               type: 'string',
               format: 'date-time'
             },

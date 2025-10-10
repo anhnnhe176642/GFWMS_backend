@@ -29,7 +29,6 @@ const router = express.Router();
  *                 type: string
  *                 minLength: 3
  *                 maxLength: 50
- *                 pattern: '^[a-zA-Z0-9]+$'
  *                 description: Alphanumeric only, 3-50 characters
  *                 example: johndoe123
  *               password:
@@ -48,7 +47,6 @@ const router = express.Router();
  *                 type: string
  *                 minLength: 10
  *                 maxLength: 15
- *                 pattern: '^[0-9+\-\s()]+$'
  *                 description: Phone number with digits, +, -, spaces, or parentheses
  *                 example: "+84123456789"
  *               fullname:

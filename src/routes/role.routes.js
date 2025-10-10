@@ -45,15 +45,12 @@ router.use(authenticateToken);
  *         name: sortBy
  *         schema:
  *           type: string
- *           pattern: '^[a-zA-Z_]+(,[a-zA-Z_]+)*$'
  *         description: Field(s) to sort by. Single or comma-separated
- *         example: name,created_at
+ *         example: name,createdAt
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *           enum: [asc, desc]
- *           default: desc
  *         description: Sort order (asc or desc)
  *     responses:
  *       200:

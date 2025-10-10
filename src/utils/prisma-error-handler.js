@@ -96,8 +96,32 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
     
     case 'P2003': {
       // Foreign key constraint failed
-      const fieldName = error.meta?.field_name || 'Tham chiếu';
-      throw new ValidationError(`${fieldName} không hợp lệ hoặc không tồn tại`);
+      console.log('P2003 Error Meta:', JSON.stringify(error.meta, null, 2));
+      
+      let fieldName = 'Tham chiếu';
+      
+      if (error.meta?.field_name) {
+        // Nếu field_name là array, lấy phần tử đầu tiên
+        fieldName = Array.isArray(error.meta.field_name) 
+          ? error.meta.field_name[0] 
+          : error.meta.field_name;
+      } else if (error.meta?.constraint) {
+        // constraint có thể là array hoặc string
+        const constraintValue = Array.isArray(error.meta.constraint)
+          ? error.meta.constraint[0]
+          : error.meta.constraint;
+        
+        // Extract field name từ constraint
+        fieldName = extractFieldFromConstraint(constraintValue) || constraintValue;
+      }
+      
+      // Kiểm tra fieldMappings để custom message
+      const customMessage = fieldMappings[fieldName];
+      if (customMessage) {
+        throw new ConflictError(customMessage, fieldName);
+      }
+      
+      throw new ConflictError(`${fieldName} không hợp lệ hoặc không tồn tại`, fieldName);
     }
     
     case 'P2014': {

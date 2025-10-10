@@ -29,10 +29,10 @@ cd GFWMS_backend
 
 ### 2. Cấu hình biến môi trường
 
-Sao chép file `.env-example` thành `.env`:
+Sao chép file `.env.example` thành `.env`:
 
 ```bash
-cp .env-example .env
+cp .env.example .env
 ```
 
 Sau đó chỉnh sửa file `.env` với thông tin cấu hình:

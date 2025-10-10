@@ -80,11 +80,11 @@ export const checkPermission = (userPermissions, permission) => {
 // Predefined role permissions
 export const ROLE_PERMISSIONS = {
   ADMIN: {
-    name: 'Admin',
+    name: 'ADMIN',
     permissions: allPermissions() // Admin có tất cả quyền
   },
   USER: {
-    name: 'User', 
+    name: 'USER', 
     permissions: [
       // User chỉ có quyền xem và quản lý profile của mình
       PERMISSIONS.USERS.VIEW_OWN_PROFILE.key,
@@ -100,7 +100,7 @@ export const ROLE_PERMISSIONS = {
     ]
   },
   STAFF: {
-    name: 'Staff',
+    name: 'STAFF',
     permissions: [
       // User management (không bao gồm delete và manage roles)
       PERMISSIONS.USERS.VIEW_LIST.key,
