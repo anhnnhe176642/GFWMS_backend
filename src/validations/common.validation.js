@@ -175,6 +175,34 @@ export const sortBySchema = Joi.string()
     'string.pattern.base': 'Sort by phải là tên field hợp lệ hoặc các field cách nhau bởi dấu phẩy (vd: field1,field2)'
   });
 
+/**
+ * Helper function để tạo sortBy schema với whitelist fields
+ * Support multiple fields (comma-separated)
+ * @param {string[]} allowedFields - Mảng các field được phép sort
+ * @returns {Object} Joi schema cho sortBy với validation whitelist
+ */
+export const createSortBySchema = (allowedFields) => {
+  return sortBySchema
+    .optional()
+    .custom((value, helpers) => {
+      const fields = value.split(',').map(f => f.trim());
+      
+      for (const field of fields) {
+        if (!allowedFields.includes(field)) {
+          return helpers.error('any.invalid', { 
+            field,
+            allowed: allowedFields.join(', ')
+          });
+        }
+      }
+      
+      return value;
+    })
+    .messages({
+      'any.invalid': 'Field \'{{#field}}\' không được phép sort. Các field hợp lệ: {{#allowed}}'
+    });
+};
+
 export const sortOrderSchema = Joi.string()
   .pattern(/^(asc|desc|ASC|DESC)(,(asc|desc|ASC|DESC))*$/)
   .lowercase()
@@ -195,11 +223,9 @@ export const dateToSchema = Joi.date().iso().optional().messages({
   'date.format': 'Ngày kết thúc phải theo định dạng ISO 8601'
 });
 
-// Generic query schema cho phân trang, tìm kiếm, sắp xếp
+// Generic query schema cho phân trang, tìm kiếm
 export const querySchema = Joi.object({
   page: pageSchema,
   limit: limitSchema,
-  search: searchSchema.optional(),
-  sortBy: sortBySchema.optional(),
-  order: sortOrderSchema.optional()
+  search: searchSchema.optional()
 });

@@ -15,6 +15,8 @@ import {
   pageSchema,
   limitSchema,
   querySchema,
+  createSortBySchema,
+  sortOrderSchema,
   dateFromSchema,
   dateToSchema,
   createMultiValueFilterSchema
@@ -56,8 +58,15 @@ export const paginationQuerySchema = Joi.object({
   limit: limitSchema
 });
 
+// Allowed fields for sorting users
+const allowedUserSortFields = ['createdAt', 'updatedAt', 'username', 'email', 'fullname', 'phone', 'status'];
+
 // Advanced query schema cho user với search, filter, sort
 export const userQuerySchema = querySchema.keys({
+  // Sort with whitelist validation
+  sortBy: createSortBySchema(allowedUserSortFields),
+  order: sortOrderSchema.optional(),
+  
   // Filter fields - support single value or comma-separated multiple values
   status: createMultiValueFilterSchema(userStatusSchema, 'Status'),
   role: createMultiValueFilterSchema(roleSchema, 'Role'),
