@@ -12,7 +12,8 @@
     "prisma:merge": "npx prisma-merge --baseFile=prisma/schema.prisma --schemaFilePatterns=prisma/**/*.prisma --outputFile=prisma/schema.merged.prisma",
     "prisma:gen": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma",
     "prisma:migrate": "pnpm run prisma:merge && npx prisma migrate dev --schema=prisma/schema.merged.prisma",
-    "prisma:all": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma && npx prisma migrate dev --schema=prisma/schema.merged.prisma && del prisma\\schema.merged.prisma"
+    "prisma:all": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma && npx prisma migrate dev --schema=prisma/schema.merged.prisma && pnpm run prisma:cleanup",
+    "prisma:cleanup": "node -e \"try{require('fs').unlinkSync('prisma/schema.merged.prisma')}catch(e){}\""
   },
   "keywords": [],
   "author": "",
