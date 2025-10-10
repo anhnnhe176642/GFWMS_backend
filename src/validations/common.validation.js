@@ -115,7 +115,7 @@ export const roleSchema = Joi.string()
   .messages({
     'string.max': 'Role name không được vượt quá 50 ký tự',
     'any.required': 'Role là bắt buộc'
-  });
+  }).uppercase();
 
 // Avatar validation
 export const avatarSchema = Joi.string()

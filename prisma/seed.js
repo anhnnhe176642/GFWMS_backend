@@ -27,105 +27,48 @@ async function main() {
   }
   console.log(`Created ${createdPermissions.length} permissions`);
 
-  // 2. Tạo roles
-  console.log('Creating roles...');
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'Admin' },
-    update: {},
-    create: {
-      name: 'Admin'
-    }
-  });
-
-  const userRole = await prisma.role.upsert({
-    where: { name: 'User' },
-    update: {},
-    create: {
-      name: 'User'
-    }
-  });
-
-  const staffRole = await prisma.role.upsert({
-    where: { name: 'Staff' },
-    update: {},
-    create: {
-      name: 'Staff'
-    }
-  });
-
-  // 3. Tạo role permissions
-  console.log('Creating role permissions...');
+  // 2. Tạo roles và role permissions tự động từ ROLE_PERMISSIONS
+  console.log('Creating roles and role permissions...');
+  const createdRoles = {};
   
-  // Admin permissions
-  for (const permissionKey of ROLE_PERMISSIONS.ADMIN.permissions) {
-    const permission = await prisma.permission.findUnique({
-      where: { key: permissionKey }
+  for (const [roleKey, roleConfig] of Object.entries(ROLE_PERMISSIONS)) {
+    // Tạo role
+    const role = await prisma.role.upsert({
+      where: { name: roleConfig.name },
+      update: {},
+      create: {
+        name: roleConfig.name
+      }
     });
-    
-    if (permission) {
-      await prisma.rolePermission.upsert({
-        where: {
-          role_permissionId: {
-            role: adminRole.name,
+    createdRoles[roleKey] = role;
+    console.log(`Created role: ${role.name}`);
+
+    // Tạo role permissions
+    for (const permissionKey of roleConfig.permissions) {
+      const permission = await prisma.permission.findUnique({
+        where: { key: permissionKey }
+      });
+      
+      if (permission) {
+        await prisma.rolePermission.upsert({
+          where: {
+            role_permissionId: {
+              role: role.name,
+              permissionId: permission.id
+            }
+          },
+          update: {},
+          create: {
+            role: role.name,
             permissionId: permission.id
           }
-        },
-        update: {},
-        create: {
-          role: adminRole.name,
-          permissionId: permission.id
-        }
-      });
+        });
+      }
     }
+    console.log(`Assigned ${roleConfig.permissions.length} permissions to ${role.name}`);
   }
 
-  // User permissions  
-  for (const permissionKey of ROLE_PERMISSIONS.USER.permissions) {
-    const permission = await prisma.permission.findUnique({
-      where: { key: permissionKey }
-    });
-    
-    if (permission) {
-      await prisma.rolePermission.upsert({
-        where: {
-          role_permissionId: {
-            role: userRole.name,
-            permissionId: permission.id
-          }
-        },
-        update: {},
-        create: {
-          role: userRole.name,
-          permissionId: permission.id
-        }
-      });
-    }
-  }
-
-  // Staff permissions
-  for (const permissionKey of ROLE_PERMISSIONS.STAFF.permissions) {
-    const permission = await prisma.permission.findUnique({
-      where: { key: permissionKey }
-    });
-    
-    if (permission) {
-      await prisma.rolePermission.upsert({
-        where: {
-          role_permissionId: {
-            role: staffRole.name,
-            permissionId: permission.id
-          }
-        },
-        update: {},
-        create: {
-          role: staffRole.name,
-          permissionId: permission.id
-        }
-      });
-    }
-  }
-
-  // 4. Tạo users mặc định
+  // 3. Tạo users mặc định
   console.log('Creating default users...');
   
   // Admin user
@@ -140,7 +83,7 @@ async function main() {
       phone: '0123456789',
       fullname: 'System Administrator',
       status: 'ACTIVE',
-      role: adminRole.name
+      role: createdRoles.ADMIN.name
     }
   });
 
@@ -156,7 +99,7 @@ async function main() {
       phone: '0987654321',
       fullname: 'Regular User',
       status: 'ACTIVE',
-      role: userRole.name
+      role: createdRoles.USER.name
     }
   });
 
@@ -172,16 +115,15 @@ async function main() {
       phone: '0555666777',
       fullname: 'System Staff',
       status: 'ACTIVE',
-      role: staffRole.name
+      role: createdRoles.STAFF.name
     }
   });
 
   console.log('Seed completed successfully!');
-  console.log('Created roles:', { 
-    admin: adminRole.name, 
-    user: userRole.name, 
-    staff: staffRole.name 
-  });
+  console.log('Created roles:', Object.entries(createdRoles).map(([key, role]) => ({ 
+    key, 
+    name: role.name 
+  })));
   console.log('Created users:', {
     admin: { id: adminUser.id, username: adminUser.username },
     user: { id: regularUser.id, username: regularUser.username },
