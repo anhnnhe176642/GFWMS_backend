@@ -54,3 +54,7 @@ export const getUserByUsername = async (username) => {
 export const getUserByEmail = async (email) => {
   return await userRepository.findByEmail(email);
 };
+
+export const getAllUsersAdvanced = async (queryOptions) => {
+  return await userRepository.findWithAdvancedQuery(queryOptions);
+};

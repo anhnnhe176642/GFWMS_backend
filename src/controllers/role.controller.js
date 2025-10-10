@@ -1,11 +1,14 @@
 import * as roleService from '../services/role.service.js';
+import { buildQueryParams } from '../utils/filter-builder.js';
 
 export const getAllRoles = async (req, res, next) => {
   try {
-    const roles = await roleService.getAllRoles();
+    const queryParams = buildQueryParams(req.query);
+    const result = await roleService.getAllRolesAdvanced(queryParams);
+    
     res.json({
       message: 'Lấy danh sách roles thành công',
-      data: roles
+      ...result
     });
   } catch (error) {
     next(error);

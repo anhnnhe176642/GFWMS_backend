@@ -2,7 +2,7 @@ import express from 'express';
 import { getAllUsers, createUser, getUserById, updateUserStatus, updateUserRole, deleteUser } from '../controllers/user.controller.js';
 import { authenticateToken, requirePermission, requireOwnershipOrPermission } from '../middlewares/auth.middleware.js';
 import { validate, validateMultiple } from '../middlewares/validation.middleware.js';
-import { createUserSchema, updateUserStatusSchema, updateUserRoleSchema, uuidParamSchema, paginationQuerySchema } from '../validations/user.validation.js';
+import { createUserSchema, updateUserStatusSchema, updateUserRoleSchema, uuidParamSchema, paginationQuerySchema, userQuerySchema } from '../validations/user.validation.js';
 import { PERMISSIONS } from '../constants/permissions.js';
 
 const router = express.Router();
@@ -13,7 +13,7 @@ router.use(authenticateToken);
 // GET /users - Xem danh sách users (cần quyền view_list)
 router.get('/', 
   requirePermission(PERMISSIONS.USERS.VIEW_LIST),
-  validate(paginationQuerySchema, 'query'), 
+  validate(userQuerySchema, 'query'), 
   getAllUsers
 );
 

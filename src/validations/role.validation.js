@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { roleSchema } from './common.validation.js';
+import { roleSchema, querySchema } from './common.validation.js';
 
 // Schema validation cho tạo role
 export const createRoleSchema = Joi.object({
@@ -15,3 +15,6 @@ export const updateRoleSchema = Joi.object({
 export const roleNameParamSchema = Joi.object({
   name: roleSchema.required()
 });
+
+// Advanced query schema cho role với search, sort
+export const roleQuerySchema = querySchema;

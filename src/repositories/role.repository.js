@@ -1,11 +1,20 @@
 import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
+import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
 
 export class RoleRepository {
   async findAll() {
-    return await prisma.role.findMany();
+    return await prisma.role.findMany({
+      include: {
+        rolePermissions: {
+          include: {
+            permission: true
+          }
+        }
+      }
+    });
   }
 
   async findByName(name) {
@@ -83,6 +92,41 @@ export class RoleRepository {
         fullname: true
       }
     });
+  }
+
+  // Advanced query method với search, filter, sort
+  async findWithAdvancedQuery(queryOptions = {}) {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search = '', 
+      sortBy = 'name', 
+      order = 'asc'
+    } = queryOptions;
+
+    const searchableFields = ['name'];
+    const where = buildWhereClause({ search }, searchableFields);
+    const { skip, take } = buildPagination(page, limit);
+    const orderBy = buildSort(sortBy, order);
+
+    const [roles, total] = await Promise.all([
+      prisma.role.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        include: {
+          rolePermissions: {
+            include: {
+              permission: true
+            }
+          }
+        }
+      }),
+      prisma.role.count({ where })
+    ]);
+
+    return formatPaginatedResponse(roles, total, page, take);
   }
 }
 

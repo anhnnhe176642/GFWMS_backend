@@ -1,17 +1,22 @@
 import * as userService from '../services/user.service.js';
+import { buildQueryParams } from '../utils/filter-builder.js';
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
-    
-    const result = await userService.getAllUsers(pageNum, limitNum);
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['status', 'role', 'gender'],
+      dateRangeConfig: {
+        fromField: 'createdFrom',
+        toField: 'createdTo',
+        targetField: 'createdAt'
+      }
+    });
+
+    const result = await userService.getAllUsersAdvanced(queryParams);
     
     res.json({
       message: 'Lấy danh sách users thành công',
-      data: result.users,
-      pagination: result.pagination
+      ...result
     });
   } catch (error) {
     next(error);

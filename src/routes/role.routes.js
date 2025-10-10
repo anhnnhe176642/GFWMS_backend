@@ -4,7 +4,7 @@ import { authenticateToken } from '../middlewares/auth.middleware.js';
 import { requirePermission } from '../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../constants/permissions.js';
 import { validate } from '../middlewares/validation.middleware.js';
-import { createRoleSchema, updateRoleSchema, roleNameParamSchema } from '../validations/role.validation.js';
+import { createRoleSchema, updateRoleSchema, roleNameParamSchema, roleQuerySchema } from '../validations/role.validation.js';
 
 const router = express.Router();
 
@@ -14,6 +14,7 @@ router.use(authenticateToken);
 // GET /roles
 router.get('/', 
   requirePermission(PERMISSIONS.ROLES.VIEW),
+  validate(roleQuerySchema, 'query'),
   getAllRoles
 );
 

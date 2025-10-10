@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
+import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
 
@@ -221,6 +222,57 @@ export class UserRepository {
         totalPages: Math.ceil(total / limit)
       }
     };
+  }
+
+  // Advanced query method với search, filter, sort
+  async findWithAdvancedQuery(queryOptions = {}) {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search = '', 
+      sortBy = 'createdAt', 
+      order = 'desc',
+      filters = {}
+    } = queryOptions;
+
+    // Build where clause với search và filters
+    const searchableFields = ['username', 'email', 'fullname', 'phone'];
+    const baseWhere = {
+      status: { not: 'DELETED' }
+    };
+    
+    const filterWhere = buildWhereClause(
+      { search, ...filters },
+      searchableFields
+    );
+
+    const where = {
+      AND: [baseWhere, filterWhere]
+    };
+
+    // Build pagination
+    const { skip, take } = buildPagination(page, limit);
+
+    // Build sort
+    const orderBy = buildSort(sortBy, order, {
+      name: 'fullname',
+      email: 'email',
+      created: 'createdAt'
+    });
+
+    // Execute queries
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take,
+        select: this.#userSelectOptions,
+        orderBy
+      }),
+      prisma.user.count({ where })
+    ]);
+
+    return formatPaginatedResponse(users, total, page, take);
   }
 
   // Lấy danh sách tất cả permissions của user theo role

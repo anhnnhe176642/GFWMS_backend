@@ -50,7 +50,13 @@ export const validate = (schema, source = 'body') => {
         req.params = value;
         break;
       case 'query':
-        req.query = value;
+        // Force overwrite read-only query property
+        Object.defineProperty(req, 'query', {
+          value: value,
+          writable: true,
+          enumerable: true,
+          configurable: true
+        });
         break;
       case 'headers':
         req.headers = value;
@@ -109,7 +115,13 @@ export const validateMultiple = (validations) => {
             req.params = value;
             break;
           case 'query':
-            req.query = value;
+            // Force overwrite read-only query property
+            Object.defineProperty(req, 'query', {
+              value: value,
+              writable: true,
+              enumerable: true,
+              configurable: true
+            });
             break;
           case 'headers':
             req.headers = value;

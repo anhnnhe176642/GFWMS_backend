@@ -47,3 +47,7 @@ export const deleteRole = async (name) => {
   
   return await roleRepository.delete(name);
 };
+
+export const getAllRolesAdvanced = async (queryOptions) => {
+  return await roleRepository.findWithAdvancedQuery(queryOptions);
+};

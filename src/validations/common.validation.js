@@ -19,6 +19,7 @@ export const usernameSchema = Joi.string()
 // Email validation
 export const emailSchema = Joi.string()
   .email()
+  .lowercase()
   .max(100)
   .messages({
     'string.email': 'Email không hợp lệ',
@@ -129,3 +130,45 @@ export const limitSchema = Joi.number()
     'number.min': 'Limit phải lớn hơn 0',
     'number.max': 'Limit không được vượt quá 100'
   });
+
+// Search validation
+export const searchSchema = Joi.string()
+  .allow('')
+  .max(100)
+  .messages({
+    'string.max': 'Từ khóa tìm kiếm không được vượt quá 100 ký tự'
+  });
+
+// Sort validation
+export const sortBySchema = Joi.string()
+  .messages({
+    'string.base': 'Sort by phải là string'
+  });
+
+export const sortOrderSchema = Joi.string()
+  .valid('asc', 'desc', 'ASC', 'DESC')
+  .lowercase()
+  .default('desc')
+  .messages({
+    'any.only': 'Sort order phải là asc hoặc desc'
+  });
+
+// Date filter validation
+export const dateFromSchema = Joi.date().iso().optional().messages({
+  'date.base': 'Ngày bắt đầu phải là ngày hợp lệ',
+  'date.format': 'Ngày bắt đầu phải theo định dạng ISO 8601'
+});
+
+export const dateToSchema = Joi.date().iso().optional().messages({
+  'date.base': 'Ngày kết thúc phải là ngày hợp lệ',
+  'date.format': 'Ngày kết thúc phải theo định dạng ISO 8601'
+});
+
+// Generic query schema cho phân trang, tìm kiếm, sắp xếp
+export const querySchema = Joi.object({
+  page: pageSchema,
+  limit: limitSchema,
+  search: searchSchema.optional(),
+  sortBy: sortBySchema.optional(),
+  order: sortOrderSchema.optional()
+});
