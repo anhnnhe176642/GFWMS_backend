@@ -9,7 +9,7 @@ export const authenticateToken = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      throw new AuthenticationError('Access token is required');
+      throw new AuthenticationError('Token không được cung cấp');
     }
 
     // Verify JWT token

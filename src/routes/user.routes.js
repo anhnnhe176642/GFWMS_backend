@@ -94,13 +94,41 @@ router.use(authenticateToken);
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - data
+ *                 - pagination
  *               properties:
- *                 users:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách users thành công
+ *                 data:
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/User'
  *                 pagination:
  *                   $ref: '#/components/schemas/PaginationMeta'
+ *             example:
+ *               message: Lấy danh sách users thành công
+ *               data:
+ *                 - id: "123e4567-e89b-12d3-a456-426614174000"
+ *                   username: "johndoe123"
+ *                   email: "john@example.com"
+ *                   fullname: "John Doe"
+ *                   phone: "+84123456789"
+ *                   role: "employee"
+ *                   status: "ACTIVE"
+ *                   gender: "MALE"
+ *                   dob: "1990-01-01"
+ *                   address: "123 Main St"
+ *                   avatar: null
+ *                   created_at: "2024-10-01T10:00:00.000Z"
+ *                   updated_at: "2024-10-01T10:00:00.000Z"
+ *               pagination:
+ *                 page: 1
+ *                 limit: 10
+ *                 total: 50
+ *                 totalPages: 5
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -200,9 +228,13 @@ router.get('/',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: Tạo user thành công
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *       400:
@@ -212,7 +244,7 @@ router.get('/',
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  *       409:
- *         description: Username or email already exists
+ *         $ref: '#/components/responses/ConflictError'
  */
 router.post('/', 
   requirePermission(PERMISSIONS.USERS.CREATE),
@@ -243,9 +275,26 @@ router.post('/',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
  *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin user thành công
  *                 user:
  *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid UUID format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ *             example:
+ *               message: Dữ liệu không hợp lệ
+ *               errors:
+ *                 - field: id
+ *                   message: ID phải là UUID hợp lệ
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -297,9 +346,13 @@ router.get('/:id',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: Cập nhật trạng thái user thành công
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *       400:
@@ -357,9 +410,13 @@ router.patch('/:id/status',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: Cập nhật role user thành công
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *       400:
@@ -398,15 +455,38 @@ router.patch('/:id/role',
  *         description: User ID
  *     responses:
  *       200:
- *         description: User deleted successfully
+ *         description: User deleted successfully (soft delete)
  *         content:
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
  *               properties:
  *                 message:
  *                   type: string
- *                   example: User deleted successfully
+ *                   example: Xóa user thành công (soft delete)
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Validation error or user already deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               invalidUuid:
+ *                 summary: Invalid UUID
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: id
+ *                       message: ID phải là UUID hợp lệ
+ *               alreadyDeleted:
+ *                 summary: User already deleted
+ *                 value:
+ *                   message: User đã bị xóa trước đó
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:

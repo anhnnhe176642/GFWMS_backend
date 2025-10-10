@@ -78,20 +78,24 @@ const router = express.Router();
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
+ *                 - token
  *               properties:
  *                 message:
  *                   type: string
- *                   example: User registered successfully
+ *                   example: Đăng ký thành công
  *                 user:
  *                   $ref: '#/components/schemas/User'
+ *                 token:
+ *                   type: string
+ *                   description: JWT authentication token
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3OC05MGFiLWNkZWYtMTIzNC01Njc4OTBhYmNkZWYiLCJ1c2VybmFtZSI6ImpvaG5kb2UxMjMiLCJpYXQiOjE2OTg2NjY2NjYsImV4cCI6MTY5ODc1MzA2Nn0.example_signature
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       409:
- *         description: Username or email already exists
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *         $ref: '#/components/responses/ConflictError'
  */
 router.post('/register', validate(registerSchema), register);
 
@@ -114,13 +118,13 @@ router.post('/register', validate(registerSchema), register);
  *               usernameOrEmail:
  *                 type: string
  *                 description: Username or email address (trimmed automatically)
- *                 example: johndoe123
+ *                 example: admin
  *               password:
  *                 type: string
  *                 format: password
  *                 minLength: 6
  *                 maxLength: 255
- *                 example: password123
+ *                 example: admin123
  *     responses:
  *       200:
  *         description: Login successful
@@ -128,23 +132,46 @@ router.post('/register', validate(registerSchema), register);
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
+ *                 - token
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Login successful
+ *                   example: Đăng nhập thành công
  *                 token:
  *                   type: string
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                   description: JWT authentication token (expires in 24h)
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3OC05MGFiLWNkZWYtMTIzNC01Njc4OTBhYmNkZWYiLCJ1c2VybmFtZSI6ImpvaG5kb2UxMjMiLCJpYXQiOjE2OTg2NjY2NjYsImV4cCI6MTY5ODc1MzA2Nn0.example_signature
  *                 user:
- *                   $ref: '#/components/schemas/User'
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/User'
+ *                     - type: object
+ *                       properties:
+ *                         permissionKeys:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           description: Array of user permission keys
+ *                           example: ["users:view_list", "users:view_detail"]
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
- *         description: Invalid credentials
+ *         description: Invalid credentials or account inactive
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               invalidCredentials:
+ *                 summary: Invalid username/email or password
+ *                 value:
+ *                   message: Username hoặc password không đúng
+ *               inactiveAccount:
+ *                 summary: Account not activated
+ *                 value:
+ *                   message: Tài khoản chưa được kích hoạt
  */
 router.post('/login', validate(loginSchema), login);
 
@@ -163,13 +190,21 @@ router.post('/login', validate(loginSchema), login);
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
  *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin profile thành công
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
  */
 router.get('/profile', 
   authenticateToken, 
@@ -231,10 +266,13 @@ router.get('/profile',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - user
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Profile updated successfully
+ *                   example: Cập nhật profile thành công
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *       400:
@@ -243,6 +281,8 @@ router.get('/profile',
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
  */
 router.put('/profile', 
   authenticateToken, 
@@ -290,20 +330,46 @@ router.put('/profile',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Password changed successfully
+ *                   example: Đổi password thành công
  *       400:
- *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         description: Current password is incorrect
+ *         description: Validation error or password mismatch
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ValidationError'
+ *             examples:
+ *               validationError:
+ *                 summary: Validation error
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: currentPassword
+ *                       message: Password hiện tại là bắt buộc
+ *               incorrectPassword:
+ *                 summary: Current password incorrect
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: currentPassword
+ *                       message: Password hiện tại không đúng
+ *               samePassword:
+ *                 summary: New password same as current
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: newPassword
+ *                       message: Password mới phải khác password hiện tại
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
  */
 router.put('/change-password', 
   authenticateToken, 

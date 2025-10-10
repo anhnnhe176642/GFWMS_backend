@@ -62,8 +62,15 @@ router.use(authenticateToken);
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - data
+ *                 - pagination
  *               properties:
- *                 roles:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách roles thành công
+ *                 data:
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Role'
@@ -111,10 +118,14 @@ router.get('/',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - data
  *               properties:
  *                 message:
  *                   type: string
- *                 role:
+ *                   example: Tạo role thành công
+ *                 data:
  *                   $ref: '#/components/schemas/Role'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
@@ -123,7 +134,7 @@ router.get('/',
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  *       409:
- *         description: Role already exists
+ *         $ref: '#/components/responses/ConflictError'
  */
 router.post('/', 
   requirePermission(PERMISSIONS.ROLES.CREATE),
@@ -157,8 +168,14 @@ router.post('/',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - data
  *               properties:
- *                 role:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin role thành công
+ *                 data:
  *                   $ref: '#/components/schemas/Role'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
@@ -215,10 +232,14 @@ router.get('/:name',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - data
  *               properties:
  *                 message:
  *                   type: string
- *                 role:
+ *                   example: Cập nhật role thành công
+ *                 data:
  *                   $ref: '#/components/schemas/Role'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
@@ -228,6 +249,8 @@ router.get('/:name',
  *         $ref: '#/components/responses/ForbiddenError'
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
+ *       409:
+ *         $ref: '#/components/responses/ConflictError'
  */
 router.put('/:name', 
   requirePermission(PERMISSIONS.ROLES.UPDATE),
@@ -262,10 +285,12 @@ router.put('/:name',
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Role deleted successfully
+ *                   example: Xóa role thành công
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -275,11 +300,20 @@ router.put('/:name',
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  *       409:
- *         description: Cannot delete role with assigned users
+ *         description: Cannot delete role with assigned users or foreign key constraint
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               hasUsers:
+ *                 summary: Role has assigned users
+ *                 value:
+ *                   message: Không thể xóa role có users đang sử dụng
+ *               foreignKey:
+ *                 summary: Foreign key constraint
+ *                 value:
+ *                   message: Tham chiếu không hợp lệ hoặc không tồn tại
  */
 router.delete('/:name', 
   requirePermission(PERMISSIONS.ROLES.DELETE),

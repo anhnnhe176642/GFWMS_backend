@@ -39,37 +39,52 @@ const options = {
       schemas: {
         Error: {
           type: 'object',
+          required: ['message'],
           properties: {
             message: {
               type: 'string',
               description: 'Error message'
-            },
-            status: {
-              type: 'integer',
-              description: 'HTTP status code'
             }
           }
         },
         ValidationError: {
           type: 'object',
+          required: ['message', 'errors'],
           properties: {
             message: {
               type: 'string',
-              description: 'Validation error message'
+              description: 'Validation error message',
+              example: 'Dữ liệu không hợp lệ'
             },
-            details: {
+            errors: {
               type: 'array',
+              description: 'Array of validation errors',
               items: {
                 type: 'object',
+                required: ['field', 'message'],
                 properties: {
                   field: {
-                    type: 'string'
+                    type: 'string',
+                    description: 'Field name that failed validation',
+                    example: 'username'
                   },
                   message: {
-                    type: 'string'
+                    type: 'string',
+                    description: 'Validation error message for the field',
+                    example: 'Username phải có ít nhất 3 ký tự'
                   }
                 }
               }
+            }
+          }
+        },
+        SuccessResponse: {
+          type: 'object',
+          required: ['message'],
+          properties: {
+            message: {
+              type: 'string',
+              description: 'Success message'
             }
           }
         },
@@ -211,23 +226,38 @@ const options = {
               schema: {
                 $ref: '#/components/schemas/Error'
               },
-              example: {
-                message: 'Unauthorized',
-                status: 401
+              examples: {
+                invalidToken: {
+                  summary: 'Invalid token',
+                  value: {
+                    message: 'Token không hợp lệ'
+                  }
+                },
+                expiredToken: {
+                  summary: 'Expired token',
+                  value: {
+                    message: 'Token đã hết hạn'
+                  }
+                },
+                missingToken: {
+                  summary: 'Missing authorization header',
+                  value: {
+                    message: 'Token không được cung cấp'
+                  }
+                }
               }
             }
           }
         },
         ForbiddenError: {
-          description: 'Insufficient permissions',
+          description: 'Insufficient permissions to access this resource',
           content: {
             'application/json': {
               schema: {
                 $ref: '#/components/schemas/Error'
               },
               example: {
-                message: 'Forbidden: You do not have permission to access this resource',
-                status: 403
+                message: 'Bạn không có quyền truy cập tài nguyên này'
               }
             }
           }
@@ -239,19 +269,89 @@ const options = {
               schema: {
                 $ref: '#/components/schemas/Error'
               },
-              example: {
-                message: 'Resource not found',
-                status: 404
+              examples: {
+                userNotFound: {
+                  summary: 'User not found',
+                  value: {
+                    message: 'User không tồn tại'
+                  }
+                },
+                roleNotFound: {
+                  summary: 'Role not found',
+                  value: {
+                    message: 'Role không tồn tại'
+                  }
+                }
               }
             }
           }
         },
         ValidationError: {
-          description: 'Validation error',
+          description: 'Request validation failed',
           content: {
             'application/json': {
               schema: {
                 $ref: '#/components/schemas/ValidationError'
+              },
+              examples: {
+                multipleErrors: {
+                  summary: 'Multiple validation errors',
+                  value: {
+                    message: 'Dữ liệu không hợp lệ',
+                    errors: [
+                      {
+                        field: 'username',
+                        message: 'Username phải có ít nhất 3 ký tự'
+                      },
+                      {
+                        field: 'email',
+                        message: 'Email không hợp lệ'
+                      }
+                    ]
+                  }
+                },
+                singleError: {
+                  summary: 'Single validation error',
+                  value: {
+                    message: 'Dữ liệu không hợp lệ',
+                    errors: [
+                      {
+                        field: 'password',
+                        message: 'Password phải có ít nhất 6 ký tự'
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        ConflictError: {
+          description: 'Resource conflict (duplicate)',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/Error'
+              },
+              examples: {
+                duplicateUsername: {
+                  summary: 'Username already exists',
+                  value: {
+                    message: 'username đã tồn tại'
+                  }
+                },
+                duplicateEmail: {
+                  summary: 'Email already exists',
+                  value: {
+                    message: 'email đã tồn tại'
+                  }
+                },
+                duplicateRole: {
+                  summary: 'Role already exists',
+                  value: {
+                    message: 'name đã tồn tại'
+                  }
+                }
               }
             }
           }
