@@ -71,7 +71,7 @@ router.use(authenticateToken);
  *           type: string
  *           format: date
  *         description: Filter users created until this date (must be >= createdFrom)
- *         example: "2024-12-31"
+ *         example: "2025-12-31"
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -82,8 +82,6 @@ router.use(authenticateToken);
  *         name: order
  *         schema:
  *           type: string
- *           enum: [asc, desc]
- *           default: desc
  *         description: Sort order. Can be comma-separated for multiple fields (asc,desc)
  *         example: desc
  *     responses:

@@ -51,8 +51,6 @@ router.use(authenticateToken);
  *         name: order
  *         schema:
  *           type: string
- *           enum: [asc, desc]
- *           default: desc
  *         description: Sort order (asc or desc)
  *     responses:
  *       200:

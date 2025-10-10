@@ -59,7 +59,7 @@ export const paginationQuerySchema = Joi.object({
 });
 
 // Allowed fields for sorting users
-const allowedUserSortFields = ['createdAt', 'updatedAt', 'username', 'email', 'fullname', 'phone', 'status'];
+const allowedUserSortFields = ['createdAt', 'updatedAt', 'username', 'email', 'fullname', 'phone', 'status','role','dob','gender'];
 
 // Advanced query schema cho user với search, filter, sort
 export const userQuerySchema = querySchema.keys({
