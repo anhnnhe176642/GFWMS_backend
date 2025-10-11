@@ -80,15 +80,13 @@ pnpm run dev
 pnpm run start
 ```
 
-The server will run at `http://localhost:3000` (or the PORT configured in the `.env` file)
+The server will run at http://localhost:3000 (or the PORT configured in the `.env` file)
 
 ## Access API Documentation (Swagger)
 
 After successfully starting the server, you can access Swagger UI to view and test API endpoints:
 
-```
 http://localhost:3000/api-docs
-```
 
 ## Available Scripts
 
