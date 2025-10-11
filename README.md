@@ -1,74 +1,74 @@
 # Fabric Warehouse Management System
 
-Hệ thống quản lý kho vải với các tính năng quản lý người dùng, phân quyền, quản lý kho, đơn hàng và nhiều chức năng khác.
+A fabric warehouse management system with features for user management, role-based access control, warehouse management, order management, and more.
 
-## Yêu cầu hệ thống
+## System Requirements
 
-Trước khi bắt đầu, đảm bảo máy tính đã cài đặt:
+Before getting started, ensure your computer has the following installed:
 
-- **Node.js** (phiên bản 18.x trở lên) - [Tải về tại đây](https://nodejs.org/)
-- **MySQL** (phiên bản 8.x trở lên) - [Tải về tại đây](https://dev.mysql.com/downloads/mysql/)
-- **pnpm** (package manager) - [Tài liệu cài đặt](https://pnpm.io/installation)
+- **Node.js** (version 18.x or higher) - [Download here](https://nodejs.org/)
+- **MySQL** (version 8.x or higher) - [Download here](https://dev.mysql.com/downloads/mysql/)
+- **pnpm** (package manager) - [Installation guide](https://pnpm.io/installation)
 
-### Cài đặt pnpm
+### Installing pnpm
 
-Sau khi cài đặt Node.js, chạy lệnh sau để cài đặt pnpm:
+After installing Node.js, run the following command to install pnpm:
 
 ```bash
 npm install -g pnpm
 ```
 
-## Hướng dẫn cài đặt
+## Installation Guide
 
-### 1. Clone dự án
+### 1. Clone the project
 
 ```bash
 git clone https://github.com/anhnnhe176642/GFWMS_backend.git
 cd GFWMS_backend
 ```
 
-### 2. Cấu hình biến môi trường
+### 2. Configure environment variables
 
-Sao chép file `.env.example` thành `.env`:
+Copy the `.env.example` file to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Sau đó chỉnh sửa file `.env` với thông tin cấu hình:
+Then edit the `.env` file with your configuration:
 
 ```env
 # Database configuration
 DATABASE_URL="mysql://user:password@localhost:3306/databaseName"
 ```
 
-**Lưu ý:** Thay thế `user` và `password` bằng thông tin đăng nhập MySQL.
+**Note:** Replace `user` and `password` with your MySQL credentials.
 
-### 4. Cài đặt dependencies và thiết lập database
+### 4. Install dependencies and setup database
 
-Chạy lệnh sau để cài đặt tất cả dependencies, merge schema Prisma, tạo migrations và generate Prisma Client:
+Run the following command to install all dependencies, merge Prisma schema, create migrations, and generate Prisma Client:
 
 ```bash
 pnpm run init
 ```
 
-Lệnh này sẽ tự động thực hiện:
-- Cài đặt tất cả packages
-- Merge các file Prisma schema
-- Tạo và chạy migrations
+This command will automatically:
+- Install all packages
+- Merge Prisma schema files
+- Create and run migrations
 - Generate Prisma Client
 
-### 5. Seed dữ liệu mẫu
+### 5. Seed sample data
 
-Chạy lệnh sau để thêm dữ liệu mẫu vào database:
+Run the following command to add sample data to the database:
 
 ```bash
 pnpm run seed
 ```
 
-### 6. Chạy ứng dụng
+### 6. Run the application
 
-#### Development mode (với nodemon - tự động restart khi có thay đổi):
+#### Development mode (with nodemon - auto-restart on changes):
 
 ```bash
 pnpm run dev
@@ -80,44 +80,44 @@ pnpm run dev
 pnpm run start
 ```
 
-Server sẽ chạy tại `http://localhost:3000` (hoặc PORT đã cấu hình trong file `.env`)
+The server will run at `http://localhost:3000` (or the PORT configured in the `.env` file)
 
-## Truy cập API Documentation (Swagger)
+## Access API Documentation (Swagger)
 
-Sau khi khởi động server thành công, có thể truy cập Swagger UI để xem và test các API endpoints:
+After successfully starting the server, you can access Swagger UI to view and test API endpoints:
 
 ```
 http://localhost:3000/api-docs
 ```
 
-## Scripts có sẵn
+## Available Scripts
 
-- `pnpm run init` - Cài đặt dependencies và setup database
-- `pnpm run start` - Chạy server ở production mode
-- `pnpm run dev` - Chạy server ở development mode với nodemon
-- `pnpm run seed` - Seed dữ liệu mẫu vào database
-- `pnpm run prisma:merge` - Merge các file Prisma schema
+- `pnpm run init` - Install dependencies and setup database
+- `pnpm run start` - Run server in production mode
+- `pnpm run dev` - Run server in development mode with nodemon
+- `pnpm run seed` - Seed sample data into database
+- `pnpm run prisma:merge` - Merge Prisma schema files
 - `pnpm run prisma:gen` - Generate Prisma Client
-- `pnpm run prisma:migrate` - Tạo và chạy migration mới
-- `pnpm run prisma:all` - Thực hiện tất cả các bước Prisma (merge, generate, migrate)
+- `pnpm run prisma:migrate` - Create and run new migration
+- `pnpm run prisma:all` - Execute all Prisma steps (merge, generate, migrate)
 
-## Cấu trúc dự án
+## Project Structure
 
 ```
-├── prisma/               # Prisma schema và migrations
-│   ├── models/          # Các file model Prisma được tách riêng
+├── prisma/               # Prisma schema and migrations
+│   ├── models/          # Separated Prisma model files
 │   ├── migrations/      # Database migrations
-│   └── seed.js          # File seed dữ liệu mẫu
+│   └── seed.js          # Sample data seeding file
 ├── src/
-│   ├── config/          # Cấu hình (Swagger, etc.)
-│   ├── constants/       # Constants và permissions
-│   ├── controllers/     # Controllers xử lý request
+│   ├── config/          # Configuration (Swagger, etc.)
+│   ├── constants/       # Constants and permissions
+│   ├── controllers/     # Request handling controllers
 │   ├── middlewares/     # Middlewares (auth, validation, etc.)
 │   ├── repositories/    # Data access layer
 │   ├── routes/          # API routes
 │   ├── services/        # Business logic
 │   ├── utils/           # Utility functions
 │   └── validations/     # Validation schemas (Joi)
-├── docs/                # Tài liệu dự án
-└── tests/               # Unit tests và integration tests
+├── docs/                # Project documentation
+└── tests/               # Unit tests and integration tests
 ```

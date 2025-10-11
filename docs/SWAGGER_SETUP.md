@@ -1,59 +1,59 @@
 # Swagger API Documentation Setup
 
-## Giới thiệu
+## Introduction
 
-Dự án này đã được tích hợp Swagger UI để cung cấp tài liệu API tương tác. Swagger cho phép bạn xem, test và hiểu các API endpoints một cách dễ dàng.
+This project has been integrated with Swagger UI to provide interactive API documentation. Swagger allows you to view, test, and understand API endpoints easily.
 
-## Truy cập Swagger UI
+## Access Swagger UI
 
-Sau khi khởi động server, bạn có thể truy cập Swagger UI tại:
+After starting the server, you can access Swagger UI at:
 
 ```
 http://localhost:3000/api-docs
 ```
 
-## Tính năng
+## Features
 
-### 1. **Xem tất cả API Endpoints**
-- Swagger UI hiển thị tất cả các endpoints được nhóm theo tags (Auth, Users, Roles)
-- Mỗi endpoint có mô tả đầy đủ về:
+### 1. **View All API Endpoints**
+- Swagger UI displays all endpoints grouped by tags (Auth, Users, Roles)
+- Each endpoint has complete descriptions of:
   - Method (GET, POST, PUT, PATCH, DELETE)
   - Parameters (path, query, body)
   - Request body schema
   - Response schema
   - Status codes
 
-### 2. **Test API trực tiếp**
-- Click vào endpoint bất kỳ để xem chi tiết
-- Click nút "Try it out" để test API
-- Nhập parameters và request body
-- Click "Execute" để gửi request
-- Xem response trực tiếp trong UI
+### 2. **Test API Directly**
+- Click on any endpoint to view details
+- Click "Try it out" button to test the API
+- Enter parameters and request body
+- Click "Execute" to send the request
+- View the response directly in the UI
 
 ### 3. **Authentication**
-- Các endpoints yêu cầu authentication có icon khóa 🔒
-- Để test các endpoints cần authentication:
-  1. Đăng nhập qua endpoint `/auth/login`
-  2. Copy JWT token từ response
-  3. Click nút "Authorize" ở đầu trang
-  4. Nhập token theo format: `Bearer <your_token>`
+- Endpoints requiring authentication have a lock icon 🔒
+- To test endpoints that require authentication:
+  1. Login via the `/auth/login` endpoint
+  2. Copy the JWT token from the response
+  3. Click the "Authorize" button at the top of the page
+  4. Enter the token in format: `Bearer <your_token>`
   5. Click "Authorize"
-  6. Bây giờ bạn có thể test các protected endpoints
+  6. Now you can test protected endpoints
 
-## Cấu trúc dự án
+## Project Structure
 
-### File cấu hình Swagger
+### Swagger Configuration File
 
 **`src/config/swagger.js`**
-- Chứa cấu hình Swagger và định nghĩa schemas
-- Định nghĩa các components có thể tái sử dụng:
+- Contains Swagger configuration and schema definitions
+- Defines reusable components:
   - Security schemes (JWT Bearer token)
   - Schemas (User, Role, Error, etc.)
   - Responses (UnauthorizedError, NotFoundError, etc.)
 
-### JSDoc comments trong routes
+### JSDoc Comments in Routes
 
-Mỗi route có JSDoc comment với format:
+Each route has a JSDoc comment with the following format:
 
 ```javascript
 /**
@@ -82,9 +82,9 @@ Mỗi route có JSDoc comment với format:
  */
 ```
 
-## Thêm documentation cho endpoints mới
+## Adding Documentation for New Endpoints
 
-Khi thêm endpoint mới, hãy thêm JSDoc comment theo format trên:
+When adding new endpoints, add JSDoc comments following the format above:
 
 ```javascript
 /**
@@ -116,9 +116,9 @@ Khi thêm endpoint mới, hãy thêm JSDoc comment theo format trên:
 router.post('/your-new-endpoint', yourController);
 ```
 
-## Thêm schemas mới
+## Adding New Schemas
 
-Để thêm schema mới trong `src/config/swagger.js`:
+To add a new schema in `src/config/swagger.js`:
 
 ```javascript
 components: {
@@ -139,69 +139,69 @@ components: {
 }
 ```
 
-## Testing với Swagger UI
+## Testing with Swagger UI
 
-### Ví dụ: Test flow đăng ký và đăng nhập
+### Example: Test Registration and Login Flow
 
 1. **Register** (`POST /auth/register`)
    - Click "Try it out"
-   - Điền thông tin user
+   - Fill in user information
    - Click "Execute"
-   - Xem response với user đã được tạo
+   - View the response with the created user
 
 2. **Login** (`POST /auth/login`)
    - Click "Try it out"
-   - Điền email và password
+   - Enter email and password
    - Click "Execute"
-   - Copy JWT token từ response
+   - Copy the JWT token from the response
 
 3. **Authorize**
-   - Click nút "Authorize" ở đầu trang
-   - Paste token vào field
+   - Click the "Authorize" button at the top of the page
+   - Paste the token into the field
    - Click "Authorize"
 
-4. **Test protected endpoints**
-   - Bây giờ bạn có thể test các endpoints như:
+4. **Test Protected Endpoints**
+   - Now you can test endpoints such as:
      - `GET /auth/profile`
      - `GET /users`
      - `GET /roles`
 
-## Lợi ích của Swagger
+## Benefits of Swagger
 
-1. **Tài liệu tự động**: Không cần maintain tài liệu riêng
-2. **Testing dễ dàng**: Test API ngay trong browser
-3. **Hiểu API nhanh**: Developers mới có thể hiểu API structure nhanh chóng
-4. **Validation**: Xem được các validation rules và required fields
-5. **Examples**: Có sẵn example values cho mọi field
+1. **Automatic Documentation**: No need to maintain separate documentation
+2. **Easy Testing**: Test APIs directly in the browser
+3. **Quick API Understanding**: New developers can quickly understand the API structure
+4. **Validation**: View validation rules and required fields
+5. **Examples**: Pre-filled example values for all fields
 
 ## Troubleshooting
 
-### Swagger UI không hiển thị endpoints
+### Swagger UI Not Displaying Endpoints
 
-1. Kiểm tra JSDoc comments có đúng format không
-2. Kiểm tra `apis` path trong `swagger.js` có đúng không
-3. Restart server để Swagger load lại config
+1. Check if JSDoc comments have the correct format
+2. Check if the `apis` path in `swagger.js` is correct
+3. Restart the server to reload Swagger config
 
-### Token authentication không hoạt động
+### Token Authentication Not Working
 
-1. Đảm bảo token được copy đầy đủ
-2. Token phải còn valid (chưa expired)
-3. Format phải là: `Bearer <token>` (có khoảng trắng)
+1. Ensure the token is copied completely
+2. Token must still be valid (not expired)
+3. Format must be: `Bearer <token>` (with space)
 
-### Schema không hiển thị
+### Schema Not Displaying
 
-1. Kiểm tra syntax của schema definition
-2. Đảm bảo schema được reference đúng: `$ref: '#/components/schemas/SchemaName'`
+1. Check the syntax of schema definition
+2. Ensure schema is referenced correctly: `$ref: '#/components/schemas/SchemaName'`
 
 ## Best Practices
 
-1. **Luôn thêm example values** cho request body và parameters
-2. **Document tất cả response codes** có thể có
-3. **Sử dụng $ref** cho các schemas và responses được dùng nhiều lần
-4. **Group endpoints theo tags** để dễ tìm kiếm
-5. **Thêm description chi tiết** cho các trường phức tạp
+1. **Always add example values** for request body and parameters
+2. **Document all possible response codes**
+3. **Use $ref** for schemas and responses that are used multiple times
+4. **Group endpoints by tags** for easy searching
+5. **Add detailed descriptions** for complex fields
 
-## Tài liệu tham khảo
+## References
 
 - [Swagger/OpenAPI Specification](https://swagger.io/specification/)
 - [swagger-jsdoc Documentation](https://github.com/Surnet/swagger-jsdoc)
