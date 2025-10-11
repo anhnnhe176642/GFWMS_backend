@@ -1,10 +1,10 @@
 import express from 'express';
-import { getAllRoles, createRole, getRoleByName, updateRole, deleteRole } from '../controllers/role.controller.js';
+import { getAllRoles, createRole, getRoleByName, deleteRole } from '../controllers/role.controller.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 import { requirePermission } from '../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../constants/permissions.js';
 import { validate } from '../middlewares/validation.middleware.js';
-import { createRoleSchema, updateRoleSchema, roleNameParamSchema, roleQuerySchema } from '../validations/role.validation.js';
+import { createRoleSchema, roleNameParamSchema, roleQuerySchema } from '../validations/role.validation.js';
 
 const router = express.Router();
 
@@ -189,73 +189,6 @@ router.get('/:name',
     { schema: roleNameParamSchema, source: 'params' }
   ),
   getRoleByName
-);
-
-/**
- * @swagger
- * /roles/{name}:
- *   put:
- *     summary: Update role
- *     tags: [Roles]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: name
- *         required: true
- *         schema:
- *           type: string
- *           maxLength: 50
- *         description: Current role name (max 50 chars)
- *         example: manager
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 maxLength: 50
- *                 description: New role name (max 50 chars)
- *                 example: senior_manager
- *     responses:
- *       200:
- *         description: Role updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               required:
- *                 - message
- *                 - data
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Cập nhật role thành công
- *                 data:
- *                   $ref: '#/components/schemas/Role'
- *       400:
- *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- *       409:
- *         $ref: '#/components/responses/ConflictError'
- */
-router.put('/:name', 
-  requirePermission(PERMISSIONS.ROLES.UPDATE),
-  validate(
-    { schema: roleNameParamSchema, source: 'params' },
-    { schema: updateRoleSchema, source: 'body' }
-  ),
-  updateRole
 );
 
 /**

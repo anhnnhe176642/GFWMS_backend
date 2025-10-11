@@ -39,18 +39,6 @@ export class RoleRepository {
     );
   }
 
-  async update(name, data) {
-    return await withPrismaErrorHandling(
-      () => prisma.role.update({
-        where: { name },
-        data
-      }),
-      {
-        name: 'Tên role đã tồn tại'
-      }
-    );
-  }
-
   async delete(name) {
     return await withPrismaErrorHandling(
       () => prisma.role.delete({
