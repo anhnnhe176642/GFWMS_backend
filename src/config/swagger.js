@@ -148,19 +148,6 @@ const options = {
               type: 'string',
               description: 'Role name'
             },
-            description: {
-              type: 'string',
-              description: 'Role description',
-              nullable: true
-            },
-            createdAt: {
-              type: 'string',
-              format: 'date-time'
-            },
-            updatedAt: {
-              type: 'string',
-              format: 'date-time'
-            },
             permissions: {
               type: 'array',
               items: {
@@ -356,4 +343,12 @@ const options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
-export { swaggerUi, swaggerSpec };
+// Swagger UI options with persistent authorization
+const swaggerUiOptions = {
+  swaggerOptions: {
+    persistAuthorization: true, // Persist authorization data in localStorage
+  },
+  customCss: '.swagger-ui .topbar { display: none }' // Optional: hide top bar
+};
+
+export { swaggerUi, swaggerSpec, swaggerUiOptions };

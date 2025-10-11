@@ -7,9 +7,10 @@ const prisma = new PrismaClient();
 export class RoleRepository {
   async findAll() {
     return await prisma.role.findMany({
-      include: {
+      select: {
+        name: true,
         rolePermissions: {
-          include: {
+          select: {
             permission: true
           }
         }
@@ -20,9 +21,10 @@ export class RoleRepository {
   async findByName(name) {
     return await prisma.role.findUnique({
       where: { name },
-      include: {
+      select: {
+        name: true,
         rolePermissions: {
-          include: {
+          select: {
             permission: true
           }
         }
@@ -103,9 +105,10 @@ export class RoleRepository {
         skip,
         take,
         orderBy,
-        include: {
+        select: {
+          name: true,
           rolePermissions: {
-            include: {
+            select: {
               permission: true
             }
           }

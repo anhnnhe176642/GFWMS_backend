@@ -46,7 +46,7 @@ router.use(authenticateToken);
  *         schema:
  *           type: string
  *         description: Field(s) to sort by. Single or comma-separated
- *         example: name,createdAt
+ *         example: name
  *       - in: query
  *         name: order
  *         schema:

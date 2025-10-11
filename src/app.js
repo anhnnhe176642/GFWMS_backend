@@ -7,7 +7,7 @@ import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
-import { swaggerUi, swaggerSpec } from './config/swagger.js';
+import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 
 dotenv.config();
 
@@ -18,7 +18,7 @@ app.use(morgan("dev"));
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
+  ...swaggerUiOptions,
   customSiteTitle: 'GFWMS API Documentation'
 }));
 
