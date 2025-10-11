@@ -135,9 +135,7 @@ router.get('/',
  */
 router.post('/', 
   requirePermission(PERMISSIONS.ROLES.CREATE),
-  validate(
-    { schema: createRoleSchema, source: 'body' }
-  ),
+  validate(createRoleSchema, 'body'),
   createRole
 );
 
@@ -185,9 +183,7 @@ router.post('/',
  */
 router.get('/:name', 
   requirePermission(PERMISSIONS.ROLES.VIEW),
-  validate(
-    { schema: roleNameParamSchema, source: 'params' }
-  ),
+  validate(roleNameParamSchema, 'params'),
   getRoleByName
 );
 
@@ -247,9 +243,7 @@ router.get('/:name',
  */
 router.delete('/:name', 
   requirePermission(PERMISSIONS.ROLES.DELETE),
-  validate(
-    { schema: roleNameParamSchema, source: 'params' }
-  ),
+  validate(roleNameParamSchema, 'params'),
   deleteRole
 );
 
