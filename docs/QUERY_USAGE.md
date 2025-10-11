@@ -1,38 +1,38 @@
-# Hướng dẫn sử dụng Query Parameters
+# Query Parameters Usage Guide
 
-## Tổng quan
+## Overview
 
-Hệ thống hỗ trợ phân trang, tìm kiếm, lọc và sắp xếp thống nhất cho tất cả endpoints.
+The system supports unified pagination, search, filtering, and sorting for all endpoints.
 
 **Core utilities:**
 - `query-builder.js`: Build Prisma queries
 - `filter-builder.js`: Parse query params
 - `common.validation.js`: Validation schemas
 
-## Query Parameters cơ bản
+## Basic Query Parameters
 
-### Phân trang
+### Pagination
 ```bash
 GET /api/users?page=1&limit=10
 ```
-- `page`: Số trang (mặc định: 1)
-- `limit`: Items/trang (mặc định: 10, max: 100)
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 10, max: 100)
 
-### Tìm kiếm
+### Search
 ```bash
 GET /api/users?search=john
 ```
-- Không phân biệt hoa thường
-- Tìm trên nhiều fields (OR logic)
+- Case-insensitive
+- Search across multiple fields (OR logic)
 - Users: `username`, `email`, `fullname`, `phone`
 - Roles: `name`
 
-### Sắp xếp
+### Sorting
 ```bash
 GET /api/users?sortBy=createdAt&order=desc
 GET /api/users?sortBy=status,createdAt&order=asc,desc
 ```
-- `sortBy`: Field(s) để sort (comma-separated)
+- `sortBy`: Field(s) to sort by (comma-separated)
 - `order`: `asc` | `desc` (comma-separated)
 
 ## API Endpoints
@@ -41,13 +41,13 @@ GET /api/users?sortBy=status,createdAt&order=asc,desc
 **Auth:** Required | **Permission:** `users.view_list`
 
 **Query Params:**
-- `page`, `limit`: Phân trang
-- `search`: Tìm kiếm (username, email, fullname, phone)
-- `sortBy`, `order`: Sắp xếp
+- `page`, `limit`: Pagination
+- `search`: Search (username, email, fullname, phone)
+- `sortBy`, `order`: Sorting
 - `status`: ACTIVE, INACTIVE, SUSPENDED (multi-value)
-- `role`: Lọc theo role (multi-value)
+- `role`: Filter by role (multi-value)
 - `gender`: MALE, FEMALE, OTHER (multi-value)
-- `createdFrom`, `createdTo`: Lọc theo ngày
+- `createdFrom`, `createdTo`: Filter by date
 
 **Examples:**
 ```bash
@@ -64,9 +64,9 @@ GET /api/users?search=nguyen&status=ACTIVE&sortBy=createdAt&order=desc
 **Auth:** Required | **Permission:** `roles.view_list`
 
 **Query Params:**
-- `page`, `limit`: Phân trang
-- `search`: Tìm theo tên role
-- `sortBy`, `order`: Sắp xếp
+- `page`, `limit`: Pagination
+- `search`: Search by role name
+- `sortBy`, `order`: Sorting
 
 **Examples:**
 ```bash
@@ -76,9 +76,9 @@ GET /api/roles?search=admin&sortBy=name&order=asc
 
 ---
 
-## Áp dụng cho Module mới
+## Apply to New Modules
 
-5 bước để thêm query support cho module mới:
+5 steps to add query support for a new module:
 
 ### 1. Repository
 ```javascript
