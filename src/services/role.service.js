@@ -17,15 +17,6 @@ export const getRoleByName = async (name) => {
   return role;
 };
 
-export const updateRole = async (name, updateData) => {
-  const existingRole = await roleRepository.findByName(name);
-  if (!existingRole) {
-    throw new NotFoundError('Role không tồn tại');
-  }
-  
-  return await roleRepository.update(name, updateData);
-};
-
 export const deleteRole = async (name) => {
   const existingRole = await roleRepository.findByName(name);
   if (!existingRole) {

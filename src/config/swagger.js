@@ -17,16 +17,6 @@ const options = {
         url: 'https://opensource.org/licenses/ISC'
       }
     },
-    servers: [
-      {
-        url: 'http://localhost:3000',
-        description: 'Development server'
-      },
-      {
-        url: 'https://api.gfwms.com',
-        description: 'Production server'
-      }
-    ],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -93,32 +83,23 @@ const options = {
           properties: {
             id: {
               type: 'string',
-              format: 'uuid',
               description: 'User ID'
             },
             username: {
               type: 'string',
-              minLength: 3,
-              maxLength: 50,
-              pattern: '^[a-zA-Z0-9]+$',
-              description: 'Username (alphanumeric, 3-50 chars)'
+              description: 'Username'
             },
             email: {
               type: 'string',
-              format: 'email',
-              maxLength: 100,
-              description: 'User email address (lowercase)'
+              description: 'User email address'
             },
             fullname: {
               type: 'string',
-              maxLength: 100,
               description: 'Full name',
               nullable: true
             },
             phone: {
               type: 'string',
-              minLength: 10,
-              maxLength: 15,
               description: 'Phone number',
               nullable: true
             },
@@ -129,37 +110,34 @@ const options = {
             },
             dob: {
               type: 'string',
-              format: 'date',
               description: 'Date of birth',
               nullable: true
             },
             gender: {
               type: 'string',
-              enum: ['MALE', 'FEMALE', 'OTHER'],
+              description: 'Gender',
               nullable: true
             },
             address: {
               type: 'string',
-              maxLength: 255,
+              description: 'Address',
               nullable: true
             },
             role: {
               type: 'string',
-              maxLength: 50,
               description: 'Role name'
             },
             status: {
               type: 'string',
-              enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED'],
               description: 'User status'
             },
             createdAt: {
               type: 'string',
-              format: 'date-time'
+              description: 'Created date'
             },
             updatedAt: {
               type: 'string',
-              format: 'date-time'
+              description: 'Updated date'
             }
           }
         },
@@ -169,19 +147,6 @@ const options = {
             name: {
               type: 'string',
               description: 'Role name'
-            },
-            description: {
-              type: 'string',
-              description: 'Role description',
-              nullable: true
-            },
-            createdAt: {
-              type: 'string',
-              format: 'date-time'
-            },
-            updatedAt: {
-              type: 'string',
-              format: 'date-time'
             },
             permissions: {
               type: 'array',
@@ -378,4 +343,12 @@ const options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
-export { swaggerUi, swaggerSpec };
+// Swagger UI options with persistent authorization
+const swaggerUiOptions = {
+  swaggerOptions: {
+    persistAuthorization: true, // Persist authorization data in localStorage
+  },
+  customCss: '.swagger-ui .topbar { display: none }' // Optional: hide top bar
+};
+
+export { swaggerUi, swaggerSpec, swaggerUiOptions };

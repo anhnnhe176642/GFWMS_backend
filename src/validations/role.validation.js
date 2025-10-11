@@ -11,18 +11,13 @@ export const createRoleSchema = Joi.object({
   name: roleSchema.required()
 });
 
-// Schema validation cho cập nhật role
-export const updateRoleSchema = Joi.object({
-  name: roleSchema.required()
-});
-
 // Schema validation cho role name parameter
 export const roleNameParamSchema = Joi.object({
   name: roleSchema.required()
 });
 
 // Allowed fields for sorting roles
-const allowedRoleSortFields = ['name', 'createdAt', 'updatedAt'];
+const allowedRoleSortFields = ['name'];
 
 // Advanced query schema cho role với search, sort
 export const roleQuerySchema = querySchema.keys({
