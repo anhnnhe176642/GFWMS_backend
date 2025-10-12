@@ -4,17 +4,15 @@ import {
   getWarehouseById,
   createWarehouse,
   updateWarehouse,
-  deleteWarehouse,
-  restoreWarehouse,
-  getDeletedWarehouses,
-  searchWarehouses
+  changeWarehouseStatus
 } from '../controllers/warehouse.controller.js';
 import { authenticateToken, requirePermission } from '../middlewares/auth.middleware.js';
 import { validate, validateMultiple } from '../middlewares/validation.middleware.js';
 import { 
   createWarehouseSchema, 
   updateWarehouseSchema, 
-  warehouseQuerySchema 
+  warehouseQuerySchema,
+  changeWarehouseStatusSchema
 } from '../validations/warehouse.validation.js';
 import { PERMISSIONS } from '../constants/permissions.js';
 
@@ -57,7 +55,7 @@ router.use(authenticateToken);
  *           type: string
  *           enum: [ACTIVE, INACTIVE]
  *         description: Filter by status (omit to get all; ACTIVE = active only; INACTIVE = inactive only)
- *         example: "ACTIVE"
+ *         example: ""
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -392,11 +390,12 @@ router.put('/:id',
   updateWarehouse
 );
 
+// warehouse.routes.js
 /**
  * @swagger
- * /warehouses/{id}:
- *   delete:
- *     summary: Soft delete warehouse
+ * /warehouses/{id}/status:
+ *   patch:
+ *     summary: Change warehouse status
  *     tags: [Warehouses]
  *     security:
  *       - bearerAuth: []
@@ -407,121 +406,29 @@ router.put('/:id',
  *         schema:
  *           type: integer
  *         description: Warehouse ID
- *         example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, INACTIVE]
+ *                 example: "INACTIVE"
  *     responses:
  *       200:
- *         description: Warehouse deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     name:
- *                       type: string
- *                       example: "Kho Hà Nội"
- *                     address:
- *                       type: string
- *                       example: "123 Đường Láng, Hà Nội"
- *                     status:
- *                       type: string
- *                       example: "INACTIVE"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                 message:
- *                   type: string
- *                   example: "Xóa warehouse thành công"
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- *       404:
- *         description: Not found
+ *         description: Status changed successfully
  */
-router.delete('/:id', 
-  requirePermission(PERMISSIONS.WAREHOUSES.DELETE.key),
-  deleteWarehouse
+router.patch('/:id/status',
+  requirePermission(PERMISSIONS.WAREHOUSES.UPDATE.key),
+  validate(changeWarehouseStatusSchema),
+  changeWarehouseStatus
 );
 
-/**
- * @swagger
- * /warehouses/{id}/restore:
- *   patch:
- *     summary: Restore deleted warehouse
- *     tags: [Warehouses]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Warehouse ID
- *         example: 1
- *     responses:
- *       200:
- *         description: Warehouse restored successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     name:
- *                       type: string
- *                       example: "Kho Hà Nội"
- *                     address:
- *                       type: string
- *                       example: "123 Đường Láng, Hà Nội"
- *                     status:
- *                       type: string
- *                       example: "ACTIVE"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                 message:
- *                   type: string
- *                   example: "Khôi phục warehouse thành công"
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- *       404:
- *         description: Not found
- *       409:
- *         description: Warehouse already active
- */
-router.patch('/:id/restore', 
-  requirePermission(PERMISSIONS.WAREHOUSES.RESTORE.key), 
-  restoreWarehouse
-);
+
 
 export default router;

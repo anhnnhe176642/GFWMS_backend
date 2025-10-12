@@ -77,15 +77,14 @@ export const updateWarehouse = async (req, res, next) => {
   }
 };
 
-export const deleteWarehouse = async (req, res, next) => {
+export const changeWarehouseStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const warehouse = await warehouseService.deleteWarehouse(id);
-    
+    const { status } = req.body;
+    const warehouse = await warehouseService.changeWarehouseStatus(id, status);
     res.status(200).json({
-      success: true,
-      data: warehouse,
-      message: 'Xóa warehouse thành công'
+      message: `Thay đổi trạng thái kho thành công`,
+      data: warehouse
     });
   } catch (error) {
     next(error);
@@ -93,20 +92,6 @@ export const deleteWarehouse = async (req, res, next) => {
 };
 
 
-export const restoreWarehouse = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const warehouse = await warehouseService.restoreWarehouse(id);
-    
-    res.status(200).json({
-      success: true,
-      data: warehouse,
-      message: 'Khôi phục warehouse thành công'
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 export const getDeletedWarehouses = async (req, res, next) => {
   try {

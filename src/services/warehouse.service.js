@@ -1,9 +1,6 @@
 import { warehouseRepository } from '../repositories/warehouse.repository.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
 
-export const getAllWarehouses = async () => {
-  return await warehouseRepository.findWithAdvancedQuery({});
-};
 
 export const getAllWarehousesAdvanced = async (queryOptions) => {
   return await warehouseRepository.findWithAdvancedQuery(queryOptions);
@@ -28,7 +25,7 @@ export const getWarehouseById = async (id) => {
 export const getActiveWarehouseById = async (id) => {
   const warehouse = await warehouseRepository.findActiveById(id);
   if (!warehouse) {
-    throw new NotFoundError('Kho không tồn tại hoặc đã bị xóa');
+    throw new NotFoundError('Kho không tồn tại hoặc đã không hoạt động');
   }
   return warehouse;
 };
@@ -36,7 +33,7 @@ export const getActiveWarehouseById = async (id) => {
 export const updateWarehouse = async (id, data) => {
   const exists = await warehouseRepository.exists(id);
   if (!exists) {
-    throw new NotFoundError('Kho không tồn tại hoặc đã bị xóa');
+    throw new NotFoundError('Kho không tồn tại hoặc đã ngững hoạt động');
   }
   if (data.name) {
     const nameExists = await warehouseRepository.nameExists(data.name, id);
@@ -47,21 +44,21 @@ export const updateWarehouse = async (id, data) => {
   return await warehouseRepository.updateById(id, data);
 };
 
-export const deleteWarehouse = async (id) => {
-  const exists = await warehouseRepository.exists(id);
-  if (!exists) {
-    throw new NotFoundError('Kho không tồn tại hoặc đã bị xóa');
-  }
-  return await warehouseRepository.softDelete(id);
-};
-
-export const restoreWarehouse = async (id) => {
+export const changeWarehouseStatus = async (id, status) => {
   const warehouse = await warehouseRepository.findById(id);
   if (!warehouse) {
     throw new NotFoundError('Kho không tồn tại');
   }
-  if (warehouse.status === 'ACTIVE') {
-    throw new ConflictError('Kho đã ở trạng thái hoạt động');
+
+  if (warehouse.status === status) {
+    throw new ConflictError(`Kho đã ở trạng thái ${status}`);
   }
-  return await warehouseRepository.restore(id);
+  
+  if (status === 'INACTIVE') {
+    return await warehouseRepository.softDelete(id);
+  } else if (status === 'ACTIVE') {
+    return await warehouseRepository.restore(id);
+  } else {
+    throw new Error('Trạng thái không hợp lệ');
+  }
 };

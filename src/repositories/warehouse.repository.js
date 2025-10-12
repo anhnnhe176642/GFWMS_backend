@@ -14,13 +14,6 @@ export class WarehouseRepository {
     updatedAt: true,
   };
 
-  async findAll() {
-    return await prisma.warehouse.findMany({
-      where: { status: 'ACTIVE' },
-      select: this.#warehouseSelectOptions
-    });
-  }
-
 
   async findById(id) {
     return await prisma.warehouse.findUnique({
@@ -75,22 +68,24 @@ export class WarehouseRepository {
       search = '', 
       sortBy = 'createdAt', 
       order = 'desc',
-      status,
+      status,                  
       createdFrom,
       createdTo
     } = queryOptions;
 
     const where = {};
 
-    // Status filter
-    if (status) {
+    // Status: có thì lọc theo, không có thì lấy tất cả
+    if (status === 'ACTIVE' || status === 'INACTIVE') {
       where.status = status;
     }
 
+    // Search trong name, address
     if (search) {
+      const searchLower = search.toLowerCase();
       where.OR = [
-        { name: { contains: search } }, 
-        { address: { contains: search } }
+        { name: { contains: searchLower } },
+        { address: { contains: searchLower } }
       ];
     }
 
@@ -118,27 +113,7 @@ export class WarehouseRepository {
     return formatPaginatedResponse(warehouses, total, page, take);
   }
 
-  async softDelete(id) { // đổi tt -> inactive
-    return await withPrismaErrorHandling(
-      () => prisma.warehouse.update({
-        where: { id: parseInt(id) },
-        data: { status: 'INACTIVE' },
-        select: this.#warehouseSelectOptions
-      }),
-      {}
-    );
-  }
 
-  async restore(id) { //đỏi lai -> active
-    return await withPrismaErrorHandling(
-      () => prisma.warehouse.update({
-        where: { id: parseInt(id) },
-        data: { status: 'ACTIVE' },
-        select: this.#warehouseSelectOptions
-      }),
-      {}
-    );
-  }
 
   async exists(id) {
     const count = await prisma.warehouse.count({
@@ -150,6 +125,7 @@ export class WarehouseRepository {
     return count > 0;
   }
 
+  // Check exists cả INACTIVE
   async existsIncludingInactive(id) {
     const count = await prisma.warehouse.count({
       where: { id: parseInt(id) }
@@ -158,10 +134,7 @@ export class WarehouseRepository {
   }
 
   async nameExists(name, excludeId = null) {
-    const where = { 
-      name,
-      status: 'ACTIVE' // check trong kho ACTIVE thôi ? lại ae
-    };
+    const where = { name };
     if (excludeId) {
       where.id = { not: parseInt(excludeId) };
     }
@@ -170,6 +143,19 @@ export class WarehouseRepository {
     return count > 0;
   }
 
+  async changeStatus(id, status) {
+    return await withPrismaErrorHandling(
+      () => prisma.warehouse.update({
+        where: { id: parseInt(id) },
+        data: { 
+          status, 
+          updatedAt: new Date() 
+        },
+        select: this.#warehouseSelectOptions
+      }),
+      {}
+    );
+  }
 }
 
 export const warehouseRepository = new WarehouseRepository();

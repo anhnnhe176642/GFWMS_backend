@@ -56,3 +56,13 @@ export const warehouseQuerySchema = Joi.object({
   createdFrom: Joi.date().iso().optional(),
   createdTo: Joi.date().iso().optional()
 });
+
+export const changeWarehouseStatusSchema = Joi.object({
+  status: Joi.string()
+    .valid('ACTIVE', 'INACTIVE')
+    .required()
+    .messages({
+      'any.required': 'Trạng thái là bắt buộc',
+      'any.only': 'Trạng thái phải là ACTIVE hoặc INACTIVE'
+    })
+});
