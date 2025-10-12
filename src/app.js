@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import roleRoutes from './routes/role.routes.js';
+import fabricRoutes from './routes/fabric.routes.js'; 
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 
@@ -26,6 +27,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
+app.use('/fabrics', fabricRoutes); 
 
 // Health check route
 app.get('/check', (req, res) => {

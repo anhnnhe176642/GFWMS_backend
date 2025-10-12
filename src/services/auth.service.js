@@ -102,4 +102,3 @@ export const changeUserPassword = async (userId, currentPassword, newPassword) =
   // Update password
   await userRepository.updateById(userId, { password: hashedNewPassword });
 };
-//test
