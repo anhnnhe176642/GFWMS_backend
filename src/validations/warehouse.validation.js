@@ -2,11 +2,12 @@ import Joi from 'joi';
 import {
   pageSchema,
   limitSchema,
-  querySchema,
+  searchSchema,
   createSortBySchema,
   sortOrderSchema,
   dateFromSchema,
-  dateToSchema
+  dateToSchema,
+  addressSchema
 } from './common.validation.js';
 
 // Warehouse name validation
@@ -21,45 +22,37 @@ export const warehouseNameSchema = Joi.string()
   });
 
 // Address validation
-export const addressSchema = Joi.string()
+export const warehouseAddressSchema = addressSchema
   .min(5)
-  .max(255)
   .required()
   .messages({
-    'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
-    'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
-    'any.required': 'Địa chỉ là bắt buộc'
+    'string.min': 'Địa chỉ kho phải có ít nhất 5 ký tự',
+    'any.required': 'Địa chỉ kho là bắt buộc'
   });
 
 // Schema validation cho tạo warehouse
 export const createWarehouseSchema = Joi.object({
   name: warehouseNameSchema,
-  address: addressSchema
+  address: warehouseAddressSchema
 });
 
 // Schema validation cho update warehouse
 export const updateWarehouseSchema = Joi.object({
   name: warehouseNameSchema.optional(),
-  address: addressSchema.optional()
+  address: warehouseAddressSchema.optional()
 });
 
-// Schema validation cho ID params (Integer) - ĐÂY LÀ EXPORT BỊ THIẾU
-export const idParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required().messages({
-    'number.base': 'ID phải là số',
-    'number.integer': 'ID phải là số nguyên',
-    'number.positive': 'ID phải là số dương',
-    'any.required': 'ID là bắt buộc'
-  })
-});
 
 // Allowed fields for sorting warehouses
 const allowedWarehouseSortFields = ['createdAt', 'updatedAt', 'name', 'address'];
 
-// Advanced query schema cho warehouse
-export const warehouseQuerySchema = querySchema.keys({
-  sortBy: createSortBySchema(allowedWarehouseSortFields),
-  order: sortOrderSchema.optional(),
-  createdFrom: dateFromSchema.optional(),
-  createdTo: dateToSchema.optional()
+export const warehouseQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(10),
+  search: Joi.string().allow('').optional(),
+  status: Joi.string().valid('ACTIVE', 'INACTIVE').optional(), 
+  sortBy: Joi.string().valid('createdAt', 'updatedAt', 'name', 'address').default('createdAt'),
+  order: Joi.string().valid('asc', 'desc').default('desc'),
+  createdFrom: Joi.date().iso().optional(),
+  createdTo: Joi.date().iso().optional()
 });

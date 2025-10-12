@@ -27,12 +27,14 @@ export const PERMISSIONS = {
 
   // Warehouse Management
   WAREHOUSES: {
-    VIEW_LIST:   { key: 'warehouse:view_list',   description: 'Xem danh sách kho' },
-    VIEW_DETAIL: { key: 'warehouse:view_detail', description: 'Xem chi tiết kho' },
-    CREATE:      { key: 'warehouse:create',      description: 'Tạo kho mới' },
-    UPDATE:      { key: 'warehouse:update',      description: 'Cập nhật thông tin kho' },
-    DELETE:      { key: 'warehouse:delete',      description: 'Xóa kho' },
-    MANAGE:      { key: 'warehouse:manage',      description: 'Quản lý kho' }
+    VIEW_LIST:    { key: 'warehouse:view_list',    description: 'Xem danh sách kho' },
+    VIEW_DETAIL:  { key: 'warehouse:view_detail',  description: 'Xem chi tiết kho' },
+    CREATE:       { key: 'warehouse:create',       description: 'Tạo kho mới' },
+    UPDATE:       { key: 'warehouse:update',       description: 'Cập nhật thông tin kho' },
+    DELETE:       { key: 'warehouse:delete',       description: 'Xóa kho (soft delete)' },
+    RESTORE:      { key: 'warehouse:restore',      description: 'Khôi phục kho đã xóa' },
+    VIEW_DELETED: { key: 'warehouse:view_deleted', description: 'Xem danh sách kho đã xóa' },
+    MANAGE:       { key: 'warehouse:manage',       description: 'Quản lý kho' }
   },
   
   // Credit Registration
