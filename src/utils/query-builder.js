@@ -14,7 +14,6 @@ export const buildWhereClause = (filters = {}, searchableFields = [], filterMapp
     where.OR = searchableFields.map(field => ({
       [field]: {
         contains: search,
-        mode: 'insensitive'
       }
     }));
   }
