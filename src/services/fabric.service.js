@@ -28,6 +28,5 @@ export const getFabricById = async (id) => {
  * Lấy danh sách Fabric nâng cao (lọc, tìm kiếm, sắp xếp)
  */
 export const getAllFabricsAdvanced = async (queryOptions) => {
-    console.log('🧩 queryOptions trước khi gọi repo:', queryOptions);
   return await fabricRepository.findWithAdvancedQuery(queryOptions);
 };

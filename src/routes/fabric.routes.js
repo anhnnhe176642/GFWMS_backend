@@ -44,37 +44,37 @@ const router = express.Router();
  *           type: string
  *           maxLength: 100
  *         description: Search keyword (supports searching by color, category, gloss, supplier)
- *         example: "silk"
+ *         example: ""
  *       - in: query
  *         name: glossId
  *         schema:
  *           type: string
  *         description: Filter by gloss id. Can be single or comma-separated values.
- *         example: "1,2"
+ *         example: ""
  *       - in: query
  *         name: categoryId
  *         schema:
  *           type: string
  *         description: Filter by category id. Single or multiple values separated by commas.
- *         example: "1,2,3"
+ *         example: ""
  *       - in: query
  *         name: colorId
  *         schema:
  *           type: string
  *         description: Filter by color id. Single or multiple values separated by commas.
- *         example: "1,2,3"
+ *         example: ""
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort field (thickness, price, stock, created)
- *         example: "price"
+ *         description: Sort field (id, createdAt, updatedAt, sellingPrice, quantityInStock, weight, length, width)
+ *         example: ""
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
  *         description: Sort order (ascending or descending)
- *         example: "asc"
+ *         example: ""
  *     responses:
  *       200:
  *         description: Fabrics retrieved successfully

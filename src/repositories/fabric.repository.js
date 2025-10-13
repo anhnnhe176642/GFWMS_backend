@@ -108,29 +108,48 @@ export class FabricRepository {
     return formatPaginatedResponse(fabrics, total, page, limit);
   }
 
-  buildWhereClause({ search, filters }) {
+ buildWhereClause = ({ search, filters }) => {
   const where = {};
 
-  // Filter theo relation ID
+  // ✅ Xác định kiểu dữ liệu cho từng field
+  const fieldTypeMap = {
+    colorId: 'string',
+    categoryId: 'int',
+    glossId: 'int',
+    supplierId: 'int',
+  };
+
   const addFilter = (field, value) => {
     if (value === undefined || value === null) return;
 
+    const type = fieldTypeMap[field];
+    const toCorrectType = (v) => {
+      const trimmed = v.trim();
+      if (type === 'int') {
+        if (!/^\d+$/.test(trimmed)) {
+          // Nếu user nhập chữ mà field là Int → báo lỗi
+          throw new Error(`${field} không hợp lệ: phải là số`);
+        }
+        return Number(trimmed);
+      }
+      return trimmed; // string giữ nguyên
+    };
+
     if (Array.isArray(value)) {
-      where[field] = value.length > 1
-        ? { in: value.map(v => v.trim()) } 
-        : value[0].trim();
+      const processed = value.map(v => toCorrectType(v));
+      where[field] = processed.length > 1 ? { in: processed } : processed[0];
     } else {
-      where[field] = value.trim(); 
+      where[field] = toCorrectType(value);
     }
   };
 
-  // 🔹 Áp dụng cho các filter quan hệ
+  // 🔹 Áp dụng filter theo kiểu dữ liệu từng field
   addFilter('colorId', filters.colorId);
   addFilter('categoryId', filters.categoryId);
   addFilter('glossId', filters.glossId);
   addFilter('supplierId', filters.supplierId);
 
-  // 🔍 Search text trong các relation
+  // 🔍 Search text trong các quan hệ
   if (search) {
     where.OR = [
       { color: { name: { contains: search } } },
@@ -141,7 +160,8 @@ export class FabricRepository {
   }
 
   return where;
-}
+};
+
 
 
   buildOrderBy(sortBy, order) {
