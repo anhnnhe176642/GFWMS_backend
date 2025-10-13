@@ -14,6 +14,8 @@ export const getAllFabrics = async (req, res, next) => {
       }
     });
 
+    console.log('🔍 Query params:', req.query);
+
     const result = await fabricService.getAllFabricsAdvanced(queryParams);
 
     res.json({
@@ -44,34 +46,4 @@ export const getFabricById = async (req, res, next) => {
   }
 };
 
-/** 🔹 Tạo mới Fabric */
-export const createFabric = async (req, res, next) => {
-  try {
-    const fabricData = req.body;
-    const fabric = await fabricService.createFabric(fabricData);
 
-    res.status(201).json({
-      message: 'Tạo vải thành công',
-      fabric
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/** 🔹 Cập nhật Fabric */
-export const updateFabric = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const fabricData = req.body;
-
-    const updatedFabric = await fabricService.updateFabric(parseInt(id), fabricData);
-
-    res.json({
-      message: 'Cập nhật vải thành công',
-      fabric: updatedFabric
-    });
-  } catch (error) {
-    next(error);
-  }
-};

@@ -89,6 +89,8 @@ const fabricColorIdSchema = Joi.string()
   .required()
   .messages({
     'string.base': 'colorId phải là chuỗi',
+    'string.empty': 'colorId không được để trống',
+    'string.min': 'colorId không được để trống',
     'string.max': 'colorId không được vượt quá 50 ký tự',
     'any.required': 'colorId là bắt buộc'
   });
@@ -103,36 +105,6 @@ const fabricSupplierIdSchema = Joi.number()
     'any.required': 'supplierId là bắt buộc'
   });
 
-/**
- * ============================
- * CREATE / UPDATE SCHEMAS
- * ============================
- */
-export const createFabricSchema = Joi.object({
-  thickness: fabricThicknessSchema.required(),
-  glossId: fabricGlossIdSchema,
-  length: fabricLengthSchema.required(),
-  width: fabricWidthSchema.required(),
-  weight: fabricWeightSchema.required(),
-  sellingPrice: fabricSellingPriceSchema.required(),
-  quantityInStock: fabricQuantitySchema.required(),
-  categoryId: fabricCategoryIdSchema,
-  colorId: fabricColorIdSchema,
-  supplierId: fabricSupplierIdSchema
-});
-
-export const updateFabricSchema = Joi.object({
-  thickness: fabricThicknessSchema.optional(),
-  glossId: fabricGlossIdSchema.optional(),
-  length: fabricLengthSchema.optional(),
-  width: fabricWidthSchema.optional(),
-  weight: fabricWeightSchema.optional(),
-  sellingPrice: fabricSellingPriceSchema.optional(),
-  quantityInStock: fabricQuantitySchema.optional(),
-  categoryId: fabricCategoryIdSchema.optional(),
-  colorId: fabricColorIdSchema.optional(),
-  supplierId: fabricSupplierIdSchema.optional()
-});
 
 /**
  * ============================

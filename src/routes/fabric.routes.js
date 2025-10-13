@@ -1,16 +1,13 @@
 import express from 'express';
 import {
   getAllFabrics,
-  getFabricById,
-  createFabric,
-  updateFabric
+  getFabricById
 } from '../controllers/fabric.controller.js';
 import { authenticateToken, requirePermission } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validation.middleware.js';
 import {
-  createFabricSchema,
-  updateFabricSchema,
-  fabricIdParamSchema
+  fabricIdParamSchema,
+  fabricQuerySchema 
 } from '../validations/fabric.validation.js';
 import { PERMISSIONS } from '../constants/permissions.js';
 
@@ -49,35 +46,23 @@ const router = express.Router();
  *         description: Search keyword (supports searching by color, category, gloss, supplier)
  *         example: "silk"
  *       - in: query
- *         name: gloss
+ *         name: glossId
  *         schema:
  *           type: string
- *         description: Filter by gloss description. Can be single or comma-separated values.
- *         example: "Mờ,Bóng"
+ *         description: Filter by gloss id. Can be single or comma-separated values.
+ *         example: "1,2"
  *       - in: query
- *         name: category
+ *         name: categoryId
  *         schema:
  *           type: string
- *         description: Filter by category name. Single or multiple values separated by commas.
- *         example: "Cotton,Lụa"
+ *         description: Filter by category id. Single or multiple values separated by commas.
+ *         example: "1,2,3"
  *       - in: query
- *         name: color
+ *         name: colorId
  *         schema:
  *           type: string
- *         description: Filter by color name. Single or multiple values separated by commas.
- *         example: "Đỏ,Xanh"
- *       - in: query
- *         name: supplier
- *         schema:
- *           type: string
- *         description: Filter by supplier name. Single or multiple values separated by commas.
- *         example: "Nhà cung cấp A,Nhà cung cấp B"
- *       - in: query
- *         name: thickness
- *         schema:
- *           type: number
- *         description: Filter by fabric thickness (mm)
- *         example: 0.25
+ *         description: Filter by color id. Single or multiple values separated by commas.
+ *         example: "1,2,3"
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -140,8 +125,6 @@ const router = express.Router();
  *                 limit: 10
  *                 total: 25
  *                 totalPages: 3
- *       400:
- *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -151,6 +134,7 @@ router.get(
   '/',
   authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.VIEW_LIST.key),
+  validate(fabricQuerySchema, 'query'),
   getAllFabrics
 );
 
@@ -189,70 +173,6 @@ router.get(
   getFabricById
 );
 
-// // Tạo mới Fabric
-// /**
-//  * @swagger
-//  * /fabrics:
-//  *   post:
-//  *     summary: Tạo mới vải
-//  *     tags: [Fabrics]
-//  *     security:
-//  *       - bearerAuth: []
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             $ref: '#/components/schemas/Fabric'
-//  *     responses:
-//  *       201:
-//  *         description: Tạo mới thành công
-//  *       400:
-//  *         description: Dữ liệu không hợp lệ
-//  */
-// router.post(
-//   '/',
-//   authenticateToken,
-//   requirePermission(PERMISSIONS.FABRICS.CREATE.key),
-//   validate(createFabricSchema),
-//   createFabric
-// );
-
-// // Cập nhật Fabric
-// /**
-//  * @swagger
-//  * /fabrics/{id}:
-//  *   put:
-//  *     summary: Cập nhật thông tin vải
-//  *     tags: [Fabrics]
-//  *     security:
-//  *       - bearerAuth: []
-//  *     parameters:
-//  *       - in: path
-//  *         name: id
-//  *         required: true
-//  *         schema:
-//  *           type: integer
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             $ref: '#/components/schemas/Fabric'
-//  *     responses:
-//  *       200:
-//  *         description: Cập nhật thành công
-//  *       404:
-//  *         description: Không tìm thấy vải
-//  */
-// router.put(
-//   '/:id',
-//   authenticateToken,
-//   requirePermission(PERMISSIONS.FABRICS.UPDATE.key),
-//   validate(fabricIdParamSchema, 'params'),
-//   validate(updateFabricSchema),
-//   updateFabric
-// );
 
 
 export default router;

@@ -10,28 +10,20 @@ export class FabricRepository {
     id: true,
     thickness: true,
     glossId: true,
-    gloss: {
-      select: { id: true, description: true }
-    },
+    gloss: { select: { id: true, description: true } },
     length: true,
     width: true,
     weight: true,
     sellingPrice: true,
     quantityInStock: true,
     categoryId: true,
-    category: {
-      select: { id: true, name: true }
-    },
+    category: { select: { id: true, name: true } },
     colorId: true,
-    color: {
-      select: { id: true, name: true }
-    },
+    color: { select: { id: true, name: true } },
     supplierId: true,
-    supplier: {
-      select: { id: true, name: true }
-    },
+    supplier: { select: { id: true, name: true } },
     createdAt: true,
-    updatedAt: true
+    updatedAt: true,
   };
 
   /** 🔹 Lấy tất cả Fabric */
@@ -50,48 +42,7 @@ export class FabricRepository {
     });
   }
 
-  /** 🔹 Tạo mới Fabric */
-  async create(fabricData) {
-    return await withPrismaErrorHandling(
-      () =>
-        prisma.fabric.create({
-          data: fabricData,
-          select: this.#fabricSelectOptions
-        }),
-      {
-        glossId: 'Độ bóng không hợp lệ',
-        categoryId: 'Danh mục không hợp lệ',
-        colorId: 'Màu sắc không hợp lệ',
-        supplierId: 'Nhà cung cấp không hợp lệ'
-      }
-    );
-  }
 
-  /** 🔹 Cập nhật Fabric */
-  async updateById(id, fabricData) {
-    return await withPrismaErrorHandling(
-      () =>
-        prisma.fabric.update({
-          where: { id },
-          data: fabricData,
-          select: this.#fabricSelectOptions
-        }),
-      {
-        glossId: 'Độ bóng không hợp lệ',
-        categoryId: 'Danh mục không hợp lệ',
-        colorId: 'Màu sắc không hợp lệ',
-        supplierId: 'Nhà cung cấp không hợp lệ'
-      }
-    );
-  }
-
-  /** 🔹 Xóa Fabric (cứng) */
-  async deleteById(id) {
-    return await prisma.fabric.delete({
-      where: { id },
-      select: this.#fabricSelectOptions
-    });
-  }
 
   /** 🔹 Đếm tổng số Fabric */
   async count(filters = {}) {
@@ -125,7 +76,7 @@ export class FabricRepository {
     };
   }
 
-  /** 🔹 Tìm kiếm nâng cao (lọc theo màu, loại, độ bóng, nhà cung cấp, ...) */
+  /** 🔹 Tìm kiếm nâng cao với filter, sort, pagination */
   async findWithAdvancedQuery(queryOptions = {}) {
     const {
       page = 1,
@@ -133,42 +84,76 @@ export class FabricRepository {
       search = '',
       sortBy = 'createdAt',
       order = 'desc',
-      filters = {}
+      filters = {},
     } = queryOptions;
 
-    // Các trường có thể search (ví dụ: theo tên màu, loại vải, nhà cung cấp)
-    const searchableFields = [
-      'color.name',
-      'category.name',
-      'gloss.name',
-      'supplier.name'
-    ];
+    // Build where clause (case-sensitive search)
+    const where = this.buildWhereClause({ search, filters });
 
-    const where = buildWhereClause(
-      { search, ...filters },
-      searchableFields
-    );
+    const skip = (page - 1) * limit;
+    const orderBy = this.buildOrderBy(sortBy, order);
 
-    const { skip, take } = buildPagination(page, limit);
-    const orderBy = buildSort(sortBy, order, {
-      thickness: 'thickness',
-      price: 'sellingPrice',
-      stock: 'quantityInStock',
-      created: 'createdAt'
-    });
-
+    // Lấy dữ liệu và đếm tổng số
     const [fabrics, total] = await Promise.all([
       prisma.fabric.findMany({
         where,
-        skip,
-        take,
         select: this.#fabricSelectOptions,
-        orderBy
+        skip,
+        take: limit,
+        orderBy,
       }),
-      prisma.fabric.count({ where })
+      prisma.fabric.count({ where }), // mode: 'insensitive' đã bỏ
     ]);
 
-    return formatPaginatedResponse(fabrics, total, page, take);
+    return formatPaginatedResponse(fabrics, total, page, limit);
+  }
+
+  buildWhereClause({ search, filters }) {
+  const where = {};
+
+  // Filter theo relation ID
+  const addFilter = (field, value) => {
+    if (value === undefined || value === null) return;
+
+    if (Array.isArray(value)) {
+      where[field] = value.length > 1
+        ? { in: value.map(v => v.trim()) } 
+        : value[0].trim();
+    } else {
+      where[field] = value.trim(); 
+    }
+  };
+
+  // 🔹 Áp dụng cho các filter quan hệ
+  addFilter('colorId', filters.colorId);
+  addFilter('categoryId', filters.categoryId);
+  addFilter('glossId', filters.glossId);
+  addFilter('supplierId', filters.supplierId);
+
+  // 🔍 Search text trong các relation
+  if (search) {
+    where.OR = [
+      { color: { name: { contains: search } } },
+      { category: { name: { contains: search } } },
+      { gloss: { description: { contains: search } } },
+      { supplier: { name: { contains: search } } },
+    ];
+  }
+
+  return where;
+}
+
+
+  buildOrderBy(sortBy, order) {
+    const sortMapping = {
+      thickness: 'thickness',
+      price: 'sellingPrice',
+      stock: 'quantityInStock',
+      created: 'createdAt',
+    };
+
+    const field = sortMapping[sortBy] || 'createdAt';
+    return { [field]: order };
   }
 }
 
