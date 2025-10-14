@@ -6,25 +6,74 @@ import Joi from 'joi';
 
 /**
  * Helper function để tạo multi-value filter schema
- * Validate format comma-separated và từng giá trị individual
+ * Validate format comma-separated, validate từng giá trị và tự động chuyển thành mảng JSON
+ * Tự động convert sang số nếu singleValueSchema là kiểu number/integer
+ * 
  * @param {Object} singleValueSchema - Schema validation cho single value
  * @param {string} fieldName - Tên field để hiển thị trong error message
- * @returns {Object} Joi schema cho multi-value filter
+ * @returns {Object} Joi schema cho multi-value filter (trả về array)
+ * 
+ * @example
+ * // Với string schema - trả về mảng string
+ * const nameFilter = createMultiValueFilterSchema(Joi.string().min(2), 'name');
+ * // Input: "John,Jane,Bob" → Output: ["John", "Jane", "Bob"]
+ * 
+ * @example
+ * // Với number schema - tự động convert sang số
+ * const ageFilter = createMultiValueFilterSchema(Joi.number().integer().min(1), 'age');
+ * // Input: "25,30,35" → Output: [25, 30, 35]
+ * 
+ * @example
+ * // Với UUID schema - validate và trả về mảng UUID
+ * const idFilter = createMultiValueFilterSchema(uuidSchema, 'id');
+ * // Input: "uuid1,uuid2,uuid3" → Output: ["uuid1", "uuid2", "uuid3"]
+ * 
+ * @example
+ * // Sử dụng trong validation schema
+ * const queryValidation = Joi.object({
+ *   ids: createMultiValueFilterSchema(uuidSchema, 'IDs'),
+ *   ages: createMultiValueFilterSchema(Joi.number().integer().positive(), 'Ages')
+ * });
  */
 export const createMultiValueFilterSchema = (singleValueSchema, fieldName) => {
+  // Kiểm tra xem schema có phải là kiểu number/integer không
+  const isNumberType = singleValueSchema.type === 'number';
+  
   return Joi.string()
     .pattern(/^[^,]+(,\s*[^,]+)*$/) // Check format: không rỗng và có dấu phẩy hợp lệ
     .optional()
     .custom((value, helpers) => {
-      // Validate từng giá trị bằng schema gốc
+      // Split và trim các giá trị
       const values = value.split(',').map(v => v.trim());
+      const result = [];
+      
+      // Validate và convert từng giá trị
       for (const val of values) {
-        const { error } = singleValueSchema.validate(val);
-        if (error) {
-          return helpers.error('any.invalid', { message: error.details[0].message });
+        // Nếu là number type, convert sang số trước khi validate
+        let processedValue = val;
+        if (isNumberType) {
+          processedValue = Number(val);
+          // Kiểm tra nếu convert thất bại
+          if (isNaN(processedValue)) {
+            return helpers.error('any.invalid', { 
+              message: `Giá trị "${val}" không phải là số hợp lệ` 
+            });
+          }
         }
+        
+        // Validate giá trị đã được xử lý
+        const { error } = singleValueSchema.validate(processedValue);
+        if (error) {
+          return helpers.error('any.invalid', { 
+            message: error.details[0].message 
+          });
+        }
+        
+        result.push(processedValue);
       }
-      return value;
+      
+      // Trả về mảng đã được validate và convert
+      return result;
     })
     .messages({
       'string.pattern.base': `${fieldName} phải là giá trị hợp lệ hoặc nhiều giá trị cách nhau bởi dấu phẩy`,
@@ -180,6 +229,11 @@ export const sortBySchema = Joi.string()
  * Support multiple fields (comma-separated)
  * @param {string[]} allowedFields - Mảng các field được phép sort
  * @returns {Object} Joi schema cho sortBy với validation whitelist
+ * 
+ * @example
+ * const userSortBy = createSortBySchema(['createdAt', 'username', 'email']);
+ * // Hợp lệ: "createdAt", "username,email"
+ * // Không hợp lệ: "password" (không trong whitelist)
  */
 export const createSortBySchema = (allowedFields) => {
   return sortBySchema
