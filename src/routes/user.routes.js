@@ -118,6 +118,8 @@ router.use(authenticateToken);
  *                 limit: 10
  *                 total: 50
  *                 totalPages: 5
+ *                 hasNext: true
+ *                 hasPrev: false
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
