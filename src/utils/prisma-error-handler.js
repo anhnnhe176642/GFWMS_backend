@@ -95,7 +95,7 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
     }
     
     case 'P2003': {
-      // Foreign key constraint failed
+      // Foreign key constraint failed (có 2 trường hợp)
       console.log('P2003 Error Meta:', JSON.stringify(error.meta, null, 2));
       
       let fieldName = 'Tham chiếu';
@@ -115,13 +115,67 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
         fieldName = extractFieldFromConstraint(constraintValue) || constraintValue;
       }
       
-      // Kiểm tra fieldMappings để custom message
+      // Phân biệt 2 trường hợp dựa vào message hoặc context
+      const errorMessage = error.message || '';
+      
+      // Trường hợp 1: Xóa khi có bản ghi tham chiếu (delete operation)
+      if (errorMessage.toLowerCase().includes('delete') || 
+          errorMessage.toLowerCase().includes('foreign key constraint failed on the field')) {
+        
+        // Kiểm tra fieldMappings trước
+        const customMessage = fieldMappings[fieldName];
+        if (customMessage) {
+          throw new ConflictError(customMessage, fieldName);
+        }
+        
+        throw new ConflictError(
+          `Không thể xóa vì có dữ liệu khác đang tham chiếu đến bản ghi này`,
+          fieldName
+        );
+      }
+      
+      // Trường hợp 2: Tạo/cập nhật với khóa ngoại không hợp lệ
       const customMessage = fieldMappings[fieldName];
       if (customMessage) {
         throw new ConflictError(customMessage, fieldName);
       }
       
       throw new ConflictError(`${fieldName} không hợp lệ hoặc không tồn tại`, fieldName);
+    }
+    
+    case 'P2023': {
+      // Inconsistent column data
+      throw new ValidationError('Dữ liệu cột không nhất quán');
+    }
+    
+    case 'P2010': {
+      // Raw query failed
+      throw new InternalServerError('Truy vấn thô thất bại');
+    }
+    
+    case 'P2011': {
+      // Null constraint violation
+      const target = error.meta?.constraint || error.meta?.column || 'Trường';
+      throw new ValidationError(`${target} không được để trống`);
+    }
+    
+    case 'P2015': {
+      // Related record not found
+      throw new NotFoundError('Bản ghi liên quan không tồn tại');
+    }
+    
+    case 'P2018': {
+      // Required connected records not found
+      throw new NotFoundError('Không tìm thấy bản ghi được yêu cầu kết nối');
+    }
+    
+    case 'P2017': {
+      // Records for relation between models not connected (xóa khi có khóa ngoại tham chiếu)
+      const relationName = error.meta?.relation_name || 'bản ghi';
+      throw new ConflictError(
+        `Không thể xóa vì có ${relationName} đang tham chiếu đến bản ghi này`,
+        relationName
+      );
     }
     
     case 'P2014': {
