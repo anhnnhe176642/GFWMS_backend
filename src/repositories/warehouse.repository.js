@@ -97,59 +97,15 @@ export class WarehouseRepository {
     return count > 0;
   }
 
-  async checkForeignKeyReferences(warehouseId) {
-  const [
-    shelveCount,
-    importCount,
-    exportCount,
-    fabricShelfCount,
-    destroyCount,
-    manageCount
-  ] = await Promise.all([
-    prisma.shelf.count({
-      where: { warehouseId: parseInt(warehouseId) }
-    }),
-    prisma.importFabric.count({
-      where: { warehouseId: parseInt(warehouseId) }
-    }),
-    prisma.exportFabric.count({
-      where: { warehouseId: parseInt(warehouseId) }
-    }),
-    prisma.fabricShelf.count({
-      where: { 
-        shelf: {
-          warehouseId: parseInt(warehouseId)
-        }
-      }
-    }),
-    prisma.destroyFabric.count({
-      where: { 
-        shelf: {
-          warehouseId: parseInt(warehouseId)
-        }
-      }
-    }),
-    prisma.warehouseManage.count({
-      where: { warehouseId: parseInt(warehouseId) }
-    })
-  ]);
-
-  return {
-    shelveCount,
-    importCount,
-    exportCount,
-    fabricShelfCount,
-    destroyCount,
-    manageCount,
-    hasReferences: shelveCount > 0 || importCount > 0 || exportCount > 0 || 
-                   fabricShelfCount > 0 || destroyCount > 0 || manageCount > 0
-  };
-}
-
   async deleteById(id) {
-  return await prisma.warehouse.delete({
-    where: { id: parseInt(id) }
-  });
+  return await withPrismaErrorHandling(
+    () => prisma.warehouse.delete({
+      where: { id: parseInt(id) }
+    }),
+    {
+      warehouseId: 'Không thể xóa kho đang được tham chiếu bởi dữ liệu khác'
+    }
+  );
 }
 }
 
