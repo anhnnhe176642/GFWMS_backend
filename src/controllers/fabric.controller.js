@@ -6,15 +6,12 @@ export const getAllFabrics = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
       filterFields: ['colorId', 'categoryId', 'glossId', 'supplierId'],
-      searchFields: ['color.name', 'category.name', 'gloss.name', 'supplier.name'],
       dateRangeConfig: {
         fromField: 'createdFrom',
         toField: 'createdTo',
         targetField: 'createdAt'
       }
     });
-
-    console.log('🔍 Query params:', req.query);
 
     const result = await fabricService.getAllFabricsAdvanced(queryParams);
 

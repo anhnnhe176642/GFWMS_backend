@@ -33,34 +33,27 @@ router.use(authenticateToken);
  *         name: page
  *         schema:
  *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Page number (min 1)
+ *           example: 1
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 10
- *         description: Items per page (max 100)
+ *           example: 10
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *           maxLength: 100
- *         description: Search keyword (max 100 chars)
+ *           example: Mờ
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Field(s) to sort by. Single or comma-separated
- *         example: description
+ *           example: description
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *         description: Sort order (asc or desc)
+ *           example: asc
  *     responses:
  *       200:
  *         description: Fabric gloss retrieved successfully
@@ -68,10 +61,6 @@ router.use(authenticateToken);
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
- *                 - pagination
  *               properties:
  *                 message:
  *                   type: string
@@ -107,10 +96,9 @@ router.get(
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: integer
- *         description: FabricGloss ID
+ *         example: 1
  *     responses:
  *       200:
  *         description: Fabric gloss retrieved successfully
@@ -118,9 +106,6 @@ router.get(
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
  *               properties:
  *                 message:
  *                   type: string
@@ -152,18 +137,13 @@ router.get(
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - description
  *             properties:
  *               description:
  *                 type: string
- *                 maxLength: 100
- *                 description: Fabric gloss description
  *                 example: Glossy
  *     responses:
  *       201:
@@ -172,9 +152,6 @@ router.get(
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
  *               properties:
  *                 message:
  *                   type: string
@@ -208,12 +185,10 @@ router.post(
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: integer
- *         description: FabricGloss ID
+ *         example: 1
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -221,8 +196,6 @@ router.post(
  *             properties:
  *               description:
  *                 type: string
- *                 maxLength: 100
- *                 description: Fabric gloss description
  *                 example: Matte
  *     responses:
  *       200:
@@ -231,9 +204,6 @@ router.post(
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
  *               properties:
  *                 message:
  *                   type: string

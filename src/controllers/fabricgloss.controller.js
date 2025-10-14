@@ -6,7 +6,6 @@ export const getAllFabricGlosses = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
       filterFields: [], 
-      searchFields: ['description'],
       dateRangeConfig: {
         fromField: 'createdFrom',
         toField: 'createdTo',

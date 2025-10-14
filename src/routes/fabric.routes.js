@@ -27,54 +27,42 @@ const router = express.Router();
  *         name: page
  *         schema:
  *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Page number (min 1)
+ *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 10
- *         description: Items per page (max 100)
+ *         description: Items per page
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *           maxLength: 100
  *         description: Search keyword (supports searching by color, category, gloss, supplier)
- *         example: ""
  *       - in: query
  *         name: glossId
  *         schema:
  *           type: string
- *         description: Filter by gloss id. Can be single or comma-separated values.
- *         example: ""
+ *         description: Filter by gloss id (single or comma-separated values)
  *       - in: query
  *         name: categoryId
  *         schema:
  *           type: string
- *         description: Filter by category id. Single or multiple values separated by commas.
- *         example: ""
+ *         description: Filter by category id (single or comma-separated values)
  *       - in: query
  *         name: colorId
  *         schema:
  *           type: string
- *         description: Filter by color id. Single or multiple values separated by commas.
- *         example: ""
+ *         description: Filter by color id (single or comma-separated values)
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
  *         description: Sort field (id, createdAt, updatedAt, sellingPrice, quantityInStock, weight, length, width)
- *         example: ""
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *         description: Sort order (ascending or descending)
- *         example: ""
+ *         description: Sort order (asc or desc)
  *     responses:
  *       200:
  *         description: Fabrics retrieved successfully
@@ -82,10 +70,6 @@ const router = express.Router();
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
- *                 - pagination
  *               properties:
  *                 message:
  *                   type: string
@@ -125,15 +109,21 @@ const router = express.Router();
  *                 limit: 10
  *                 total: 25
  *                 totalPages: 3
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       409:
+ *         $ref: '#/components/responses/ConflictError'
  */
 router.get(
   '/',
   authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.VIEW_LIST.key),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_LIST),
   validate(fabricQuerySchema, 'query'),
   getAllFabrics
 );
@@ -151,9 +141,6 @@ router.get(
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
- *         schema:
- *           type: integer
  *         description: ID của vải
  *     responses:
  *       200:
@@ -165,10 +152,11 @@ router.get(
  *       404:
  *         description: Không tìm thấy vải
  */
+
 router.get(
   '/:id',
   authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.VIEW_DETAIL.key),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_DETAIL),
   validate(fabricIdParamSchema, 'params'),
   getFabricById
 );

@@ -33,23 +33,17 @@ router.use(authenticateToken);
  *         name: page
  *         schema:
  *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Page number (min 1)
+ *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 10
- *         description: Items per page (max 100)
+ *         description: Items per page
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *           maxLength: 100
- *         description: Search keyword (max 100 chars)
+ *         description: Search keyword
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -68,10 +62,6 @@ router.use(authenticateToken);
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
- *                 - pagination
  *               properties:
  *                 message:
  *                   type: string
@@ -82,6 +72,10 @@ router.use(authenticateToken);
  *                     $ref: '#/components/schemas/FabricColor'
  *                 pagination:
  *                   $ref: '#/components/schemas/PaginationMeta'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
  */
 router.get(
   '/',
@@ -101,7 +95,6 @@ router.get(
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
  *         description: FabricColor ID
@@ -112,9 +105,6 @@ router.get(
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
  *               properties:
  *                 message:
  *                   type: string
@@ -146,24 +136,16 @@ router.get(
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - id
- *               - name
  *             properties:
  *               id:
  *                 type: string
- *                 maxLength: 50
- *                 description: Fabric color ID
  *                 example: red001
  *               name:
  *                 type: string
- *                 maxLength: 100
- *                 description: Fabric color name
  *                 example: Red
  *     responses:
  *       201:
@@ -172,9 +154,6 @@ router.get(
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
  *               properties:
  *                 message:
  *                   type: string
@@ -190,7 +169,6 @@ router.get(
  *       409:
  *         $ref: '#/components/responses/ConflictError'
  */
-
 router.post(
   '/',
   requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
@@ -209,12 +187,10 @@ router.post(
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
  *         description: FabricColor ID
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -222,8 +198,6 @@ router.post(
  *             properties:
  *               name:
  *                 type: string
- *                 maxLength: 100
- *                 description: Fabric color name
  *                 example: Blue
  *     responses:
  *       200:
@@ -232,9 +206,6 @@ router.post(
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - data
  *               properties:
  *                 message:
  *                   type: string

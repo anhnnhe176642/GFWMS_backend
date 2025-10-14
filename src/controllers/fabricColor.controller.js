@@ -6,7 +6,6 @@ export const getAllFabricColors = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
       filterFields: [], 
-      searchFields: ['name'],
       dateRangeConfig: {
         fromField: 'createdFrom',
         toField: 'createdTo',

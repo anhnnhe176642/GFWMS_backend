@@ -79,42 +79,44 @@ export class FabricGlossRepository {
   }
 
   async findWithAdvancedQuery(queryOptions = {}) {
-    const {
-      page = 1,
-      limit = 10,
-      search = '',
-      sortBy = 'createdAt',
-      order = 'desc',
-      filters = {}
-    } = queryOptions;
+  const {
+    page = 1,
+    limit = 10,
+    search = '',
+    sortBy = 'createdAt',
+    order = 'desc',
+  } = queryOptions;
 
-    // Build where clause
-    const searchableFields = ['description'];
-    const baseWhere = {};
-    const filterWhere = buildWhereClause({ search, ...filters }, searchableFields);
+  // ----- WHERE CLAUSE -----
+  const where = {};
 
-    const where = {
-      AND: [baseWhere, filterWhere]
-    };
-
-    // Pagination & sort
-    const { skip, take } = buildPagination(page, limit);
-    const orderBy = buildSort(sortBy, order, { description: 'description', createdAt: 'createdAt' });
-
-    // Execute queries
-    const [items, total] = await Promise.all([
-      prisma.fabricGloss.findMany({
-        where,
-        skip,
-        take,
-        select: this.#selectOptions,
-        orderBy
-      }),
-      prisma.fabricGloss.count({ where })
-    ]);
-
-    return formatPaginatedResponse(items, total, page, take);
+  // Tìm kiếm theo description
+  if (search && search.trim() !== '') {
+    where.description = { contains: search };
   }
+
+  // ----- PAGINATION & SORT -----
+  const { skip, take } = buildPagination(page, limit);
+  const orderBy = buildSort(sortBy, order, {
+    description: 'description',
+    createdAt: 'createdAt'
+  });
+
+  // ----- EXECUTE -----
+  const [items, total] = await Promise.all([
+    prisma.fabricGloss.findMany({
+      where,
+      skip,
+      take,
+      select: this.#selectOptions,
+      orderBy
+    }),
+    prisma.fabricGloss.count({ where })
+  ]);
+
+  return formatPaginatedResponse(items, total, page, take);
+}
+
 }
 
 // Export singleton instance

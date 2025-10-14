@@ -73,36 +73,44 @@ class FabricCategoryRepository {
   }
 
   async findWithAdvancedQuery(queryOptions = {}) {
-    const {
-      page = 1,
-      limit = 10,
-      search = '',
-      sortBy = 'createdAt',
-      order = 'desc',
-      filters = {}
-    } = queryOptions;
+  const {
+    page = 1,
+    limit = 10,
+    search = '',
+    sortBy = 'createdAt',
+    order = 'desc',
+  } = queryOptions;
 
-    const searchableFields = ['name'];
-    const filterWhere = buildWhereClause({ search, ...filters }, searchableFields);
+  // Tạo điều kiện where
+  const where = {};
 
-    const where = { AND: [filterWhere] };
-
-    const { skip, take } = buildPagination(page, limit);
-    const orderBy = buildSort(sortBy, order, { name: 'name', createdAt: 'createdAt' });
-
-    const [items, total] = await Promise.all([
-      prisma.fabricCategory.findMany({
-        where,
-        skip,
-        take,
-        select: this.#selectOptions,
-        orderBy
-      }),
-      prisma.fabricCategory.count({ where })
-    ]);
-
-    return formatPaginatedResponse(items, total, page, take);
+  // Tìm kiếm theo cột "name"
+  if (search) {
+    where.name = { contains: search };
   }
+
+  // Xây dựng phân trang và sắp xếp
+  const { skip, take } = buildPagination(page, limit);
+  const orderBy = buildSort(sortBy, order, {
+    name: 'name',
+    createdAt: 'createdAt'
+  });
+
+  // Thực thi truy vấn song song
+  const [items, total] = await Promise.all([
+    prisma.fabricCategory.findMany({
+      where,
+      skip,
+      take,
+      select: this.#selectOptions,
+      orderBy
+    }),
+    prisma.fabricCategory.count({ where })
+  ]);
+
+  return formatPaginatedResponse(items, total, page, take);
+}
+
 }
 
 // Default export singleton instance

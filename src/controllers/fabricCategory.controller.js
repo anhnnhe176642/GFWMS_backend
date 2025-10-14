@@ -6,7 +6,6 @@ export const getAllFabricCategories = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
       filterFields: [], // nếu muốn filter theo field nào thêm vào đây
-      searchFields: ['name'],
       dateRangeConfig: {
         fromField: 'createdFrom',
         toField: 'createdTo',

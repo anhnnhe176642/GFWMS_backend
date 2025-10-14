@@ -78,22 +78,24 @@ export class FabricColorRepository {
       search = '',
       sortBy = 'createdAt',
       order = 'desc',
-      filters = {}
     } = queryOptions;
-
-    // Build where clause
-    const searchableFields = ['name'];
-    const filterWhere = buildWhereClause({ search, ...filters }, searchableFields);
-
-    const where = {
-      AND: [filterWhere]
-    };
-
-    // Pagination & sort
+  
+    // Tạo điều kiện where
+    const where = {};
+  
+    // Tìm kiếm theo cột "name"
+    if (search) {
+      where.name = { contains: search };
+    }
+  
+    // Xây dựng phân trang và sắp xếp
     const { skip, take } = buildPagination(page, limit);
-    const orderBy = buildSort(sortBy, order, { name: 'name', createdAt: 'createdAt' });
-
-    // Execute queries
+    const orderBy = buildSort(sortBy, order, {
+      name: 'name',
+      createdAt: 'createdAt'
+    });
+  
+    // Thực thi truy vấn song song
     const [items, total] = await Promise.all([
       prisma.fabricColor.findMany({
         where,
@@ -104,7 +106,7 @@ export class FabricColorRepository {
       }),
       prisma.fabricColor.count({ where })
     ]);
-
+  
     return formatPaginatedResponse(items, total, page, take);
   }
 }
