@@ -21,7 +21,7 @@ const buildNestedWhere = (path, value) => {
   }
   // Xử lý string search (contains)
   else if (typeof value === 'string') {
-    condition = { contains: value, mode: 'insensitive' };
+    condition = { contains: value };
   }
   // Xử lý exact match
   else {
@@ -59,8 +59,7 @@ const buildSearchCondition = (field, searchValue) => {
   // Normal field search
   return {
     [field]: {
-      contains: searchValue,
-      mode: 'insensitive'
+      contains: searchValue
     }
   };
 };

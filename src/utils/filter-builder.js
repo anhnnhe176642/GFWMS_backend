@@ -90,12 +90,28 @@ export const buildSort = (params, defaultSortBy = 'createdAt', defaultOrder = 'd
 };
 
 /**
- * Build complete query params cho advanced search
- * @param {Object} params - Query parameters
- * @param {Object} config - Configuration object
- * @returns {Object} Complete query params
- * 
+ * Build complete query params cho advanced search/filter/pagination/sort.
+ * Trả về object chuẩn hóa gồm: page, limit, sortBy, order, search, filters.
+ *
+ * @param {Object} params - Query parameters (đã validate từ request, có thể là string, array, number...)
+ * @param {Object} config - Configuration object:
+ *   - filterFields: Array<string> - Danh sách các field cần filter (ví dụ: ['status', 'roleId'])
+ *   - dateRangeConfig: { fromField, toField, targetField } - Cấu hình filter theo khoảng ngày
+ *   - defaultPage: number - Giá trị mặc định cho page
+ *   - defaultLimit: number - Giá trị mặc định cho limit
+ *   - defaultSortBy: string - Field mặc định để sort
+ *   - defaultOrder: string - Order mặc định ('asc'/'desc')
+ *
+ * @returns {Object} Query params chuẩn hóa:
+ *     - page: number,
+ *     - limit: number,
+ *     - sortBy: string,
+ *     - order: string,
+ *     - search: string | undefined,
+ *     - filters: object
+ *
  * @example
+ * // Ví dụ 1: Query user list với nhiều filter
  * const params = {
  *   page: '2',
  *   limit: '20',
@@ -107,7 +123,7 @@ export const buildSort = (params, defaultSortBy = 'createdAt', defaultOrder = 'd
  *   createdFrom: '2023-01-01',
  *   createdTo: '2023-12-31'
  * };
- * 
+ *
  * const config = {
  *   filterFields: ['status', 'roleId'],
  *   dateRangeConfig: {
@@ -120,8 +136,33 @@ export const buildSort = (params, defaultSortBy = 'createdAt', defaultOrder = 'd
  *   defaultSortBy: 'createdAt',
  *   defaultOrder: 'desc'
  * };
- * 
- * buildQueryParams(params, config);  
+ *
+ * const result = buildQueryParams(params, config);
+ * // Kết quả:
+ *  {
+ *    page: 2,
+ *    limit: 20,
+ *    sortBy: 'createdAt',
+ *    order: 'desc',
+ *    search: 'john',
+ *    filters: {
+ *      status: ['ACTIVE','INACTIVE'],
+ *      roleId: 'uuid-123',
+ *      createdAt: { gte: new Date('2023-01-01'), lte: new Date('2023-12-31') }
+ *    }
+ *  }
+ *
+ * // Ví dụ 2: Query không có filter, chỉ phân trang mặc định
+ * const result2 = buildQueryParams({}, { defaultPage: 1, defaultLimit: 10 });
+ * // Kết quả:
+ *   {
+ *     page: 1,
+ *     limit: 10,
+ *     sortBy: 'createdAt',
+ *     order: 'desc',
+ *     search: undefined,
+ *     filters: {}
+ *   }
  */
 export const buildQueryParams = (params, config = {}) => {
   const {
