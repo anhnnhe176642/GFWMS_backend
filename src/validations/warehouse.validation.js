@@ -16,7 +16,7 @@ export const warehouseNameSchema = Joi.string()
     'string.empty': 'Tên kho là bắt buộc'
   });
 
-export const warehouseAddressSchema = addressSchema  // lấy bên cm rồi nhá
+export const warehouseAddressSchema = addressSchema  
   .min(5)
   .required()
   .empty('')

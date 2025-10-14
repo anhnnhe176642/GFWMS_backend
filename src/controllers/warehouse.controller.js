@@ -3,9 +3,6 @@ import { buildQueryParams } from '../utils/filter-builder.js';
 
 export const getAllWarehouses = async (req, res, next) => {
   try {
-    console.log(req.query.sortBy);
-    console.log(req.query.order);
-    
     const queryParams = buildQueryParams(req.query, {
       filterFields: ['status'],
       dateRangeConfig: { 
@@ -14,8 +11,7 @@ export const getAllWarehouses = async (req, res, next) => {
         targetField: 'createdAt' 
       }
     });
-    console.log(req.query.sortBy);
-    console.log(req.query.order);
+    
     const result = await warehouseService.getAllWarehousesAdvanced(queryParams);
     res.json({
       message: 'Lấy danh sách kho thành công',

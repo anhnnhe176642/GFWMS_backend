@@ -42,27 +42,7 @@ class WarehouseService {
   if (!warehouse) {
     throw new NotFoundError('Không tìm thấy kho hàng');
   }
-
-  if (warehouse.status !== 'INACTIVE') {
-    throw new ValidationError('Không thể xóa kho đang hoạt động. Vui lòng chuyển trạng thái thành INACTIVE trước khi xóa.');
-  }
-
-  const references = await warehouseRepository.checkForeignKeyReferences(id);
-  
-  if (references.hasReferences) {
-    const referencedTables = [];
-    if (references.shelveCount > 0) referencedTables.push(`${references.shelveCount} kệ hàng`);
-    if (references.importCount > 0) referencedTables.push(`${references.importCount} phiếu nhập`);
-    if (references.exportCount > 0) referencedTables.push(`${references.exportCount} phiếu xuất`);
-    if (references.fabricShelfCount > 0) referencedTables.push(`${references.fabricShelfCount} vải trên kệ`);
-    if (references.destroyCount > 0) referencedTables.push(`${references.destroyCount} phiếu hủy`);
-    if (references.manageCount > 0) referencedTables.push(`${references.manageCount} kho quản lý`);
-
-    throw new ValidationError(
-      `Không thể xóa kho. Kho đang được tham chiếu ở: ${referencedTables.join(', ')}. ` +
-      'Vui lòng xóa tất cả dữ liệu liên quan trước khi xóa kho.'
-    );
-  }
+    
   return await warehouseRepository.deleteById(id);
 }
   
