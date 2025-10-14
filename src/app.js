@@ -41,4 +41,6 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`server is running on \x1b[36mhttp://localhost:${PORT}/api-docs\x1b[0m`);
+});

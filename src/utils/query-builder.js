@@ -1,21 +1,111 @@
 /**
+ * Build nested where condition cho relation fields
+ * @param {string} path - Nested path (e.g., 'role.name', 'store.address.city')
+ * @param {*} value - Filter value
+ * @returns {Object} Nested where object
+ */
+const buildNestedWhere = (path, value) => {
+  const parts = path.split('.');
+  const [relation, ...fieldParts] = parts;
+  const field = fieldParts.join('.');
+  
+  let condition;
+  
+  // Xử lý array values (IN operator)
+  if (Array.isArray(value)) {
+    condition = { in: value };
+  } 
+  // Xử lý range values (gte, lte)
+  else if (typeof value === 'object' && (value.gte || value.lte || value.gt || value.lt)) {
+    condition = value;
+  }
+  // Xử lý string search (contains)
+  else if (typeof value === 'string') {
+    condition = { contains: value, mode: 'insensitive' };
+  }
+  // Xử lý exact match
+  else {
+    condition = value;
+  }
+  
+  // Build nested object
+  if (fieldParts.length > 1) {
+    // Multiple levels: role.permissions.name
+    return {
+      [relation]: buildNestedWhere(field, value)
+    };
+  }
+  
+  // Single level: role.name
+  return {
+    [relation]: {
+      [field]: condition
+    }
+  };
+};
+
+/**
+ * Build search condition cho field (hỗ trợ nested fields)
+ * @param {string} field - Field name (có thể là 'name' hoặc 'role.name')
+ * @param {string} searchValue - Search value
+ * @returns {Object} Search condition
+ */
+const buildSearchCondition = (field, searchValue) => {
+  if (field.includes('.')) {
+    // Nested field search
+    return buildNestedWhere(field, searchValue);
+  }
+  
+  // Normal field search
+  return {
+    [field]: {
+      contains: searchValue,
+      mode: 'insensitive'
+    }
+  };
+};
+
+/**
  * Build Prisma where clause từ query parameters
+ * Hỗ trợ nested filtering cho relation fields với cú pháp 'relation.field'
+ * 
  * @param {Object} filters - Object chứa các filter từ query
- * @param {Array} searchableFields - Các field có thể search
- * @param {Object} filterMapping - Mapping giữa query params và Prisma fields
+ * @param {Array} searchableFields - Các field có thể search (hỗ trợ nested: ['username', 'email', 'role.name'])
+ * @param {Object} filterMapping - Mapping giữa query params và Prisma fields (hỗ trợ nested mapping)
  * @returns {Object} Prisma where clause
+ * 
+ * @example
+ * // Simple filter
+ * buildWhereClause({ status: 'ACTIVE' }, [])
+ * // => { status: 'ACTIVE' }
+ * 
+ * @example
+ * // Array filter
+ * buildWhereClause({ status: ['ACTIVE', 'INACTIVE'] }, [])
+ * // => { status: { in: ['ACTIVE', 'INACTIVE'] } }
+ * 
+ * @example
+ * // Nested filter
+ * buildWhereClause({ 'role.name': 'ADMIN' }, [])
+ * // => { role: { name: 'ADMIN' } }
+ * 
+ * @example
+ * // Search with nested fields
+ * buildWhereClause({ search: 'John' }, ['username', 'email', 'role.name'])
+ * // => { OR: [{ username: { contains: 'John' } }, { email: { contains: 'John' } }, { role: { name: { contains: 'John' } } }] }
+ * 
+ * @example
+ * // With filter mapping
+ * buildWhereClause({ roleName: 'ADMIN' }, [], { roleName: 'role.name' })
+ * // => { role: { name: 'ADMIN' } }
  */
 export const buildWhereClause = (filters = {}, searchableFields = [], filterMapping = {}) => {
   const where = {};
   const { search, ...otherFilters } = filters;
 
-  // Xử lý search (OR logic cho tất cả searchable fields)
+  // Xử lý search (OR logic cho tất cả searchable fields) - hỗ trợ nested fields
   if (search && searchableFields.length > 0) {
-    where.OR = searchableFields.map(field => ({
-      [field]: {
-        contains: search
-      }
-    }));
+    where.OR = searchableFields.map(field => buildSearchCondition(field, search));
   }
 
   // Xử lý các filters khác
@@ -23,17 +113,33 @@ export const buildWhereClause = (filters = {}, searchableFields = [], filterMapp
     if (value !== undefined && value !== null && value !== '') {
       const mappedKey = filterMapping[key] || key;
       
-      // Xử lý array values (IN operator)
-      if (Array.isArray(value)) {
-        where[mappedKey] = { in: value };
-      } 
-      // Xử lý range values (gte, lte)
-      else if (typeof value === 'object' && (value.gte || value.lte || value.gt || value.lt)) {
-        where[mappedKey] = value;
+      // Check if this is a nested field (contains dot)
+      if (mappedKey.includes('.')) {
+        const nestedWhere = buildNestedWhere(mappedKey, value);
+        // Merge nested where (có thể có nhiều conditions cho cùng 1 relation)
+        Object.entries(nestedWhere).forEach(([relation, condition]) => {
+          if (where[relation]) {
+            // Merge nếu đã tồn tại
+            where[relation] = { ...where[relation], ...condition };
+          } else {
+            where[relation] = condition;
+          }
+        });
       }
-      // Xử lý exact match
+      // Normal field
       else {
-        where[mappedKey] = value;
+        // Xử lý array values (IN operator)
+        if (Array.isArray(value)) {
+          where[mappedKey] = { in: value };
+        } 
+        // Xử lý range values (gte, lte)
+        else if (typeof value === 'object' && (value.gte || value.lte || value.gt || value.lt)) {
+          where[mappedKey] = value;
+        }
+        // Xử lý exact match
+        else {
+          where[mappedKey] = value;
+        }
       }
     }
   });
@@ -64,7 +170,7 @@ export const buildPagination = (page = 1, limit = 10) => {
  * @param {Object} sortMapping - Mapping cho sort fields
  * @returns {Object|Array} Prisma orderBy clause
  * 
- * Examples:
+ * @example
  * - Single: buildSort('createdAt', 'desc') => { createdAt: 'desc' }
  * - Multiple: buildSort('status,createdAt', 'asc,desc') => [{ status: 'asc' }, { createdAt: 'desc' }]
  * - Multiple: buildSort(['status', 'createdAt'], ['asc', 'desc']) => [{ status: 'asc' }, { createdAt: 'desc' }]
