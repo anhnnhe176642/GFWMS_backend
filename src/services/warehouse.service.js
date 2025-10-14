@@ -1,64 +1,70 @@
 import { warehouseRepository } from '../repositories/warehouse.repository.js';
-import { NotFoundError, ConflictError } from '../utils/errors.js';
-
-
-export const getAllWarehousesAdvanced = async (queryOptions) => {
-  return await warehouseRepository.findWithAdvancedQuery(queryOptions);
-};
-
-export const createWarehouse = async (data) => {
-  const nameExists = await warehouseRepository.nameExists(data.name);
-  if (nameExists) {
-    throw new ConflictError('Tên kho đã tồn tại');
-  }
-  return await warehouseRepository.create(data);
-};
-
-export const getWarehouseById = async (id) => {
-  const warehouse = await warehouseRepository.findById(id);
-  if (!warehouse) {
-    throw new NotFoundError('Kho không tồn tại');
-  }
-  return warehouse;
-};
-
-export const getActiveWarehouseById = async (id) => {
-  const warehouse = await warehouseRepository.findActiveById(id);
-  if (!warehouse) {
-    throw new NotFoundError('Kho không tồn tại hoặc đã không hoạt động');
-  }
-  return warehouse;
-};
-
-export const updateWarehouse = async (id, data) => {
-  const exists = await warehouseRepository.exists(id);
-  if (!exists) {
-    throw new NotFoundError('Kho không tồn tại hoặc đã ngững hoạt động');
-  }
-  if (data.name) {
-    const nameExists = await warehouseRepository.nameExists(data.name, id);
-    if (nameExists) {
-      throw new ConflictError('Tên kho đã tồn tại');
-    }
-  }
-  return await warehouseRepository.updateById(id, data);
-};
-
-export const changeWarehouseStatus = async (id, status) => {
-  const warehouse = await warehouseRepository.findById(id);
-  if (!warehouse) {
-    throw new NotFoundError('Kho không tồn tại');
-  }
-
-  if (warehouse.status === status) {
-    throw new ConflictError(`Kho đã ở trạng thái ${status}`);
+import { NotFoundError, ValidationError } from '../utils/errors.js';
+class WarehouseService {
+  async getAllWarehousesAdvanced(queryOptions) {
+    return await warehouseRepository.findWithAdvancedQuery(queryOptions);
   }
   
-  if (status === 'INACTIVE') {
-    return await warehouseRepository.softDelete(id);
-  } else if (status === 'ACTIVE') {
-    return await warehouseRepository.restore(id);
-  } else {
-    throw new Error('Trạng thái không hợp lệ');
+  async createWarehouse(warehouseData) {
+    const nameExists = await warehouseRepository.nameExists(warehouseData.name);
+    if (nameExists) {
+      throw new ValidationError("Tên kho đã tồn tại");
+    }
+
+    return await warehouseRepository.create(warehouseData);
   }
-};
+
+
+  async updateWarehouse(id, warehouseData) {
+    const warehouse = await warehouseRepository.findById(id);
+    if (!warehouse) {
+      throw new NotFoundError("Không tìm thấy kho");
+    }
+    if (warehouseData.name && warehouseData.name !== warehouse.name) {
+      const nameExists = await warehouseRepository.nameExists(warehouseData.name, id);
+      if (nameExists) {
+        throw new ValidationError("Tên kho đã tồn tại");
+      }
+    }
+    return await warehouseRepository.updateById(id, warehouseData);
+  }
+  
+  async getWarehouseById(id) {
+    const warehouse = await warehouseRepository.findById(id);
+    if (!warehouse) {
+      throw new NotFoundError('Không tìm thấy kho');
+    }
+    return warehouse;
+  }
+
+  async deleteWarehouse(id) {
+  const warehouse = await warehouseRepository.findById(id);
+  if (!warehouse) {
+    throw new NotFoundError('Không tìm thấy kho hàng');
+  }
+
+  if (warehouse.status !== 'INACTIVE') {
+    throw new ValidationError('Không thể xóa kho đang hoạt động. Vui lòng chuyển trạng thái thành INACTIVE trước khi xóa.');
+  }
+
+  const references = await warehouseRepository.checkForeignKeyReferences(id);
+  
+  if (references.hasReferences) {
+    const referencedTables = [];
+    if (references.shelveCount > 0) referencedTables.push(`${references.shelveCount} kệ hàng`);
+    if (references.importCount > 0) referencedTables.push(`${references.importCount} phiếu nhập`);
+    if (references.exportCount > 0) referencedTables.push(`${references.exportCount} phiếu xuất`);
+    if (references.fabricShelfCount > 0) referencedTables.push(`${references.fabricShelfCount} vải trên kệ`);
+    if (references.destroyCount > 0) referencedTables.push(`${references.destroyCount} phiếu hủy`);
+    if (references.manageCount > 0) referencedTables.push(`${references.manageCount} kho quản lý`);
+
+    throw new ValidationError(
+      `Không thể xóa kho. Kho đang được tham chiếu ở: ${referencedTables.join(', ')}. ` +
+      'Vui lòng xóa tất cả dữ liệu liên quan trước khi xóa kho.'
+    );
+  }
+  return await warehouseRepository.deleteById(id);
+}
+  
+}
+export const warehouseService = new WarehouseService();

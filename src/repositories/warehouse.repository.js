@@ -9,26 +9,14 @@ export class WarehouseRepository {
     id: true,
     name: true,
     address: true,
-    status: true,  
+    status: true,
     createdAt: true,
     updatedAt: true,
   };
 
-
   async findById(id) {
     return await prisma.warehouse.findUnique({
       where: { id: parseInt(id) },
-      select: this.#warehouseSelectOptions
-    });
-  }
-
-  //warehouse ACTIVE
-  async findActiveById(id) {
-    return await prisma.warehouse.findFirst({
-      where: { 
-        id: parseInt(id),
-        status: 'ACTIVE'
-      },
       select: this.#warehouseSelectOptions
     });
   }
@@ -52,7 +40,10 @@ export class WarehouseRepository {
     return await withPrismaErrorHandling(
       () => prisma.warehouse.update({
         where: { id: parseInt(id) },
-        data: warehouseData,
+        data: {
+          ...warehouseData,
+          updatedAt: new Date()
+        },
         select: this.#warehouseSelectOptions
       }),
       {
@@ -68,36 +59,19 @@ export class WarehouseRepository {
       search = '', 
       sortBy = 'createdAt', 
       order = 'desc',
-      status,                  
-      createdFrom,
-      createdTo
+      filters = {}
     } = queryOptions;
-
-    const where = {};
-
-    // Status: có thì lọc theo, không có thì lấy tất cả
-    if (status === 'ACTIVE' || status === 'INACTIVE') {
-      where.status = status;
-    }
-
-    // Search trong name, address
-    if (search) {
-      const searchLower = search.toLowerCase();
-      where.OR = [
-        { name: { contains: searchLower } },
-        { address: { contains: searchLower } }
-      ];
-    }
-
-    // Date range
-    if (createdFrom || createdTo) {
-      where.createdAt = {};
-      if (createdFrom) where.createdAt.gte = new Date(createdFrom);
-      if (createdTo) where.createdAt.lte = new Date(createdTo);
-    }
-
+    const searchableFields = ['name', 'address'];
+    const where = buildWhereClause(
+      { search, ...filters },
+      searchableFields
+    );
     const { skip, take } = buildPagination(page, limit);
+    
     const orderBy = buildSort(sortBy, order);
+
+    console.log({ sortBy, order });
+    console.log('buildSort:', JSON.stringify(orderBy, null, 2));
 
     const [warehouses, total] = await Promise.all([
       prisma.warehouse.findMany({
@@ -113,26 +87,6 @@ export class WarehouseRepository {
     return formatPaginatedResponse(warehouses, total, page, take);
   }
 
-
-
-  async exists(id) {
-    const count = await prisma.warehouse.count({
-      where: { 
-        id: parseInt(id),
-        status: 'ACTIVE'
-      }
-    });
-    return count > 0;
-  }
-
-  // Check exists cả INACTIVE
-  async existsIncludingInactive(id) {
-    const count = await prisma.warehouse.count({
-      where: { id: parseInt(id) }
-    });
-    return count > 0;
-  }
-
   async nameExists(name, excludeId = null) {
     const where = { name };
     if (excludeId) {
@@ -143,19 +97,60 @@ export class WarehouseRepository {
     return count > 0;
   }
 
-  async changeStatus(id, status) {
-    return await withPrismaErrorHandling(
-      () => prisma.warehouse.update({
-        where: { id: parseInt(id) },
-        data: { 
-          status, 
-          updatedAt: new Date() 
-        },
-        select: this.#warehouseSelectOptions
-      }),
-      {}
-    );
-  }
+  async checkForeignKeyReferences(warehouseId) {
+  const [
+    shelveCount,
+    importCount,
+    exportCount,
+    fabricShelfCount,
+    destroyCount,
+    manageCount
+  ] = await Promise.all([
+    prisma.shelf.count({
+      where: { warehouseId: parseInt(warehouseId) }
+    }),
+    prisma.importFabric.count({
+      where: { warehouseId: parseInt(warehouseId) }
+    }),
+    prisma.exportFabric.count({
+      where: { warehouseId: parseInt(warehouseId) }
+    }),
+    prisma.fabricShelf.count({
+      where: { 
+        shelf: {
+          warehouseId: parseInt(warehouseId)
+        }
+      }
+    }),
+    prisma.destroyFabric.count({
+      where: { 
+        shelf: {
+          warehouseId: parseInt(warehouseId)
+        }
+      }
+    }),
+    prisma.warehouseManage.count({
+      where: { warehouseId: parseInt(warehouseId) }
+    })
+  ]);
+
+  return {
+    shelveCount,
+    importCount,
+    exportCount,
+    fabricShelfCount,
+    destroyCount,
+    manageCount,
+    hasReferences: shelveCount > 0 || importCount > 0 || exportCount > 0 || 
+                   fabricShelfCount > 0 || destroyCount > 0 || manageCount > 0
+  };
+}
+
+  async deleteById(id) {
+  return await prisma.warehouse.delete({
+    where: { id: parseInt(id) }
+  });
+}
 }
 
 export const warehouseRepository = new WarehouseRepository();

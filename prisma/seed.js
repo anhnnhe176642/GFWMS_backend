@@ -143,3 +143,27 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+
+  
+
+const testWarehouse = await prisma.warehouse.upsert({
+  where: { name: 'Kho Test - Có Shelf' },
+  update: {},
+  create: {
+    name: 'Kho Test - Có Shelf',
+    address: 'Địa chỉ ',
+    status: 'INACTIVE' 
+  }
+});
+
+const testShelf = await prisma.shelf.upsert({
+  where: { code: 'SHELF-TEST-FK' },
+  update: {},
+  create: {
+    code: 'SHELF-TEST-FK',
+    currentQuantity: 5,
+    maxQuantity: 50,
+    warehouseId: testWarehouse.id
+  }
+});

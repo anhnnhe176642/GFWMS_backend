@@ -1,68 +1,74 @@
 import Joi from 'joi';
-import {
-  pageSchema,
-  limitSchema,
-  searchSchema,
-  createSortBySchema,
-  sortOrderSchema,
-  dateFromSchema,
-  dateToSchema,
-  addressSchema
+import { querySchema, createMultiValueFilterSchema, addressSchema,
+  dateFromSchema,         
+  dateToSchema 
 } from './common.validation.js';
 
-// Warehouse name validation
 export const warehouseNameSchema = Joi.string()
   .min(2)
   .max(100)
   .required()
+  .empty('')
   .messages({
     'string.min': 'Tên kho phải có ít nhất 2 ký tự',
     'string.max': 'Tên kho không được vượt quá 100 ký tự',
-    'any.required': 'Tên kho là bắt buộc'
+    'any.required': 'Tên kho là bắt buộc',
+    'string.empty': 'Tên kho là bắt buộc'
   });
 
-// Address validation
-export const warehouseAddressSchema = addressSchema
+export const warehouseAddressSchema = addressSchema  // lấy bên cm rồi nhá
   .min(5)
   .required()
+  .empty('')
   .messages({
     'string.min': 'Địa chỉ kho phải có ít nhất 5 ký tự',
-    'any.required': 'Địa chỉ kho là bắt buộc'
+    'any.required': 'Địa chỉ kho là bắt buộc',
+    'string.empty': 'Địa chỉ kho là bắt buộc'
   });
 
-// Schema validation cho tạo warehouse
+
 export const createWarehouseSchema = Joi.object({
   name: warehouseNameSchema,
   address: warehouseAddressSchema
 });
 
-// Schema validation cho update warehouse
+export const warehouseStatusSchema = Joi.string()
+  .valid('ACTIVE', 'INACTIVE')
+  .messages({
+    'any.only': 'Trạng thái phải là ACTIVE hoặc INACTIVE'
+  });
+
 export const updateWarehouseSchema = Joi.object({
   name: warehouseNameSchema.optional(),
-  address: warehouseAddressSchema.optional()
+  address: warehouseAddressSchema.optional(),
+  status: warehouseStatusSchema.optional()
 });
 
-
-// Allowed fields for sorting warehouses
-const allowedWarehouseSortFields = ['createdAt', 'updatedAt', 'name', 'address'];
-
-export const warehouseQuerySchema = Joi.object({
-  page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
-  search: Joi.string().allow('').optional(),
-  status: Joi.string().valid('ACTIVE', 'INACTIVE').optional(), 
-  sortBy: Joi.string().valid('createdAt', 'updatedAt', 'name', 'address').default('createdAt'),
-  order: Joi.string().valid('asc', 'desc').default('desc'),
-  createdFrom: Joi.date().iso().optional(),
-  createdTo: Joi.date().iso().optional()
+export const warehouseQuerySchema = querySchema.keys({
+  status: createMultiValueFilterSchema(
+    warehouseStatusSchema, 
+    'Trạng thái'
+  ),
+  sortBy: Joi.string().optional(),
+  order: Joi.string().optional(),
+  createdFrom: dateFromSchema,
+  createdTo: dateToSchema
 });
 
-export const changeWarehouseStatusSchema = Joi.object({
-  status: Joi.string()
-    .valid('ACTIVE', 'INACTIVE')
+export const warehouseIdSchema = Joi.object({
+  id: Joi.string()
     .required()
+    .custom((value, helpers) => {
+      if (value === '{id}' || value === '' || !value) {
+        return helpers.error('any.required');
+      }
+      if (!/^\d+$/.test(value)) {
+        return helpers.error('string.pattern.base');
+      }
+      return value;
+    })
     .messages({
-      'any.required': 'Trạng thái là bắt buộc',
-      'any.only': 'Trạng thái phải là ACTIVE hoặc INACTIVE'
+      'any.required': 'ID kho là bắt buộc',
+      'string.pattern.base': 'ID kho phải là số nguyên dương'
     })
 });

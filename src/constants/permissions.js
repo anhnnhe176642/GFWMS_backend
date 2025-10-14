@@ -32,9 +32,7 @@ export const PERMISSIONS = {
     CREATE:       { key: 'warehouse:create',       description: 'Tạo kho mới' },
     UPDATE:       { key: 'warehouse:update',       description: 'Cập nhật thông tin kho' },
     DELETE:       { key: 'warehouse:delete',       description: 'Xóa kho (soft delete)' },
-    RESTORE:      { key: 'warehouse:restore',      description: 'Khôi phục kho đã xóa' },
-    VIEW_DELETED: { key: 'warehouse:view_deleted', description: 'Xem danh sách kho đã xóa' },
-    MANAGE:       { key: 'warehouse:manage',       description: 'Quản lý kho' }
+    MANAGE_STATUS:{ key: 'warehouse:manage_status',description: 'Quản lý trạng thái kho' }
   },
   
   // Credit Registration

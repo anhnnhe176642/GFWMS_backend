@@ -4,15 +4,15 @@ import {
   getWarehouseById,
   createWarehouse,
   updateWarehouse,
-  changeWarehouseStatus
+  deleteWarehouse
 } from '../controllers/warehouse.controller.js';
 import { authenticateToken, requirePermission } from '../middlewares/auth.middleware.js';
-import { validate, validateMultiple } from '../middlewares/validation.middleware.js';
+import { validate} from '../middlewares/validation.middleware.js';
 import { 
   createWarehouseSchema, 
   updateWarehouseSchema, 
   warehouseQuerySchema,
-  changeWarehouseStatusSchema
+  warehouseIdSchema
 } from '../validations/warehouse.validation.js';
 import { PERMISSIONS } from '../constants/permissions.js';
 
@@ -24,7 +24,7 @@ router.use(authenticateToken);
  * @swagger
  * /warehouses:
  *   get:
- *     summary: Get all warehouses with filtering
+ *     summary: lay tat ca kho voi filter tuy chon
  *     tags: [Warehouses]
  *     security:
  *       - bearerAuth: []
@@ -32,127 +32,58 @@ router.use(authenticateToken);
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number
- *         example: 1
+ *           type: string
+ *         description: Nhap trang
+ *         example: "1"
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
- *           default: 10
- *         description: Items per page
- *         example: 10
+ *           type: string
+ *         description: nhap toi da 1 trang
+ *         example: "10"
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search in warehouse name and address
- *         example: "Hà Nội"
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [ACTIVE, INACTIVE]
- *         description: Filter by status (omit to get all; ACTIVE = active only; INACTIVE = inactive only)
- *         example: ""
+ *         description: tim theo name và address
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *           default: createdAt
- *           enum: [createdAt, updatedAt, name, address]
- *         description: Field to sort by
- *         example: "name"
+ *         description: sỏt mutil or siger
+ *         example: "name,createdAt"
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *           enum: [asc, desc]
- *           default: desc
- *         description: Sort order
- *         example: "asc"
+ *         description: Sort orders muti or single
+ *         example: "desc,asc"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by status
+ *         example: "ACTIVE,INACTIVE"
  *       - in: query
  *         name: createdFrom
  *         schema:
  *           type: string
- *           format: date
- *         description: Filter by creation date from (YYYY-MM-DD)
- *         example: "2025-01-01"
+ *         description: Date from
  *       - in: query
  *         name: createdTo
  *         schema:
  *           type: string
- *           format: date
- *         description: Filter by creation date to (YYYY-MM-DD)
- *         example: "2025-12-31"
+ *         description: Date to
  *     responses:
  *       200:
- *         description: Warehouses retrieved successfully
+ *         description: Success
  *         content:
  *           application/json:
  *             schema:
  *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Lấy danh sách kho thành công"
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                         example: 1
- *                       name:
- *                         type: string
- *                         example: "Kho Hà Nội"
- *                       address:
- *                         type: string
- *                         example: "123 Đường Láng, Hà Nội"
- *                       status:
- *                         type: string
- *                         enum: [ACTIVE, INACTIVE]
- *                         example: "ACTIVE"
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                         example: "2025-10-12T10:30:00.000Z"
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
- *                         example: "2025-10-12T10:30:00.000Z"
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     page:
- *                       type: integer
- *                       example: 1
- *                     limit:
- *                       type: integer
- *                       example: 10
- *                     total:
- *                       type: integer
- *                       example: 25
- *                     totalPages:
- *                       type: integer
- *                       example: 3
- *                     hasNext:
- *                       type: boolean
- *                       example: false
- *                     hasPrev:
- *                       type: boolean
- *                       example: false
- *       400:
- *         description: Bad request
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
  */
-router.get('/',
-  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_LIST.key),
+router.get('/', 
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_LIST),
   validate(warehouseQuerySchema, 'query'),
   getAllWarehouses
 );
@@ -162,7 +93,7 @@ router.get('/',
  * @swagger
  * /warehouses:
  *   post:
- *     summary: Create a new warehouse
+ *     summary: tạo kho moi
  *     tags: [Warehouses]
  *     security:
  *       - bearerAuth: []
@@ -172,67 +103,26 @@ router.get('/',
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - name
- *               - address
  *             properties:
  *               name:
  *                 type: string
- *                 description: Warehouse name
- *                 example: "Kho Hà Nội"
+ *                 description: Tên kho
+ *                 example: "Hà Nội 1"
  *               address:
  *                 type: string
- *                 description: Warehouse address
- *                 example: "123 Đường Láng, Hà Nội"
+ *                 description: Địa chỉ kho
+ *                 example: "1023 Đường Láng, Hà Nội"
  *     responses:
- *       201:
- *         description: Warehouse created successfully
+ *       200:
+ *         description: Success
  *         content:
  *           application/json:
  *             schema:
  *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     name:
- *                       type: string
- *                       example: "Kho Hà Nội"
- *                     address:
- *                       type: string
- *                       example: "123 Đường Láng, Hà Nội"
- *                     status:
- *                       type: string
- *                       example: "ACTIVE"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                 message:
- *                   type: string
- *                   example: "Tạo kho thành công"
- *       400:
- *         description: Bad request
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- *       409:
- *         description: Conflict
  */
 router.post('/', 
-  requirePermission(PERMISSIONS.WAREHOUSES.CREATE.key),
-  validate(createWarehouseSchema), 
+  requirePermission(PERMISSIONS.WAREHOUSES.CREATE),
+  validate(createWarehouseSchema, 'body'), 
   createWarehouse
 );
 
@@ -240,66 +130,28 @@ router.post('/',
  * @swagger
  * /warehouses/{id}:
  *   get:
- *     summary: Get warehouse by ID
+ *     summary: lấy kho theo id
  *     tags: [Warehouses]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
- *           type: integer
- *         description: Warehouse ID
- *         example: 1
+ *           type: string
+ *         description: id kho
+ *         example: "1"
  *     responses:
  *       200:
- *         description: Warehouse retrieved successfully
+ *         description: Success
  *         content:
  *           application/json:
  *             schema:
  *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     name:
- *                       type: string
- *                       example: "Kho Hà Nội"
- *                     address:
- *                       type: string
- *                       example: "123 Đường Láng, Hà Nội"
- *                     status:
- *                       type: string
- *                       example: "ACTIVE"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                 message:
- *                   type: string
- *                   example: "Lấy thông tin kho thành công"
- *       400:
- *         description: Bad request
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- *       404:
- *         description: Not found
  */
 router.get('/:id', 
-  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL.key),
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
+  validate(warehouseIdSchema, 'params'),
   getWarehouseById
 );
 
@@ -307,18 +159,17 @@ router.get('/:id',
  * @swagger
  * /warehouses/{id}:
  *   put:
- *     summary: Update warehouse
+ *     summary: Cập nhật kho
  *     tags: [Warehouses]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Warehouse ID
- *         example: 1
+ *         example: "1"
  *     requestBody:
  *       required: true
  *       content:
@@ -334,9 +185,43 @@ router.get('/:id',
  *                 type: string
  *                 description: Warehouse address
  *                 example: "456 Đường Cầu Giấy, Hà Nội"
+ *               status:
+ *                 type: string
+ *                 description: Warehouse status (ACTIVE/INACTIVE)
+ *                 example: "INACTIVE"
  *     responses:
  *       200:
- *         description: Warehouse updated successfully
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ */
+router.put('/:id', 
+  requirePermission(PERMISSIONS.WAREHOUSES.UPDATE),
+  validate(updateWarehouseSchema, 'body'),
+  validate(warehouseIdSchema, 'params'),
+  updateWarehouse
+);
+
+/**
+ * @swagger
+ * /warehouses/{id}:
+ *   delete:
+ *     summary: Xóa kho hàng
+ *     tags: [Warehouses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         description: Warehouse ID
+ *         example: "1"
+ *     responses:
+ *       200:
+ *         description: Xóa kho hàng thành công
  *         content:
  *           application/json:
  *             schema:
@@ -345,90 +230,20 @@ router.get('/:id',
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     name:
- *                       type: string
- *                       example: "Kho Hà Nội Updated"
- *                     address:
- *                       type: string
- *                       example: "456 Đường Cầu Giấy, Hà Nội"
- *                     status:
- *                       type: string
- *                       example: "ACTIVE"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-10-12T10:30:00.000Z"
  *                 message:
  *                   type: string
- *                   example: "Cập nhật kho thành công"
+ *                   example: "Xóa kho hàng thành công"
+ *                 data:
+ *                   type: object
  *       400:
- *         description: Bad request
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
+ *         description: Bad Request - Kho đang được sử dụng hoặc có ràng buộc dữ liệu
  *       404:
- *         description: Not found
- *       409:
- *         description: Conflict
+ *         description: Không tìm thấy kho hàng
  */
-router.put('/:id', 
-  requirePermission(PERMISSIONS.WAREHOUSES.UPDATE.key),
-  validateMultiple([
-    { schema: updateWarehouseSchema, source: 'body' }
-  ]), 
-  updateWarehouse
+router.delete('/:id',
+  requirePermission(PERMISSIONS.WAREHOUSES.DELETE),
+  validate(warehouseIdSchema, 'params'),
+  deleteWarehouse
 );
-
-// warehouse.routes.js
-/**
- * @swagger
- * /warehouses/{id}/status:
- *   patch:
- *     summary: Change warehouse status
- *     tags: [Warehouses]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Warehouse ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [ACTIVE, INACTIVE]
- *                 example: "INACTIVE"
- *     responses:
- *       200:
- *         description: Status changed successfully
- */
-router.patch('/:id/status',
-  requirePermission(PERMISSIONS.WAREHOUSES.UPDATE.key),
-  validate(changeWarehouseStatusSchema),
-  changeWarehouseStatus
-);
-
-
 
 export default router;
