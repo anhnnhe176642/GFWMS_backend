@@ -179,6 +179,14 @@ const options = {
             totalPages: {
               type: 'integer',
               description: 'Total number of pages'
+            },
+            hasNext: {
+              type: 'boolean',
+              description: 'Indicates if there is a next page'
+            },
+            hasPrev: {
+              type: 'boolean',
+              description: 'Indicates if there is a previous page'
             }
           }
         }

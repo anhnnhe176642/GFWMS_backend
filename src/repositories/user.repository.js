@@ -254,11 +254,7 @@ export class UserRepository {
     const { skip, take } = buildPagination(page, limit);
 
     // Build sort
-    const orderBy = buildSort(sortBy, order, {
-      name: 'fullname',
-      email: 'email',
-      created: 'createdAt'
-    });
+    const orderBy = buildSort(sortBy, order);
 
     // Execute queries
     const [users, total] = await Promise.all([

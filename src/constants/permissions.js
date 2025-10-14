@@ -24,6 +24,16 @@ export const PERMISSIONS = {
     MANAGE_COLORS:      { key: 'fabric:manage_colors',      description: 'Quản lý màu sắc vải' },
     MANAGE_GLOSS:       { key: 'fabric:manage_gloss',       description: 'Quản lý độ bóng vải' }
   },
+
+  // Warehouse Management
+  WAREHOUSES: {
+    VIEW_LIST:    { key: 'warehouse:view_list',    description: 'Xem danh sách kho' },
+    VIEW_DETAIL:  { key: 'warehouse:view_detail',  description: 'Xem chi tiết kho' },
+    CREATE:       { key: 'warehouse:create',       description: 'Tạo kho mới' },
+    UPDATE:       { key: 'warehouse:update',       description: 'Cập nhật thông tin kho' },
+    DELETE:       { key: 'warehouse:delete',       description: 'Xóa kho (soft delete)' },
+    MANAGE_STATUS:{ key: 'warehouse:manage_status',description: 'Quản lý trạng thái kho' }
+  },
   
   // Credit Registration
   CREDITS: {

@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import roleRoutes from './routes/role.routes.js';
+import warehouseRoutes from './routes/warehouse.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 
@@ -26,6 +27,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
+app.use('/warehouses', warehouseRoutes);
 
 // Health check route
 app.get('/check', (req, res) => {
@@ -39,4 +41,6 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`server is running on \x1b[36mhttp://localhost:${PORT}/api-docs\x1b[0m`);
+});
