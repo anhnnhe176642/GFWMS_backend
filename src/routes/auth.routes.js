@@ -19,55 +19,39 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - username
- *               - password
- *               - email
- *               - phone
  *             properties:
  *               username:
  *                 type: string
- *                 minLength: 3
- *                 maxLength: 50
- *                 description: Alphanumeric only, 3-50 characters
+ *                 description: Username (alphanumeric only)
  *                 example: johndoe123
  *               password:
  *                 type: string
  *                 format: password
- *                 minLength: 6
- *                 maxLength: 255
+ *                 description: Password
  *                 example: password123
  *               email:
  *                 type: string
- *                 format: email
- *                 maxLength: 100
- *                 description: Valid email address, will be converted to lowercase
+ *                 description: Email address (will be converted to lowercase)
  *                 example: user@example.com
  *               phone:
  *                 type: string
- *                 minLength: 10
- *                 maxLength: 15
- *                 description: Phone number with digits, +, -, spaces, or parentheses
+ *                 description: Phone number
  *                 example: "+84123456789"
  *               fullname:
  *                 type: string
- *                 maxLength: 100
  *                 description: Full name (optional)
  *                 example: John Doe
  *               gender:
  *                 type: string
- *                 enum: [MALE, FEMALE, OTHER]
- *                 nullable: true
+ *                 description: Gender (MALE, FEMALE, OTHER)
  *                 example: MALE
  *               address:
  *                 type: string
- *                 maxLength: 255
+ *                 description: Address
  *                 example: "123 Main St, City"
  *               dob:
  *                 type: string
- *                 format: date
- *                 description: Date of birth (must not be in the future)
- *                 nullable: true
+ *                 description: Date of birth
  *                 example: "1990-01-01"
  *     responses:
  *       201:
@@ -109,19 +93,15 @@ router.post('/register', validate(registerSchema), register);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - usernameOrEmail
- *               - password
  *             properties:
  *               usernameOrEmail:
  *                 type: string
- *                 description: Username or email address (trimmed automatically)
+ *                 description: Username or email address
  *                 example: admin
  *               password:
  *                 type: string
  *                 format: password
- *                 minLength: 6
- *                 maxLength: 255
+ *                 description: Password
  *                 example: admin123
  *     responses:
  *       200:
@@ -227,34 +207,26 @@ router.get('/profile',
  *             properties:
  *               fullname:
  *                 type: string
- *                 maxLength: 100
- *                 description: Full name (optional)
+ *                 description: Full name
  *                 example: John Doe
  *               phone:
  *                 type: string
- *                 minLength: 10
- *                 maxLength: 15
- *                 pattern: '^[0-9+\-\s()]+$'
  *                 description: Phone number
  *                 example: "+84123456789"
  *               dob:
  *                 type: string
- *                 format: date
- *                 description: Date of birth (must not be in the future)
- *                 nullable: true
+ *                 description: Date of birth
  *                 example: "1990-01-01"
  *               gender:
  *                 type: string
- *                 enum: [MALE, FEMALE, OTHER]
- *                 nullable: true
+ *                 description: Gender (MALE, FEMALE, OTHER)
  *                 example: MALE
  *               address:
  *                 type: string
- *                 maxLength: 255
+ *                 description: Address
  *                 example: "123 Main St, City"
  *               avatar:
  *                 type: string
- *                 nullable: true
  *                 description: Avatar URL
  *                 example: "https://example.com/avatar.jpg"
  *     responses:
@@ -303,23 +275,16 @@ router.put('/profile',
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - currentPassword
- *               - newPassword
  *             properties:
  *               currentPassword:
  *                 type: string
  *                 format: password
- *                 minLength: 6
- *                 maxLength: 255
  *                 description: Current password
  *                 example: oldpassword123
  *               newPassword:
  *                 type: string
  *                 format: password
- *                 minLength: 6
- *                 maxLength: 255
- *                 description: New password (6-255 characters)
+ *                 description: New password
  *                 example: newpassword123
  *     responses:
  *       200:

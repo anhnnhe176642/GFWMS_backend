@@ -21,31 +21,27 @@ export const buildDateRangeFilter = (from, to, field = 'createdAt') => {
 
 /**
  * Build filters object từ query params
- * @param {Object} params - Query parameters
+ * @param {Object} params - Query parameters (đã được validated)
  * @param {Array<string>} filterFields - Danh sách fields cần filter
  * @param {Object} dateRangeConfig - Config cho date range filter
  * @returns {Object} Filters object
  * 
- * Examples:
- * - Single value: { status: 'ACTIVE' } => { status: 'ACTIVE' }
- * - Multiple values (comma-separated): { status: 'ACTIVE,INACTIVE' } => { status: ['ACTIVE', 'INACTIVE'] }
- * - Multiple values (array): { status: ['ACTIVE', 'INACTIVE'] } => { status: ['ACTIVE', 'INACTIVE'] }
+ * @example
+ * // Params đã được validated bởi Joi với createMultiValueFilterSchema
+ * const params = { 
+ *   status: ['ACTIVE', 'INACTIVE'], // Đã là array từ validation
+ *   roleId: 'uuid-123' // Single value
+ * };
+ * buildFilters(params, ['status', 'roleId']) 
+ * // => { status: ['ACTIVE', 'INACTIVE'], roleId: 'uuid-123' }
  */
 export const buildFilters = (params, filterFields = [], dateRangeConfig = null) => {
   const filters = {};
   
-  // Build simple filters
+  // Build simple filters - chỉ filter ra undefined/null/empty
   filterFields.forEach(field => {
     if (params[field] !== undefined && params[field] !== null && params[field] !== '') {
-      let value = params[field];
-      
-      // Parse comma-separated values to array
-      if (typeof value === 'string' && value.includes(',')) {
-        value = value.split(',').map(v => v.trim()).filter(v => v !== '');
-      }
-      
-      // Convert array to filter format (buildWhereClause will handle the 'in' operator)
-      filters[field] = value;
+      filters[field] = params[field];
     }
   });
   
@@ -98,6 +94,34 @@ export const buildSort = (params, defaultSortBy = 'createdAt', defaultOrder = 'd
  * @param {Object} params - Query parameters
  * @param {Object} config - Configuration object
  * @returns {Object} Complete query params
+ * 
+ * @example
+ * const params = {
+ *   page: '2',
+ *   limit: '20',
+ *   sortBy: 'createdAt',
+ *   order: 'desc',
+ *   search: 'john',
+ *   status: ['ACTIVE','INACTIVE'],
+ *   roleId: 'uuid-123',
+ *   createdFrom: '2023-01-01',
+ *   createdTo: '2023-12-31'
+ * };
+ * 
+ * const config = {
+ *   filterFields: ['status', 'roleId'],
+ *   dateRangeConfig: {
+ *     fromField: 'createdFrom',
+ *     toField: 'createdTo',
+ *     targetField: 'createdAt'
+ *   },
+ *   defaultPage: 1,
+ *   defaultLimit: 10,
+ *   defaultSortBy: 'createdAt',
+ *   defaultOrder: 'desc'
+ * };
+ * 
+ * buildQueryParams(params, config);  
  */
 export const buildQueryParams = (params, config = {}) => {
   const {

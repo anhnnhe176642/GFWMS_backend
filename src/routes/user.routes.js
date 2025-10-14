@@ -23,66 +23,58 @@ router.use(authenticateToken);
  *         name: page
  *         schema:
  *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Page number (min 1)
+ *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 10
- *         description: Items per page (max 100)
+ *         description: Items per page
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *           maxLength: 100
- *         description: Search keyword (max 100 chars)
+ *         description: Search keyword
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *         description: Filter by status. Single value (ACTIVE) or multiple comma-separated (ACTIVE,INACTIVE,SUSPENDED)
+ *         description: Filter by status
  *         example: ACTIVE,INACTIVE
  *       - in: query
  *         name: role
  *         schema:
  *           type: string
- *         description: Filter by role. Single value or multiple comma-separated (admin,manager,employee)
+ *         description: Filter by role
  *         example: admin,manager
  *       - in: query
  *         name: gender
  *         schema:
  *           type: string
- *         description: Filter by gender. Single value or multiple comma-separated (MALE,FEMALE,OTHER)
+ *         description: Filter by gender
  *         example: MALE,FEMALE
  *       - in: query
  *         name: createdFrom
  *         schema:
  *           type: string
- *           format: date
- *         description: Filter users created from this date (ISO 8601 format)
+ *         description: Filter users created from this date
  *         example: "2024-01-01"
  *       - in: query
  *         name: createdTo
  *         schema:
  *           type: string
- *           format: date
- *         description: Filter users created until this date (must be >= createdFrom)
+ *         description: Filter users created until this date
  *         example: "2025-12-31"
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Field(s) to sort by. Single field or comma-separated (field1,field2)
+ *         description: Field(s) to sort by
  *         example: createdAt,username
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *         description: Sort order. Can be comma-separated for multiple fields (asc,desc)
+ *         description: Sort order
  *         example: desc
  *     responses:
  *       200:
@@ -126,6 +118,8 @@ router.use(authenticateToken);
  *                 limit: 10
  *                 total: 50
  *                 totalPages: 5
+ *                 hasNext: true
+ *                 hasPrev: false
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -153,68 +147,51 @@ router.get('/',
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - username
- *               - password
- *               - email
- *               - phone
- *               - role
  *             properties:
  *               username:
  *                 type: string
- *                 minLength: 3
- *                 maxLength: 50
- *                 description: Alphanumeric only, 3-50 characters
+ *                 description: Username (alphanumeric only)
  *                 example: johndoe123
  *               password:
  *                 type: string
  *                 format: password
- *                 minLength: 6
- *                 maxLength: 255
+ *                 description: Password
  *                 example: password123
  *               email:
  *                 type: string
- *                 format: email
- *                 maxLength: 100
- *                 description: Valid email (lowercase)
+ *                 description: Email address (lowercase)
  *                 example: user@example.com
  *               phone:
  *                 type: string
- *                 minLength: 10
- *                 maxLength: 15
+ *                 description: Phone number
  *                 example: "+84123456789"
  *               fullname:
  *                 type: string
- *                 maxLength: 100
+ *                 description: Full name
  *                 example: John Doe
  *               gender:
  *                 type: string
- *                 enum: [MALE, FEMALE, OTHER]
- *                 nullable: true
+ *                 description: Gender (MALE, FEMALE, OTHER)
  *                 example: MALE
  *               address:
  *                 type: string
- *                 maxLength: 255
+ *                 description: Address
  *                 example: "123 Main St, City"
  *               dob:
  *                 type: string
- *                 format: date
- *                 nullable: true
- *                 description: Date of birth (not in future)
+ *                 description: Date of birth
  *                 example: "1990-01-01"
  *               role:
  *                 type: string
- *                 maxLength: 50
  *                 description: Role name
  *                 example: employee
  *               status:
  *                 type: string
- *                 enum: [ACTIVE, INACTIVE, SUSPENDED]
- *                 description: User status (optional)
+ *                 description: User status (ACTIVE, INACTIVE, SUSPENDED)
  *                 example: ACTIVE
  *               avatar:
  *                 type: string
- *                 nullable: true
+ *                 description: Avatar URL
  *                 example: "https://example.com/avatar.jpg"
  *     responses:
  *       201:
@@ -261,7 +238,6 @@ router.post('/',
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: User ID
  *     responses:
  *       200:
@@ -320,7 +296,6 @@ router.get('/:id',
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: User ID
  *     requestBody:
  *       required: true
@@ -328,12 +303,10 @@ router.get('/:id',
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - status
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [ACTIVE, INACTIVE, SUSPENDED]
+ *                 description: User status (ACTIVE, INACTIVE, SUSPENDED)
  *     responses:
  *       200:
  *         description: User status updated successfully
@@ -382,20 +355,16 @@ router.patch('/:id/status',
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
- *         description: Valid UUID
+ *         description: User ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - role
  *             properties:
  *               role:
  *                 type: string
- *                 maxLength: 50
  *                 description: Role name
  *                 example: manager
  *     responses:
@@ -446,7 +415,6 @@ router.patch('/:id/role',
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
  *         description: User ID
  *     responses:
  *       200:

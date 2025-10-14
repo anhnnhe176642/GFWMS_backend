@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import roleRoutes from './routes/role.routes.js';
+import warehouseRoutes from './routes/warehouse.routes.js';
 import fabricRoutes from './routes/fabric.routes.js'; 
 import fabricGlossRouters from './routes/fabricgloss.routes.js'; 
 import fabricColorRouters from './routes/fabricColor.routes.js'; 
@@ -31,6 +32,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
+app.use('/warehouses', warehouseRoutes);
 app.use('/fabrics', fabricRoutes); 
 app.use('/fabric-gloss', fabricGlossRouters);
 app.use('/fabric-color', fabricColorRouters);
@@ -48,4 +50,6 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`server is running on \x1b[36mhttp://localhost:${PORT}/api-docs\x1b[0m`);
+});

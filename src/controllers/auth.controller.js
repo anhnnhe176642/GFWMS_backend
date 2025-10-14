@@ -42,7 +42,7 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { updateData } = req.body;
+    const updateData = req.body;
     const user = await authService.updateUserProfile(req.user.id, updateData);
     res.json({
       message: 'Cập nhật profile thành công',

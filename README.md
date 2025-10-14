@@ -10,14 +10,6 @@ Before getting started, ensure your computer has the following installed:
 - **MySQL** (version 8.x or higher) - [Download here](https://dev.mysql.com/downloads/mysql/)
 - **pnpm** (package manager) - [Installation guide](https://pnpm.io/installation)
 
-### Installing pnpm
-
-After installing Node.js, run the following command to install pnpm:
-
-```bash
-npm install -g pnpm
-```
-
 ## Installation Guide
 
 ### 1. Clone the project
@@ -57,16 +49,9 @@ This command will automatically:
 - Merge Prisma schema files
 - Create and run migrations
 - Generate Prisma Client
+- Seed sample data into database
 
-### 5. Seed sample data
-
-Run the following command to add sample data to the database:
-
-```bash
-pnpm run seed
-```
-
-### 6. Run the application
+### 5. Run the application
 
 #### Development mode (with nodemon - auto-restart on changes):
 

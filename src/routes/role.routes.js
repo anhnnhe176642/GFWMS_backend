@@ -24,34 +24,28 @@ router.use(authenticateToken);
  *         name: page
  *         schema:
  *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Page number (min 1)
+ *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 10
- *         description: Items per page (max 100)
+ *         description: Items per page
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *           maxLength: 100
- *         description: Search keyword (max 100 chars)
+ *         description: Search keyword
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Field(s) to sort by. Single or comma-separated
+ *         description: Field(s) to sort by
  *         example: name
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *         description: Sort order (asc or desc)
+ *         description: Sort order
  *     responses:
  *       200:
  *         description: Roles retrieved successfully
@@ -100,13 +94,10 @@ router.get('/',
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - name
  *             properties:
  *               name:
  *                 type: string
- *                 maxLength: 50
- *                 description: Role name (max 50 chars)
+ *                 description: Role name
  *                 example: manager
  *     responses:
  *       201:
@@ -153,8 +144,7 @@ router.post('/',
  *         required: true
  *         schema:
  *           type: string
- *           maxLength: 50
- *         description: Role name (max 50 chars)
+ *         description: Role name
  *         example: manager
  *     responses:
  *       200:
@@ -201,8 +191,7 @@ router.get('/:name',
  *         required: true
  *         schema:
  *           type: string
- *           maxLength: 50
- *         description: Role name to delete (max 50 chars)
+ *         description: Role name to delete
  *         example: manager
  *     responses:
  *       200:
