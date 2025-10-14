@@ -88,10 +88,10 @@ export class FabricRepository {
     } = queryOptions;
 
     // Build where clause (case-sensitive search)
-    const where = this.buildWhereClause({ search, filters });
+    const where = buildWhereClause({ search, ...filters });
 
     const skip = (page - 1) * limit;
-    const orderBy = this.buildOrderBy(sortBy, order);
+    const orderBy = buildSort(sortBy, order);
 
     // Lấy dữ liệu và đếm tổng số
     const [fabrics, total] = await Promise.all([
@@ -106,74 +106,6 @@ export class FabricRepository {
     ]);
 
     return formatPaginatedResponse(fabrics, total, page, limit);
-  }
-
- buildWhereClause = ({ search, filters }) => {
-  const where = {};
-
-  // ✅ Xác định kiểu dữ liệu cho từng field
-  const fieldTypeMap = {
-    colorId: 'string',
-    categoryId: 'int',
-    glossId: 'int',
-    supplierId: 'int',
-  };
-
-  const addFilter = (field, value) => {
-    if (value === undefined || value === null) return;
-
-    const type = fieldTypeMap[field];
-    const toCorrectType = (v) => {
-      const trimmed = v.trim();
-      if (type === 'int') {
-        if (!/^\d+$/.test(trimmed)) {
-          // Nếu user nhập chữ mà field là Int → báo lỗi
-          throw new Error(`${field} không hợp lệ: phải là số`);
-        }
-        return Number(trimmed);
-      }
-      return trimmed; // string giữ nguyên
-    };
-
-    if (Array.isArray(value)) {
-      const processed = value.map(v => toCorrectType(v));
-      where[field] = processed.length > 1 ? { in: processed } : processed[0];
-    } else {
-      where[field] = toCorrectType(value);
-    }
-  };
-
-  // 🔹 Áp dụng filter theo kiểu dữ liệu từng field
-  addFilter('colorId', filters.colorId);
-  addFilter('categoryId', filters.categoryId);
-  addFilter('glossId', filters.glossId);
-  addFilter('supplierId', filters.supplierId);
-
-  // 🔍 Search text trong các quan hệ
-  if (search) {
-    where.OR = [
-      { color: { name: { contains: search } } },
-      { category: { name: { contains: search } } },
-      { gloss: { description: { contains: search } } },
-      { supplier: { name: { contains: search } } },
-    ];
-  }
-
-  return where;
-};
-
-
-
-  buildOrderBy(sortBy, order) {
-    const sortMapping = {
-      thickness: 'thickness',
-      price: 'sellingPrice',
-      stock: 'quantityInStock',
-      created: 'createdAt',
-    };
-
-    const field = sortMapping[sortBy] || 'createdAt';
-    return { [field]: order };
   }
 }
 
