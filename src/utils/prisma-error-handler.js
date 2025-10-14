@@ -97,6 +97,7 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
     case 'P2003': {
       // Foreign key constraint failed (có 2 trường hợp)
       console.log('P2003 Error Meta:', JSON.stringify(error.meta, null, 2));
+      console.log('P2003 Error Message:', error.message);
       
       let fieldName = 'Tham chiếu';
       
@@ -115,12 +116,12 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
         fieldName = extractFieldFromConstraint(constraintValue) || constraintValue;
       }
       
-      // Phân biệt 2 trường hợp dựa vào message hoặc context
+      // Phân biệt 2 trường hợp dựa vào message
       const errorMessage = error.message || '';
       
       // Trường hợp 1: Xóa khi có bản ghi tham chiếu (delete operation)
-      if (errorMessage.toLowerCase().includes('delete') || 
-          errorMessage.toLowerCase().includes('foreign key constraint failed on the field')) {
+      if (errorMessage.includes('delete') || 
+          errorMessage.includes('Foreign key constraint violated')) {
         
         // Kiểm tra fieldMappings trước
         const customMessage = fieldMappings[fieldName];
@@ -128,8 +129,9 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
           throw new ConflictError(customMessage, fieldName);
         }
         
+        const modelName = error.meta?.modelName || 'Bản ghi';
         throw new ConflictError(
-          `Không thể xóa vì có dữ liệu khác đang tham chiếu đến bản ghi này`,
+          `Không thể xóa ${modelName} vì có dữ liệu khác đang tham chiếu đến bản ghi này`,
           fieldName
         );
       }
