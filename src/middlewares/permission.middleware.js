@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { AuthenticationError, AuthorizationError } from '../utils/errors.js';
 import { userRepository } from '../repositories/user.repository.js';
+import { PERMISSIONS } from '../constants/permissions.js';
 
 // Middleware xác thực JWT token
 export const authenticateToken = async (req, res, next) => {
@@ -140,5 +141,5 @@ export const requireOwnershipOrPermission = (permission, getResourceOwnerId) => 
 
 // Helper function để check admin role
 export const requireAdmin = (req, res, next) => {
-  return requirePermission('system:manage_permissions')(req, res, next);
+  return requirePermission(PERMISSIONS.SYSTEM.MANAGE_PERMISSIONS.key)(req, res, next);
 };
