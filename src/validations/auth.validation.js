@@ -11,6 +11,10 @@ import {
   avatarSchema
 } from './common.validation.js';
 
+export const pinSchema = Joi.string().pattern(/^[0-9]{6}$/).required().messages({
+  'string.pattern.base': 'Mã pin phải có 6 chữ số'
+});
+
 // Schema validation cho register
 export const registerSchema = Joi.object({
   username: usernameSchema.required(),
@@ -58,12 +62,29 @@ export const updateProfileSchema = Joi.object({
 // Verify email with PIN
 export const verifyEmailSchema = Joi.object({
   email: emailSchema.required(),
-  pin: Joi.string().pattern(/^[0-9]{6}$/).required().messages({
-    'string.pattern.base': 'Mã pin phải có 6 chữ số'
-  })
+  pin: pinSchema
 });
 
 // Resend verification code
 export const resendVerificationSchema = Joi.object({
   email: emailSchema.required()
+});
+
+// Request password reset (send PIN)
+export const requestPasswordResetSchema = Joi.object({
+  email: emailSchema.required()
+});
+
+
+// Step 1: verify PIN only
+export const verifyResetPinSchema = Joi.object({
+  email: emailSchema.required(),
+  pin: pinSchema
+});
+
+// Step 2: set new password
+export const setNewPasswordSchema = Joi.object({
+  email: emailSchema.required(),
+  pin: pinSchema,
+  newPassword: passwordSchema.required()
 });

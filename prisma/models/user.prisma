@@ -25,4 +25,5 @@ model User {
   userNotifications UserNotification[]
   notifications  Notification[]
   emailVerificationPins EmailVerificationPin[]
+  passwordResetPins PasswordResetPin[]
 }

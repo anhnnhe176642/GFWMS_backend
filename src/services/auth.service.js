@@ -5,6 +5,8 @@ import { userRepository } from '../repositories/user.repository.js';
 import { emailVerificationRepository } from '../repositories/emailVerification.repository.js';
 import { hashPin, generateNumericPin } from '../utils/hash.js';
 import { sendVerificationCodeEmail } from './email.service.js';
+import { passwordResetPinRepository } from '../repositories/passwordResetPin.repository.js';
+import { sendPasswordResetPin } from '../utils/mailer.js';
 
 export const registerUser = async (userData) => {
   // If email already exists and is verified -> conflict
@@ -217,3 +219,73 @@ export const changeUserPassword = async (userId, currentPassword, newPassword) =
   // Update password
   await userRepository.updateById(userId, { password: hashedNewPassword });
 };
+
+// --- Password reset via PIN ---
+export const requestPasswordReset = async (email) => {
+  const user = await userRepository.findByEmail(email);
+  if (!user) {
+    // For security, do not reveal whether email exists. But keep consistent: throw NotFoundError or return silently.
+    throw new NotFoundError('User không tồn tại');
+  }
+
+  // Invalidate previous reset pins
+  await passwordResetPinRepository.invalidatePinsForUser(user.id);
+
+  const pin = generateNumericPin(6);
+  const pinHash = hashPin(pin);
+  const expiresInMinutes = parseInt(process.env.PASSWORD_RESET_PIN_EXPIRES_MINUTES || '15');
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+
+  await passwordResetPinRepository.createPin({ userId: user.id, pinHash, expiresAt });
+
+  // Send email with the pin
+  await sendPasswordResetPin(user.email, pin, expiresInMinutes);
+
+  return { message: 'Mã đặt lại mật khẩu đã được gửi đến email của bạn' };
+};
+
+// Step 1: Verify PIN only
+export const verifyPasswordResetPin = async (email, pin) => {
+  const user = await userRepository.findByEmail(email);
+  if (!user) {
+    throw new NotFoundError('User không tồn tại');
+  }
+  const latestPin = await passwordResetPinRepository.findLatestActiveByUser(user.id);
+  if (!latestPin) {
+    throw new AuthenticationError('Mã đặt lại không hợp lệ hoặc đã hết hạn');
+  }
+  const providedHash = hashPin(pin);
+  if (providedHash === latestPin.pinHash) {
+    await passwordResetPinRepository.markVerified(latestPin.id);
+    return { message: 'Mã PIN hợp lệ. Bạn có thể đặt lại mật khẩu.' };
+  }
+  await passwordResetPinRepository.incrementAttempts(latestPin.id);
+  const MAX_ATTEMPTS = parseInt(process.env.PASSWORD_RESET_PIN_MAX_ATTEMPTS || '5');
+  if ((latestPin.attemptCount || 0) + 1 >= MAX_ATTEMPTS) {
+    await passwordResetPinRepository.markUsed(latestPin.id);
+    throw new AuthenticationError('Quá nhiều lần thử. Mã đặt lại đã bị hủy. Vui lòng yêu cầu mã mới.');
+  }
+  throw new AuthenticationError('Mã đặt lại không hợp lệ');
+};
+
+// Step 2: Set new password (only if PIN verified)
+export const setNewPasswordWithVerifiedPin = async (email, pin, newPassword) => {
+  const user = await userRepository.findByEmail(email);
+  if (!user) {
+    throw new NotFoundError('User không tồn tại');
+  }
+  const latestPin = await passwordResetPinRepository.findLatestVerifiedByUser(user.id);
+  if (!latestPin) {
+    throw new AuthenticationError('Bạn chưa xác nhận mã PIN hoặc mã đã hết hạn.');
+  }
+  const providedHash = hashPin(pin);
+  if (providedHash !== latestPin.pinHash) {
+    throw new AuthenticationError('Mã PIN không hợp lệ.');
+  }
+  // Đổi mật khẩu và đánh dấu used
+  const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+  await userRepository.updateById(user.id, { password: hashedNewPassword });
+  await passwordResetPinRepository.markUsed(latestPin.id);
+  return { message: 'Mật khẩu đã được đặt lại thành công' };
+};
+

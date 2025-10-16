@@ -91,3 +91,34 @@ export const changePassword = async (req, res, next) => {
     next(error);
   }
 };
+
+export const requestPasswordReset = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.requestPasswordReset(email);
+    res.json({ message: result.message });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const verifyResetPin = async (req, res, next) => {
+  try {
+    const { email, pin } = req.body;
+    const result = await authService.verifyPasswordResetPin(email, pin);
+    res.json({ message: result.message });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const setNewPassword = async (req, res, next) => {
+  try {
+    const { email, pin, newPassword } = req.body;
+    const result = await authService.setNewPasswordWithVerifiedPin(email, pin, newPassword);
+    res.json({ message: result.message });
+  } catch (error) {
+    next(error);
+  }
+};

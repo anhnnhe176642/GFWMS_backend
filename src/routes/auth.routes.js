@@ -1,8 +1,9 @@
 import express from 'express';
 import { register, login, getProfile, updateProfile, changePassword, verifyEmail, resendVerification } from '../controllers/auth.controller.js';
+import { requestPasswordReset, verifyResetPin, setNewPassword } from '../controllers/auth.controller.js';
 import { authenticateToken, requirePermission } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validation.middleware.js';
-import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema } from '../validations/auth.validation.js';
+import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema, requestPasswordResetSchema, verifyResetPinSchema, setNewPasswordSchema } from '../validations/auth.validation.js';
 import { PERMISSIONS } from '../constants/permissions.js';
 
 const router = express.Router();
@@ -141,6 +142,104 @@ router.post('/verify-email', validate(verifyEmailSchema), verifyEmail);
  *                   type: string
  */
 router.post('/resend-verification', validate(resendVerificationSchema), resendVerification);
+
+/**
+ * @swagger
+ * /auth/request-password-reset:
+ *   post:
+ *     summary: Request a password reset PIN to be sent to user's email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Password reset PIN sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ */
+router.post('/request-password-reset', validate(requestPasswordResetSchema), requestPasswordReset);
+
+
+/**
+ * @swagger
+ * /auth/verify-reset-pin:
+ *   post:
+ *     summary: Verify password reset PIN
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               pin:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: PIN verified, user can set new password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ */
+router.post('/verify-reset-pin', validate(verifyResetPinSchema), verifyResetPin);
+
+/**
+ * @swagger
+ * /auth/set-new-password:
+ *   post:
+ *     summary: Set new password after PIN verified
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               pin:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: newpassword123
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ */
+router.post('/set-new-password', validate(setNewPasswordSchema), setNewPassword);
 
 /**
  * @swagger
