@@ -96,7 +96,7 @@ const buildSearchCondition = (field, searchValue) => {
  * @example
  * // With filter mapping
  * buildWhereClause({ roleName: 'ADMIN' }, [], { roleName: 'role.name' })
- * // => { role: { name: 'ADMIN' } }
+ * // => { role: { name: { contains: 'ADMIN' } } }
  */
 export const buildWhereClause = (filters = {}, searchableFields = [], filterMapping = {}) => {
   const where = {};
