@@ -10,9 +10,11 @@ model User {
   dob       DateTime?     
   fullname  String?  @db.VarChar(100)
   status    UserStatus @default(INACTIVE)
+  emailVerified Boolean @default(false)
+  emailVerifiedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  role      String   @db.VarChar(50) @default("User")
+  role      String   @db.VarChar(50) @default("USER")
   roleRel   Role     @relation(fields: [role], references: [name])
   creditRegistration CreditRegistration?
   approvedRegistrations CreditRegistration[] @relation("Approver")
@@ -22,4 +24,6 @@ model User {
   orders     Order[]
   userNotifications UserNotification[]
   notifications  Notification[]
+  emailVerificationPins EmailVerificationPin[]
+  passwordResetPins PasswordResetPin[]
 }

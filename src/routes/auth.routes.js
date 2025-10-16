@@ -1,8 +1,9 @@
 import express from 'express';
-import { register, login, getProfile, updateProfile, changePassword } from '../controllers/auth.controller.js';
+import { register, login, getProfile, updateProfile, changePassword, verifyEmail, resendVerification } from '../controllers/auth.controller.js';
+import { requestPasswordReset, verifyResetPin, setNewPassword } from '../controllers/auth.controller.js';
 import { authenticateToken, requirePermission } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validation.middleware.js';
-import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema } from '../validations/auth.validation.js';
+import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema, requestPasswordResetSchema, verifyResetPinSchema, setNewPasswordSchema } from '../validations/auth.validation.js';
 import { PERMISSIONS } from '../constants/permissions.js';
 
 const router = express.Router();
@@ -55,7 +56,7 @@ const router = express.Router();
  *                 example: "1990-01-01"
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: User registered successfully (verification PIN sent to email)
  *         content:
  *           application/json:
  *             schema:
@@ -63,23 +64,182 @@ const router = express.Router();
  *               required:
  *                 - message
  *                 - user
- *                 - token
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Đăng ký thành công
+ *                   example: Đăng ký thành công. Mã xác thực đã được gửi tới email của bạn.
  *                 user:
  *                   $ref: '#/components/schemas/User'
- *                 token:
- *                   type: string
- *                   description: JWT authentication token
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3OC05MGFiLWNkZWYtMTIzNC01Njc4OTBhYmNkZWYiLCJ1c2VybmFtZSI6ImpvaG5kb2UxMjMiLCJpYXQiOjE2OTg2NjY2NjYsImV4cCI6MTY5ODc1MzA2Nn0.example_signature
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       409:
  *         $ref: '#/components/responses/ConflictError'
  */
 router.post('/register', validate(registerSchema), register);
+
+/**
+ * @swagger
+ * /auth/verify-email:
+ *   post:
+ *     summary: Verify email using numeric PIN sent to email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               pin:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: Email verified and token issued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 token:
+ *                   type: string
+ *                   description: JWT authentication token (expires in 24h)
+ */
+router.post('/verify-email', validate(verifyEmailSchema), verifyEmail);
+
+/**
+ * @swagger
+ * /auth/resend-verification:
+ *   post:
+ *     summary: Resend verification PIN to user's email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Verification PIN resent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ */
+router.post('/resend-verification', validate(resendVerificationSchema), resendVerification);
+
+/**
+ * @swagger
+ * /auth/request-password-reset:
+ *   post:
+ *     summary: Request a password reset PIN to be sent to user's email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Password reset PIN sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ */
+router.post('/request-password-reset', validate(requestPasswordResetSchema), requestPasswordReset);
+
+
+/**
+ * @swagger
+ * /auth/verify-reset-pin:
+ *   post:
+ *     summary: Verify password reset PIN
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               pin:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: PIN verified, user can set new password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ */
+router.post('/verify-reset-pin', validate(verifyResetPinSchema), verifyResetPin);
+
+/**
+ * @swagger
+ * /auth/set-new-password:
+ *   post:
+ *     summary: Set new password after PIN verified
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               pin:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: newpassword123
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ */
+router.post('/set-new-password', validate(setNewPasswordSchema), setNewPassword);
 
 /**
  * @swagger

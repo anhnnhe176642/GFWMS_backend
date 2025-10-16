@@ -2,12 +2,12 @@
   "name": "sep2025",
   "version": "1.0.0",
   "description": "",
-  "main": "src/app.js",
+  "main": "src/server.js",
   "scripts": {
     "init": "pnpm i && pnpm run prisma:all && pnpm run seed",
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "vitest",
     "seed": "node prisma/seed.js",
     "prisma:merge": "npx prisma-merge --baseFile=prisma/schema.prisma --schemaFilePatterns=prisma/**/*.prisma --outputFile=prisma/schema.merged.prisma",
     "prisma:gen": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma",
@@ -35,6 +35,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
-    "prisma-merge": "^0.2.0"
+    "prisma-merge": "^0.2.0",
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
   }
 }

@@ -83,6 +83,8 @@ async function main() {
       phone: '0123456789',
       fullname: 'System Administrator',
       status: 'ACTIVE',
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
       role: createdRoles.ADMIN.name
     }
   });
@@ -99,6 +101,8 @@ async function main() {
       phone: '0987654321',
       fullname: 'Regular User',
       status: 'ACTIVE',
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
       role: createdRoles.USER.name
     }
   });
@@ -115,6 +119,8 @@ async function main() {
       phone: '0555666777',
       fullname: 'System Staff',
       status: 'ACTIVE',
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
       role: createdRoles.STAFF.name
     }
   });
