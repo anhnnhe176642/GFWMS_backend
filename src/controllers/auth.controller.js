@@ -5,9 +5,34 @@ export const register = async (req, res, next) => {
     const userData = req.body;
     const result = await authService.registerUser(userData);
     res.status(201).json({
-      message: 'Đăng ký thành công',
+      message: 'Đăng ký thành công. Mã xác thực đã được gửi tới email của bạn.',
+      user: result.user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { email, pin } = req.body;
+    const result = await authService.verifyEmailPin(email, pin);
+    res.json({
+      message: 'Xác thực email thành công',
       user: result.user,
       token: result.token
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.resendVerificationPin(email);
+    res.json({
+      message: result.message
     });
   } catch (error) {
     next(error);

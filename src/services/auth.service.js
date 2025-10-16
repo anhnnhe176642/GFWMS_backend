@@ -1,29 +1,144 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { AuthenticationError, NotFoundError, ValidationError } from '../utils/errors.js';
+import { AuthenticationError, NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import { userRepository } from '../repositories/user.repository.js';
+import { emailVerificationRepository } from '../repositories/emailVerification.repository.js';
+import { hashPin, generateNumericPin } from '../utils/hash.js';
+import { sendVerificationCodeEmail } from './email.service.js';
 
 export const registerUser = async (userData) => {
+  // If email already exists and is verified -> conflict
+  const existing = await userRepository.findByEmail(userData.email);
+  if (existing) {
+    if (existing.emailVerified) {
+      throw new ConflictError('Email đã được sử dụng');
+    }
+
+    // Invalidate any existing pins
+    await emailVerificationRepository.invalidatePinsForUser(existing.id);
+
+    // Try hard-delete first. If FK constraints prevent deletion, fallback to anonymize+soft-delete.
+    try {
+      await userRepository.deleteById(existing.id);
+    } catch (error) {
+      // If delete fails due to FK (ConflictError), fallback to anonymize to free up unique fields
+      if (error instanceof ConflictError) {
+        await userRepository.anonymizeAndSoftDelete(existing.id);
+      } else {
+        throw error;
+      }
+    }
+  }
+
   // Hash password
   const hashedPassword = await bcrypt.hash(userData.password, 10);
-  
+
   // Create user
   const user = await userRepository.create({
     ...userData,
     password: hashedPassword
   });
 
-  // Generate JWT token
-  const token = jwt.sign(
-    { userId: user.id, username: user.username },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-  );
+  // Generate a numeric PIN and send verification email
+  try {
+    // Invalidate existing pins for user
+    await emailVerificationRepository.invalidatePinsForUser(user.id);
 
-  return {
-    user,
-    token
-  };
+    const pin = generateNumericPin(6);
+    const pinHash = hashPin(pin);
+    const expiresInMinutes = parseInt(process.env.VERIFY_PIN_EXPIRES_MINUTES || '15');
+    const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+
+    await emailVerificationRepository.createPin({
+      userId: user.id,
+      pinHash,
+      expiresAt
+    });
+
+    await sendVerificationCodeEmail(user.email, pin, expiresInMinutes);
+  } catch (error) {
+    // If email sending fails, we still created the user. Bubble error up to be handled by controller/middleware.
+    throw error;
+  }
+
+  // Return created user (sanitized). Do NOT issue JWT until email is verified.
+  return { user };
+};
+
+export const verifyEmailPin = async (email, pin) => {
+  const user = await userRepository.findByEmail(email);
+
+  if (!user) {
+    throw new NotFoundError('User không tồn tại');
+  }
+
+  if (user.emailVerified) {
+    throw new ValidationError('Email đã được xác thực');
+  }
+
+  // Find the latest active pin for user
+  const latestPin = await emailVerificationRepository.findLatestActiveByUser(user.id);
+  if (!latestPin) {
+    throw new AuthenticationError('Mã xác thực không hợp lệ hoặc đã hết hạn');
+  }
+
+  const providedHash = hashPin(pin);
+
+  // If pin matches
+  if (latestPin.pinHash === providedHash) {
+    // Mark pin used and update user
+    await emailVerificationRepository.markUsed(latestPin.id);
+    const verifiedUser = await userRepository.markEmailVerified(user.id);
+
+    // Generate JWT token so user can be logged in immediately after verification
+    const token = jwt.sign(
+      { userId: verifiedUser.id, username: verifiedUser.username },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+    );
+
+    verifiedUser.permissionKeys = await userRepository.getUserPermissionKeys(verifiedUser.id);
+    return { user: verifiedUser, token };
+  }
+
+  // Pin mismatch — increment attempts and possibly invalidate
+  await emailVerificationRepository.incrementAttempts(latestPin.id);
+  const MAX_ATTEMPTS = parseInt(process.env.VERIFY_PIN_MAX_ATTEMPTS || '5');
+  if ((latestPin.attempts || 0) + 1 >= MAX_ATTEMPTS) {
+    await emailVerificationRepository.markUsed(latestPin.id);
+    throw new AuthenticationError('Quá nhiều lần thử. Mã xác thực đã bị hủy. Vui lòng yêu cầu mã mới.');
+  }
+
+  throw new AuthenticationError('Mã xác thực không hợp lệ');
+};
+
+export const resendVerificationPin = async (email) => {
+  const user = await userRepository.findByEmail(email);
+  if (!user) {
+    throw new NotFoundError('User không tồn tại');
+  }
+
+  if (user.emailVerified) {
+    throw new ValidationError('Email đã được xác thực');
+  }
+
+  // Check cooldown for resending
+  const lastPin = await emailVerificationRepository.findLatestActiveByUser(user.id);
+  const cooldownSeconds = parseInt(process.env.VERIFY_PIN_RESEND_COOLDOWN_SECONDS || '60');
+  if (lastPin && (new Date() - new Date(lastPin.createdAt)) / 1000 < cooldownSeconds) {
+    throw new ValidationError('Vui lòng đợi trước khi gửi lại mã xác thực');
+  }
+
+  // Invalidate previous pins and create a new one
+  await emailVerificationRepository.invalidatePinsForUser(user.id);
+  const pin = generateNumericPin(6);
+  const pinHash = hashPin(pin);
+  const expiresInMinutes = parseInt(process.env.VERIFY_PIN_EXPIRES_MINUTES || '15');
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+
+  await emailVerificationRepository.createPin({ userId: user.id, pinHash, expiresAt });
+  await sendVerificationCodeEmail(user.email, pin, expiresInMinutes);
+  return { message: 'Mã xác thực đã được gửi lại' };
 };
 
 export const loginUser = async (usernameOrEmail, password) => {

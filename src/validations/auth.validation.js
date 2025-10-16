@@ -54,3 +54,16 @@ export const updateProfileSchema = Joi.object({
   phone: phoneSchema.optional(),
   avatar: avatarSchema.optional()
 });
+
+// Verify email with PIN
+export const verifyEmailSchema = Joi.object({
+  email: emailSchema.required(),
+  pin: Joi.string().pattern(/^[0-9]{6}$/).required().messages({
+    'string.pattern.base': 'Mã pin phải có 6 chữ số'
+  })
+});
+
+// Resend verification code
+export const resendVerificationSchema = Joi.object({
+  email: emailSchema.required()
+});
