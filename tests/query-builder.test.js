@@ -3,7 +3,9 @@ import {
   buildWhereClause,
   buildPagination,
   buildSort,
-  formatPaginatedResponse
+  formatPaginatedResponse,
+  buildNestedWhere,
+  buildSearchCondition
 } from '../src/utils/query-builder.js';
 
 describe('query-builder utilities', () => {
@@ -86,11 +88,30 @@ describe('query-builder utilities', () => {
       expect(res).toEqual({ store: { address: { city: { contains: 'Hanoi' } } } });
     });
 
+    it('builds very deeply nested where for >3 levels', () => {
+      const res = buildWhereClause({ 'level1.level2.level3.level4': 'deep' });
+      expect(res).toEqual({ level1: { level2: { level3: { level4: { contains: 'deep' } } } } });
+    });
+
+    it('buildNestedWhere handles arrays and range objects directly', () => {
+      expect(buildNestedWhere('role.ids', [1, 2])).toEqual({ role: { ids: { in: [1, 2] } } });
+      expect(buildNestedWhere('meta.range', { gte: 1, lte: 5 })).toEqual({ meta: { range: { gte: 1, lte: 5 } } });
+    });
+
+    it('buildNestedWhere handles very deep nested paths directly', () => {
+      expect(buildNestedWhere('a.b.c.d', 'val')).toEqual({ a: { b: { c: { d: { contains: 'val' } } } } });
+    });
+
+    it('buildSearchCondition returns contains for flat and nested fields', () => {
+      expect(buildSearchCondition('name', 'bob')).toEqual({ name: { contains: 'bob' } });
+      expect(buildSearchCondition('role.title', 'admin')).toEqual({ role: { title: { contains: 'admin' } } });
+      expect(buildSearchCondition('store.address.city', 'Hanoi')).toEqual({ store: { address: { city: { contains: 'Hanoi' } } } });
+    });
+
     it('builds search OR condition for searchable fields including nested', () => {
       const res = buildWhereClause({ search: 'John' }, ['username', 'role.name', 'email', 'store.address.city']);
       expect(res).toHaveProperty('OR');
       expect(Array.isArray(res.OR)).toBe(true);
-      // should contain username contains and role.name contains
       expect(res.OR).toEqual(
         expect.arrayContaining([
           { username: { contains: 'John' } },
@@ -105,19 +126,19 @@ describe('query-builder utilities', () => {
   describe('formatPaginatedResponse', () => {
     it('formats pagination metadata correctly', () => {
       const items = [{ id: 1 }, { id: 2 }];
-      const total = 5;
-      const page = 2;
-      const limit = 2;
+      const total = '5';
+      const page = '2';
+      const limit = '2';
       const res = formatPaginatedResponse(items, total, page, limit);
       expect(res).toEqual({
         data: items,
         pagination: {
-          page: parseInt(String(page)),
-          limit: parseInt(String(limit)),
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasNext: page * limit < total,
-          hasPrev: page > 1
+          page: 2,
+          limit: 2,
+          total: 5,
+          totalPages: 3,
+          hasNext: true,
+          hasPrev: true
         }
       });
     });

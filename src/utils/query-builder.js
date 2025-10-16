@@ -4,7 +4,7 @@
  * @param {*} value - Filter value
  * @returns {Object} Nested where object
  */
-const buildNestedWhere = (path, value) => {
+export const buildNestedWhere = (path, value) => {
   const parts = path.split('.');
   const [relation, ...fieldParts] = parts;
   const field = fieldParts.join('.');
@@ -50,7 +50,7 @@ const buildNestedWhere = (path, value) => {
  * @param {string} searchValue - Search value
  * @returns {Object} Search condition
  */
-const buildSearchCondition = (field, searchValue) => {
+export const buildSearchCondition = (field, searchValue) => {
   if (field.includes('.')) {
     // Nested field search
     return buildNestedWhere(field, searchValue);
@@ -213,7 +213,7 @@ export const formatPaginatedResponse = (items, total, page, limit) => {
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
-      total,
+      total: parseInt(total),
       totalPages: Math.ceil(total / limit),
       hasNext: page * limit < total,
       hasPrev: page > 1
