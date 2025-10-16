@@ -7,7 +7,7 @@
     "init": "pnpm i && pnpm run prisma:all && pnpm run seed",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "vitest",
+    "test": "vitest --reporter=verbose",
     "seed": "node prisma/seed.js",
     "prisma:merge": "npx prisma-merge --baseFile=prisma/schema.prisma --schemaFilePatterns=prisma/**/*.prisma --outputFile=prisma/schema.merged.prisma",
     "prisma:gen": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma",
