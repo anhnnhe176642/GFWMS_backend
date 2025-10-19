@@ -344,9 +344,13 @@ const options = {
         name: 'Roles',
         description: 'Role and permission management endpoints'
       }
-    ]
+    ],
+    servers: [
+      { url: '/api/v1', description: 'Version 1' },
+      { url: '/api/v2', description: 'Version 2' },
+    ],
   },
-  apis: ['./src/routes/*.js'], // Path to the API routes
+  apis: ['./src/routes/**/*.js'], // Path to the API routes
 };
 
 const swaggerSpec = swaggerJsdoc(options);

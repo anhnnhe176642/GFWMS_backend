@@ -1,10 +1,10 @@
 import express from 'express';
-import { register, login, getProfile, updateProfile, changePassword, verifyEmail, resendVerification } from '../controllers/auth.controller.js';
-import { requestPasswordReset, verifyResetPin, setNewPassword } from '../controllers/auth.controller.js';
-import { authenticateToken, requirePermission } from '../middlewares/auth.middleware.js';
-import { validate } from '../middlewares/validation.middleware.js';
-import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema, requestPasswordResetSchema, verifyResetPinSchema, setNewPasswordSchema } from '../validations/auth.validation.js';
-import { PERMISSIONS } from '../constants/permissions.js';
+import { register, login, getProfile, updateProfile, changePassword, verifyEmail, resendVerification } from '../../controllers/auth.controller.js';
+import { requestPasswordReset, verifyResetPin, setNewPassword } from '../../controllers/auth.controller.js';
+import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { validate } from '../../middlewares/validation.middleware.js';
+import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema, requestPasswordResetSchema, verifyResetPinSchema, setNewPasswordSchema } from '../../validations/auth.validation.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
 
