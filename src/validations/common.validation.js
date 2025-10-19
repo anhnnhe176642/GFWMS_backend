@@ -212,6 +212,7 @@ export const limitSchema = Joi.number()
 export const searchSchema = Joi.string()
   .allow('')
   .max(100)
+  .trim()
   .messages({
     'string.max': 'Từ khóa tìm kiếm không được vượt quá 100 ký tự'
   });
