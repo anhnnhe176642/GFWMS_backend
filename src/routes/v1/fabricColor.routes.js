@@ -4,17 +4,17 @@ import {
   getFabricColorById, 
   createFabricColor, 
   updateFabricColor, 
-} from '../controllers/fabricColor.controller.js';
-import { authenticateToken } from '../middlewares/auth.middleware.js';
-import { requirePermission } from '../middlewares/permission.middleware.js';
-import { PERMISSIONS } from '../constants/permissions.js';
-import { validate } from '../middlewares/validation.middleware.js';
+} from '../../controllers/fabricColor.controller.js';
+import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
+import { validate } from '../../middlewares/validation.middleware.js';
 import { 
   createFabricColorSchema, 
   updateFabricColorSchema, 
   fabricColorIdParamSchema, 
   fabricColorQuerySchema 
-} from '../validations/fabricColor.validation.js';
+} from '../../validations/fabricColor.validation.js';
 
 const router = express.Router();
 

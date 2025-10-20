@@ -1,7 +1,7 @@
 model EmailVerificationPin {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   pinHash   String   @db.VarChar(255)
   attempts  Int      @default(0)
   expiresAt DateTime

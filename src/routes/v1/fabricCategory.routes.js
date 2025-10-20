@@ -4,17 +4,17 @@ import {
   getFabricCategoryById,
   createFabricCategory,
   updateFabricCategory
-} from '../controllers/fabricCategory.controller.js';
-import { authenticateToken } from '../middlewares/auth.middleware.js';
-import { requirePermission } from '../middlewares/permission.middleware.js';
-import { PERMISSIONS } from '../constants/permissions.js';
-import { validate } from '../middlewares/validation.middleware.js';
+} from '../../controllers/fabricCategory.controller.js';
+import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
+import { validate } from '../../middlewares/validation.middleware.js';
 import {
   createFabricCategorySchema,
   updateFabricCategorySchema,
   fabricCategoryIdParamSchema,
   fabricCategoryQuerySchema
-} from '../validations/fabricCategory.validation.js';
+} from '../../validations/fabricCategory.validation.js';
 
 const router = express.Router();
 

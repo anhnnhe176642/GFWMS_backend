@@ -1,10 +1,10 @@
 import express from 'express';
-import { getAllRoles, createRole, getRoleByName, deleteRole } from '../controllers/role.controller.js';
-import { authenticateToken } from '../middlewares/auth.middleware.js';
-import { requirePermission } from '../middlewares/permission.middleware.js';
-import { PERMISSIONS } from '../constants/permissions.js';
-import { validate } from '../middlewares/validation.middleware.js';
-import { createRoleSchema, roleNameParamSchema, roleQuerySchema } from '../validations/role.validation.js';
+import { getAllRoles, createRole, getRoleByName, deleteRole } from '../../controllers/role.controller.js';
+import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
+import { validate } from '../../middlewares/validation.middleware.js';
+import { createRoleSchema, roleNameParamSchema, roleQuerySchema } from '../../validations/role.validation.js';
 
 const router = express.Router();
 

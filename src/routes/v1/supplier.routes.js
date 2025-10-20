@@ -4,17 +4,17 @@ import {
   getSupplierById,
   createSupplier,
   updateSupplier,
-} from '../controllers/supplier.controller.js';
-import { authenticateToken } from '../middlewares/auth.middleware.js';
-import { requirePermission } from '../middlewares/permission.middleware.js';
-import { PERMISSIONS } from '../constants/permissions.js';
-import { validate } from '../middlewares/validation.middleware.js';
+} from '../../controllers/supplier.controller.js';
+import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
+import { validate } from '../../middlewares/validation.middleware.js';
 import {
   createSupplierSchema,
   updateSupplierSchema,
   supplierIdParamSchema,
   supplierQuerySchema,
-} from '../validations/supplier.validation.js';
+} from '../../validations/supplier.validation.js';
 
 const router = express.Router();
 

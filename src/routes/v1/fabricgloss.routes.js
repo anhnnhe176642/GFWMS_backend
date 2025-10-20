@@ -4,17 +4,17 @@ import {
   getFabricGlossById, 
   createFabricGloss, 
   updateFabricGloss, 
-} from '../controllers/fabricgloss.controller.js';
-import { authenticateToken } from '../middlewares/auth.middleware.js';
-import { requirePermission } from '../middlewares/permission.middleware.js';
-import { PERMISSIONS } from '../constants/permissions.js';
-import { validate } from '../middlewares/validation.middleware.js';
+} from '../../controllers/fabricgloss.controller.js';
+import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
+import { validate } from '../../middlewares/validation.middleware.js';
 import { 
   createFabricGlossSchema, 
   updateFabricGlossSchema, 
   fabricGlossIdParamSchema, 
   fabricGlossQuerySchema 
-} from '../validations/fabricgloss.validation.js';
+} from '../../validations/fabricgloss.validation.js';
 
 const router = express.Router();
 
