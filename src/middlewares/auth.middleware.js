@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import process from 'process';
 
 const prisma = new PrismaClient();
 
@@ -24,6 +25,7 @@ export const optionalAuth = async (req, res, next) => {
         include: { role: true }
       });
       req.user = user;
+    // eslint-disable-next-line no-unused-vars
     } catch (error) {
       // Token không hợp lệ, nhưng không trả về lỗi
     }
