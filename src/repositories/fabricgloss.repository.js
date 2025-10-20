@@ -33,7 +33,7 @@ export class FabricGlossRepository {
         select: this.#selectOptions
       }),
       {
-        description: 'Description đã tồn tại'
+        fabric_gloss_description_key: 'Độ bóng này đã tồn tại trong hệ thống'
       }
     );
   }
@@ -46,17 +46,11 @@ export class FabricGlossRepository {
         select: this.#selectOptions
       }),
       {
-        description: 'Description đã tồn tại'
+        description: 'Độ bóng này đã tồn tại trong hệ thống'
       }
     );
   }
 
-  async deleteById(id) {
-    return await prisma.fabricGloss.delete({
-      where: { id },
-      select: this.#selectOptions
-    });
-  }
 
   async count() {
     return await prisma.fabricGloss.count();

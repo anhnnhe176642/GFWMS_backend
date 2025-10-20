@@ -5,32 +5,41 @@ import { querySchema, createSortBySchema, sortOrderSchema } from './common.valid
 
 // Tên nhà cung cấp
 export const nameSchema = Joi.string()
+  .trim()
+  .min(1)
   .max(100)
   .required()
   .messages({
     'string.base': 'Tên nhà cung cấp phải là chuỗi',
+    'string.empty': 'Tên nhà cung cấp không được để trống',
+    'string.min': 'Tên nhà cung cấp không được để trống',
     'string.max': 'Tên nhà cung cấp không được vượt quá 100 ký tự',
     'any.required': 'Tên nhà cung cấp là bắt buộc'
   });
 
 // Địa chỉ nhà cung cấp
 export const addressSchema = Joi.string()
+  .trim()
+  .min(1)
   .max(255)
   .required()
   .messages({
     'string.base': 'Địa chỉ phải là chuỗi',
+    'string.empty': 'Địa chỉ không được để trống',
+    'string.min': 'Địa chỉ không được để trống',
     'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
     'any.required': 'Địa chỉ là bắt buộc'
   });
 
 // Số điện thoại
 export const phoneSchema = Joi.string()
-  .pattern(/^[0-9+\-() ]+$/)
-  .max(15)
+  .trim()
+  .pattern(/^(?:\+84|0)(?:\d){9}$/)
   .required()
   .messages({
-    'string.pattern.base': 'Số điện thoại chỉ được chứa số, dấu +, -, hoặc khoảng trắng',
-    'string.max': 'Số điện thoại không được vượt quá 15 ký tự',
+    'string.base': 'Số điện thoại phải là chuỗi',
+    'string.empty': 'Số điện thoại không được để trống',
+    'string.pattern.base': 'Số điện thoại không hợp lệ.',
     'any.required': 'Số điện thoại là bắt buộc'
   });
 
@@ -41,8 +50,6 @@ export const isActiveSchema = Joi.boolean()
   });
 
 // ===== SCHEMA CHO CRUD =====
-
-// Schema tạo Supplier
 export const createSupplierSchema = Joi.object({
   name: nameSchema,
   address: addressSchema,
@@ -50,33 +57,38 @@ export const createSupplierSchema = Joi.object({
   isActive: isActiveSchema.optional()
 });
 
-// Schema cập nhật Supplier
 export const updateSupplierSchema = Joi.object({
-  name: nameSchema.optional(),
-  address: addressSchema.optional(),
-  phone: phoneSchema.optional(),
-  isActive: isActiveSchema.optional()
-}).or('name', 'address', 'phone', 'isActive') // bắt buộc có ít nhất 1 field để update
-.messages({
-  'object.missing': 'Phải có ít nhất một trường để cập nhật'
-});
-
-// Schema cho param id (Integer)
-export const supplierIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required().messages({
-    'number.base': 'ID phải là số',
-    'number.integer': 'ID phải là số nguyên',
-    'number.positive': 'ID phải lớn hơn 0',
-    'any.required': 'ID là bắt buộc'
+  name: nameSchema,
+  address: addressSchema,
+  phone: phoneSchema,
+  isActive: isActiveSchema.required().messages({
+    'any.required': 'Trạng thái hoạt động là bắt buộc'
   })
 });
 
-// ===== SCHEMA CHO QUERY =====
+export const supplierIdParamSchema = Joi.object({
+  id: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .custom((value, helpers) => {
+      if (value.toString().length > 10) {
+        return helpers.error('number.maxLength');
+      }
+      return value;
+    })
+    .messages({
+      'number.base': 'ID phải là số',
+      'number.integer': 'ID phải là số nguyên',
+      'number.positive': 'ID phải lớn hơn 0',
+      'number.maxLength': 'ID không được vượt quá 10 ký tự',
+      'any.required': 'ID là bắt buộc'
+    })
+});
 
-// Các field cho phép sắp xếp
+// ===== SCHEMA CHO QUERY =====
 const allowedSupplierSortFields = ['name', 'address', 'phone', 'createdAt', 'updatedAt'];
 
-// Query schema nâng cao (search, sort, pagination)
 export const supplierQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedSupplierSortFields),
   order: sortOrderSchema.optional(),

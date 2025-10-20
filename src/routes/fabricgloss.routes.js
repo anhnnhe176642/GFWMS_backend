@@ -24,7 +24,7 @@ router.use(authenticateToken);
  * @swagger
  * /fabric-gloss:
  *   get:
- *     summary: Get all fabric gloss with pagination and search
+ *     summary: Lấy danh sách độ bóng của vải (Fabric Gloss) với bộ lọc tùy chọn
  *     tags: [FabricGloss]
  *     security:
  *       - bearerAuth: []
@@ -32,51 +32,35 @@ router.use(authenticateToken);
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
- *           example: 1
+ *           type: string
+ *         description: Trang hiện tại
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
- *           example: 10
+ *           type: string
+ *         description: Số lượng bản ghi trên mỗi trang
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *           example: Mờ
+ *         description: Tìm theo mô tả độ bóng (description)
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *           example: description
+ *         description: Sắp xếp theo một hoặc nhiều trường
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *           example: asc
+ *         description: Thứ tự sắp xếp tương ứng (asc hoặc desc)
  *     responses:
  *       200:
- *         description: Fabric gloss retrieved successfully
+ *         description: Thành công
  *         content:
  *           application/json:
  *             schema:
  *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Lấy danh sách fabric gloss thành công
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/FabricGloss'
- *                 pagination:
- *                   $ref: '#/components/schemas/PaginationMeta'
- *       400:
- *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
  */
 router.get(
   '/',
@@ -97,8 +81,7 @@ router.get(
  *       - in: path
  *         name: id
  *         schema:
- *           type: integer
- *         example: 1
+ *           type: string
  *     responses:
  *       200:
  *         description: Fabric gloss retrieved successfully
