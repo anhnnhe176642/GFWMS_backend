@@ -7,7 +7,7 @@
     "init": "pnpm i && pnpm run prisma:all && pnpm run seed",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "vitest",
+    "test": "vitest --reporter=verbose",
     "seed": "node prisma/seed.js",
     "prisma:merge": "npx prisma-merge --baseFile=prisma/schema.prisma --schemaFilePatterns=prisma/**/*.prisma --outputFile=prisma/schema.merged.prisma",
     "prisma:gen": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma",
@@ -34,6 +34,11 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@eslint/json": "^0.13.2",
+    "@eslint/markdown": "^7.4.0",
+    "eslint": "^9.38.0",
+    "globals": "^16.4.0",
     "nodemon": "^3.1.10",
     "prisma-merge": "^0.2.0",
     "supertest": "^7.1.4",

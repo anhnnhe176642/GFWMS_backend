@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import process from 'process';
 import { AuthenticationError, NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { emailVerificationRepository } from '../repositories/emailVerification.repository.js';
@@ -16,20 +17,8 @@ export const registerUser = async (userData) => {
       throw new ConflictError('Email đã được sử dụng');
     }
 
-    // Invalidate any existing pins
     await emailVerificationRepository.invalidatePinsForUser(existing.id);
-
-    // Try hard-delete first. If FK constraints prevent deletion, fallback to anonymize+soft-delete.
-    try {
-      await userRepository.deleteById(existing.id);
-    } catch (error) {
-      // If delete fails due to FK (ConflictError), fallback to anonymize to free up unique fields
-      if (error instanceof ConflictError) {
-        await userRepository.anonymizeAndSoftDelete(existing.id);
-      } else {
-        throw error;
-      }
-    }
+    await userRepository.deleteById(existing.id);
   }
 
   // Hash password
@@ -42,28 +31,21 @@ export const registerUser = async (userData) => {
   });
 
   // Generate a numeric PIN and send verification email
-  try {
-    // Invalidate existing pins for user
-    await emailVerificationRepository.invalidatePinsForUser(user.id);
+  await emailVerificationRepository.invalidatePinsForUser(user.id);
 
-    const pin = generateNumericPin(6);
-    const pinHash = hashPin(pin);
-    const expiresInMinutes = parseInt(process.env.VERIFY_PIN_EXPIRES_MINUTES || '15');
-    const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+  const pin = generateNumericPin(6);
+  const pinHash = hashPin(pin);
+  const expiresInMinutes = parseInt(process.env.VERIFY_PIN_EXPIRES_MINUTES) || 15;
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-    await emailVerificationRepository.createPin({
-      userId: user.id,
-      pinHash,
-      expiresAt
-    });
+  await emailVerificationRepository.createPin({
+    userId: user.id,
+    pinHash,
+    expiresAt
+  });
 
-    await sendVerificationCodeEmail(user.email, pin, expiresInMinutes);
-  } catch (error) {
-    // If email sending fails, we still created the user. Bubble error up to be handled by controller/middleware.
-    throw error;
-  }
+  sendVerificationCodeEmail(user.email, pin, expiresInMinutes);
 
-  // Return created user (sanitized). Do NOT issue JWT until email is verified.
   return { user };
 };
 

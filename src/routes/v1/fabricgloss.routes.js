@@ -1,20 +1,20 @@
 import express from 'express';
 import { 
-  getAllFabricColors, 
-  getFabricColorById, 
-  createFabricColor, 
-  updateFabricColor, 
-} from '../controllers/fabricColor.controller.js';
-import { authenticateToken } from '../middlewares/auth.middleware.js';
-import { requirePermission } from '../middlewares/permission.middleware.js';
-import { PERMISSIONS } from '../constants/permissions.js';
-import { validate } from '../middlewares/validation.middleware.js';
+  getAllFabricGlosses, 
+  getFabricGlossById, 
+  createFabricGloss, 
+  updateFabricGloss, 
+} from '../../controllers/fabricgloss.controller.js';
+import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
+import { validate } from '../../middlewares/validation.middleware.js';
 import { 
-  createFabricColorSchema, 
-  updateFabricColorSchema, 
-  fabricColorIdParamSchema, 
-  fabricColorQuerySchema 
-} from '../validations/fabricColor.validation.js';
+  createFabricGlossSchema, 
+  updateFabricGlossSchema, 
+  fabricGlossIdParamSchema, 
+  fabricGlossQuerySchema 
+} from '../../validations/fabricgloss.validation.js';
 
 const router = express.Router();
 
@@ -22,10 +22,10 @@ router.use(authenticateToken);
 
 /**
  * @swagger
- * /fabric-color:
+ * /fabric-gloss:
  *   get:
- *     summary: Get all fabric colors with pagination and search
- *     tags: [FabricColor]
+ *     summary: Get all fabric gloss with pagination and search
+ *     tags: [FabricGloss]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -33,31 +33,30 @@ router.use(authenticateToken);
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number
+ *           example: 1
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Items per page
+ *           example: 10
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search keyword
+ *           example: Mờ
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Field(s) to sort by. Single or comma-separated
- *         example: name
+ *           example: description
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *         description: Sort order (asc or desc)
+ *           example: asc
  *     responses:
  *       200:
- *         description: Fabric colors retrieved successfully
+ *         description: Fabric gloss retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -65,13 +64,15 @@ router.use(authenticateToken);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Lấy danh sách fabric color thành công
+ *                   example: Lấy danh sách fabric gloss thành công
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/FabricColor'
+ *                     $ref: '#/components/schemas/FabricGloss'
  *                 pagination:
  *                   $ref: '#/components/schemas/PaginationMeta'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -79,28 +80,28 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
-  validate(fabricColorQuerySchema, 'query'),
-  getAllFabricColors
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  validate(fabricGlossQuerySchema, 'query'),
+  getAllFabricGlosses
 );
 
 /**
  * @swagger
- * /fabric-color/{id}:
+ * /fabric-gloss/{id}:
  *   get:
- *     summary: Get fabric color by id
- *     tags: [FabricColor]
+ *     summary: Get fabric gloss by id
+ *     tags: [FabricGloss]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         schema:
- *           type: string
- *         description: FabricColor ID
+ *           type: integer
+ *         example: 1
  *     responses:
  *       200:
- *         description: Fabric color retrieved successfully
+ *         description: Fabric gloss retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -108,9 +109,9 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Lấy thông tin fabric color thành công
+ *                   example: Lấy thông tin fabric gloss thành công
  *                 data:
- *                   $ref: '#/components/schemas/FabricColor'
+ *                   $ref: '#/components/schemas/FabricGloss'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -122,17 +123,17 @@ router.get(
  */
 router.get(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
-  validate(fabricColorIdParamSchema, 'params'),
-  getFabricColorById
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  validate(fabricGlossIdParamSchema, 'params'),
+  getFabricGlossById
 );
 
 /**
  * @swagger
- * /fabric-color:
+ * /fabric-gloss:
  *   post:
- *     summary: Create a new fabric color
- *     tags: [FabricColor]
+ *     summary: Create a new fabric gloss
+ *     tags: [FabricGloss]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -141,15 +142,12 @@ router.get(
  *           schema:
  *             type: object
  *             properties:
- *               id:
+ *               description:
  *                 type: string
- *                 example: red001
- *               name:
- *                 type: string
- *                 example: Red
+ *                 example: Glossy
  *     responses:
  *       201:
- *         description: Fabric color created successfully
+ *         description: Fabric gloss created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -157,9 +155,9 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Tạo fabric color thành công
+ *                   example: Tạo fabric gloss thành công
  *                 data:
- *                   $ref: '#/components/schemas/FabricColor'
+ *                   $ref: '#/components/schemas/FabricGloss'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -171,37 +169,37 @@ router.get(
  */
 router.post(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
-  validate(createFabricColorSchema, 'body'),
-  createFabricColor
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  validate(createFabricGlossSchema, 'body'),
+  createFabricGloss
 );
 
 /**
  * @swagger
- * /fabric-color/{id}:
+ * /fabric-gloss/{id}:
  *   put:
- *     summary: Update fabric color
- *     tags: [FabricColor]
+ *     summary: Update fabric gloss
+ *     tags: [FabricGloss]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         schema:
- *           type: string
- *         description: FabricColor ID
+ *           type: integer
+ *         example: 1
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               description:
  *                 type: string
- *                 example: Blue
+ *                 example: Matte
  *     responses:
  *       200:
- *         description: Fabric color updated successfully
+ *         description: Fabric gloss updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -209,9 +207,9 @@ router.post(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Cập nhật fabric color thành công
+ *                   example: Cập nhật fabric gloss thành công
  *                 data:
- *                   $ref: '#/components/schemas/FabricColor'
+ *                   $ref: '#/components/schemas/FabricGloss'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -225,10 +223,12 @@ router.post(
  */
 router.put(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
-  validate(fabricColorIdParamSchema, 'params'),
-  validate(updateFabricColorSchema, 'body'),
-  updateFabricColor
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  validate(fabricGlossIdParamSchema, 'params'),
+  validate(updateFabricGlossSchema, 'body'),
+  updateFabricGloss
 );
+
+
 
 export default router;

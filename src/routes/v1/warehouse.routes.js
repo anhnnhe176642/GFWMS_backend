@@ -5,16 +5,16 @@ import {
   createWarehouse,
   updateWarehouse,
   deleteWarehouse
-} from '../controllers/warehouse.controller.js';
-import { authenticateToken, requirePermission } from '../middlewares/auth.middleware.js';
-import { validate} from '../middlewares/validation.middleware.js';
+} from '../../controllers/warehouse.controller.js';
+import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { validate} from '../../middlewares/validation.middleware.js';
 import { 
   createWarehouseSchema, 
   updateWarehouseSchema, 
   warehouseQuerySchema,
   warehouseIdSchema
-} from '../validations/warehouse.validation.js';
-import { PERMISSIONS } from '../constants/permissions.js';
+} from '../../validations/warehouse.validation.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
 
