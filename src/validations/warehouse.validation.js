@@ -2,8 +2,8 @@ import Joi from 'joi';
 import { querySchema, createMultiValueFilterSchema, addressSchema,
   dateFromSchema,         
   dateToSchema,
-  sortOrderSchema,
-  sortBySchema
+  createSortBySchema,
+  sortOrderSchema
 } from './common.validation.js';
 
 export const warehouseNameSchema = Joi.string()
@@ -57,12 +57,14 @@ export const updateWarehouseSchema = Joi.object({
   'any.required': 'Status là bắt buộc',
 });
 
+const allowedWarehouseSortFields = ['id', 'name', 'address', 'status', 'createdAt', 'updatedAt'];
+
 export const warehouseQuerySchema = querySchema.keys({
   status: createMultiValueFilterSchema(
     warehouseStatusSchema, 
     'Trạng thái'
   ),
-  sortBy: sortBySchema,
+  sortBy: createSortBySchema(allowedWarehouseSortFields),
   order: sortOrderSchema,
   createdFrom: dateFromSchema,
   createdTo: dateToSchema
