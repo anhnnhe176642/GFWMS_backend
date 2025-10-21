@@ -193,37 +193,6 @@ export class UserRepository {
     });
   }
 
-  async findWithPagination(page = 1, limit = 10) {
-    const skip = (page - 1) * limit;
-    
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where: {
-          status: {
-            not: 'DELETED'
-          }
-        },
-        skip,
-        take: limit,
-        select: this.#userSelectOptions,
-        orderBy: {
-          createdAt: 'desc'
-        }
-      }),
-      this.count()
-    ]);
-
-    return {
-      users,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    };
-  }
-
   // Advanced query method với search, filter, sort
   async findWithAdvancedQuery(queryOptions = {}) {
     const { 

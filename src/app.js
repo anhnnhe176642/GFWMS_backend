@@ -7,6 +7,11 @@ import userRoutes from './routes/user.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import warehouseRoutes from './routes/warehouse.routes.js';
+import fabricRoutes from './routes/fabric.routes.js'; 
+import fabricGlossRouters from './routes/fabricgloss.routes.js'; 
+import fabricColorRouters from './routes/fabricColor.routes.js'; 
+import fabricCategoryRouters from './routes/fabricCategory.routes.js'; 
+import supplierRouters from './routes/supplier.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 
@@ -28,7 +33,11 @@ app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
 app.use('/warehouses', warehouseRoutes);
-
+app.use('/fabrics', fabricRoutes); 
+app.use('/fabric-gloss', fabricGlossRouters);
+app.use('/fabric-color', fabricColorRouters);
+app.use('/fabric-category', fabricCategoryRouters);
+app.use('/supplier', supplierRouters);
 // Health check route
 app.get('/check', (req, res) => {
   res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
