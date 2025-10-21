@@ -1,7 +1,8 @@
 import Joi from 'joi';
 import { querySchema, createMultiValueFilterSchema, addressSchema,
   dateFromSchema,         
-  dateToSchema 
+  dateToSchema,
+  sortOrderSchema
 } from './common.validation.js';
 
 export const warehouseNameSchema = Joi.string()
@@ -35,13 +36,24 @@ export const createWarehouseSchema = Joi.object({
 export const warehouseStatusSchema = Joi.string()
   .valid('ACTIVE', 'INACTIVE')
   .messages({
-    'any.only': 'Trạng thái phải là ACTIVE hoặc INACTIVE'
+    'any.only': 'Trạng thái phải là ACTIVE hoặc INACTIVE',
+    'string.empty': 'Trạng thái không được để trống',
   });
 
 export const updateWarehouseSchema = Joi.object({
-  name: warehouseNameSchema.optional(),
-  address: warehouseAddressSchema.optional(),
-  status: warehouseStatusSchema.optional()
+  name: warehouseNameSchema
+    .trim()                    
+    .disallow(null)          
+    .required(),
+  address: warehouseAddressSchema
+    .trim()                    
+    .disallow(null)          
+    .required(),
+  status: warehouseStatusSchema
+    .disallow(null)
+    .required()
+}).messages({
+  'any.required': 'Status là bắt buộc',
 });
 
 export const warehouseQuerySchema = querySchema.keys({
@@ -49,8 +61,13 @@ export const warehouseQuerySchema = querySchema.keys({
     warehouseStatusSchema, 
     'Trạng thái'
   ),
-  sortBy: Joi.string().optional(),
-  order: Joi.string().optional(),
+  sortBy: Joi.string()
+    .valid('id', 'name', 'address', 'status', 'createdAt', 'updatedAt')
+    .optional()
+    .messages({
+      'any.only': 'Sắp xếp theo phải là: id, name, address, status, createdAt, updatedAt'
+    }),
+  order: sortOrderSchema,
   createdFrom: dateFromSchema,
   createdTo: dateToSchema
 });
