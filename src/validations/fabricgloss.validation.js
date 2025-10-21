@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { idSchema } from './common.validation.js';
 import { querySchema, createSortBySchema, sortOrderSchema } from './common.validation.js';
 
 // Schema cơ bản cho description của FabricGloss
@@ -27,23 +28,7 @@ export const updateFabricGlossSchema = Joi.object({
 
 // Schema validation cho param id
 export const fabricGlossIdParamSchema = Joi.object({
-  id: Joi.number()
-    .integer()
-    .positive()
-    .required()
-    .custom((value, helpers) => {
-      if (value.toString().length > 10) {
-        return helpers.error('number.length');
-      }
-      return value;
-    })
-    .messages({
-      'number.base': 'ID phải là số',
-      'number.integer': 'ID phải là số nguyên',
-      'number.positive': 'ID phải lớn hơn 0',
-      'number.length': 'ID không được vượt quá 10 ký tự',
-      'any.required': 'ID là bắt buộc'
-    })
+  id: idSchema
 });
 
 

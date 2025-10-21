@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { querySchema, createSortBySchema, sortOrderSchema } from './common.validation.js';
+import { idSchema } from './common.validation.js';
 
 // ===== CÁC SCHEMA CƠ BẢN =====
 
@@ -67,23 +68,7 @@ export const updateSupplierSchema = Joi.object({
 });
 
 export const supplierIdParamSchema = Joi.object({
-  id: Joi.number()
-    .integer()
-    .positive()
-    .required()
-    .custom((value, helpers) => {
-      if (value.toString().length > 10) {
-        return helpers.error('number.maxLength');
-      }
-      return value;
-    })
-    .messages({
-      'number.base': 'ID phải là số',
-      'number.integer': 'ID phải là số nguyên',
-      'number.positive': 'ID phải lớn hơn 0',
-      'number.maxLength': 'ID không được vượt quá 10 ký tự',
-      'any.required': 'ID là bắt buộc'
-    })
+  id: idSchema
 });
 
 // ===== SCHEMA CHO QUERY =====
