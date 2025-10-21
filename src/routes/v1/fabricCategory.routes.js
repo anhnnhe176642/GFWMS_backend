@@ -32,12 +32,12 @@ router.use(authenticateToken);
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Items per page
  *       - in: query
  *         name: search

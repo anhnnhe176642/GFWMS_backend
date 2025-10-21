@@ -21,7 +21,7 @@ export const getFabricGlossById = async (id) => {
   const gloss = await fabricGlossRepository.findById(id);
 
   if (!gloss) {
-    throw new NotFoundError('FabricGloss không tồn tại');
+    throw new NotFoundError('Độ bóng bạn cần tìm không tồn tại trong hệ thống');
   }
 
   return gloss;
@@ -31,7 +31,7 @@ export const getFabricGlossById = async (id) => {
 export const updateFabricGloss = async (id, data) => {
   const existing = await fabricGlossRepository.findById(id);
   if (!existing) {
-    throw new NotFoundError('FabricGloss không tồn tại');
+    throw new NotFoundError('Độ bóng bạn cần cập nhật không tồn tại trong hệ thống');
   }
 
   return await fabricGlossRepository.updateById(id, data);

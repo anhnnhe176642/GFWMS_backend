@@ -5,11 +5,14 @@ import { querySchema, createSortBySchema, sortOrderSchema } from './common.valid
 export const nameSchema = Joi.string()
   .max(100)
   .required()
+  .trim()
   .messages({
-    'string.max': 'Tên không được vượt quá 100 ký tự',
-    'any.required': 'Tên là bắt buộc'
+    'string.base': 'Tên màu phải là chuỗi',
+    'string.empty': 'Tên màu không được để trống',
+    'string.max': 'Tên màu không được vượt quá 100 ký tự',
+    'any.required': 'Tên màu là bắt buộc'
   });
-
+  
 // Schema validation cho tạo FabricColor
 export const createFabricColorSchema = Joi.object({
   id: Joi.string().max(50).required().messages({
@@ -23,8 +26,17 @@ export const createFabricColorSchema = Joi.object({
 
 // Schema validation cho cập nhật FabricColor
 export const updateFabricColorSchema = Joi.object({
-  name: nameSchema
+  name: Joi.string()
+    .max(100)
+    .required()
+    .messages({
+      'string.base': 'Tên màu phải là chuỗi',
+      'string.max': 'Tên màu không được vượt quá 100 ký tự',
+      'any.required': 'Tên màu là bắt buộc',
+      'string.empty': 'Tên màu không được để trống'
+    })
 });
+
 
 // Schema validation cho param id (String)
 export const fabricColorIdParamSchema = Joi.object({

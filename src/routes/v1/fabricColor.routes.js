@@ -24,7 +24,7 @@ router.use(authenticateToken);
  * @swagger
  * /fabric-color:
  *   get:
- *     summary: Get all fabric colors with pagination and search
+ *     summary: Lấy danh sách màu vải (có phân trang và tìm kiếm)
  *     tags: [FabricColor]
  *     security:
  *       - bearerAuth: []
@@ -32,32 +32,32 @@ router.use(authenticateToken);
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
- *         description: Page number
+ *           type: string
+ *         description: Số trang cần lấy
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
- *         description: Items per page
+ *           type: string
+ *         description: Số lượng mục trên mỗi trang
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search keyword
+ *         description: Từ khóa tìm kiếm (tìm theo tên màu vải)
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Field(s) to sort by. Single or comma-separated
+ *         description: Trường để sắp xếp (có thể truyền nhiều, cách nhau bởi dấu phẩy)
  *         example: name
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *         description: Sort order (asc or desc)
+ *         description: Thứ tự sắp xếp (asc hoặc desc)
  *     responses:
  *       200:
- *         description: Fabric colors retrieved successfully
+ *         description: Lấy danh sách màu vải thành công
  *         content:
  *           application/json:
  *             schema:
@@ -65,7 +65,7 @@ router.use(authenticateToken);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Lấy danh sách fabric color thành công
+ *                   example: Lấy danh sách màu vải thành công
  *                 data:
  *                   type: array
  *                   items:

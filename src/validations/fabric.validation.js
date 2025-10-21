@@ -87,6 +87,7 @@ const fabricCategoryIdSchema = Joi.number()
 const fabricColorIdSchema = Joi.string()
   .max(50)
   .required()
+  .trim()
   .messages({
     'string.base': 'colorId phải là chuỗi',
     'string.empty': 'colorId không được để trống',
@@ -115,6 +116,7 @@ export const fabricIdParamSchema = Joi.object({
   id: Joi.number().integer().positive().required().messages({
     'number.base': 'ID phải là số',
     'number.positive': 'ID phải lớn hơn 0',
+    'number.integer': 'ID phải là số nguyên dương',
     'any.required': 'ID là bắt buộc'
   })
 });

@@ -1,14 +1,20 @@
 import Joi from 'joi';
+import { idSchema } from './common.validation.js';
 import { querySchema, createSortBySchema, sortOrderSchema } from './common.validation.js';
 
 // Schema cơ bản cho description của FabricGloss
 export const descriptionSchema = Joi.string()
+  .trim()
+  .min(1)
   .max(100)
   .required()
   .messages({
+    'string.empty': 'Mô tả không được để trống',
+    'string.min': 'Mô tả không được để trống',
     'string.max': 'Mô tả không được vượt quá 100 ký tự',
     'any.required': 'Mô tả là bắt buộc'
   });
+
 
 // Schema validation cho tạo FabricGloss
 export const createFabricGlossSchema = Joi.object({
@@ -22,13 +28,9 @@ export const updateFabricGlossSchema = Joi.object({
 
 // Schema validation cho param id
 export const fabricGlossIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required().messages({
-    'number.base': 'ID phải là số',
-    'number.integer': 'ID phải là số nguyên',
-    'number.positive': 'ID phải lớn hơn 0',
-    'any.required': 'ID là bắt buộc'
-  })
+  id: idSchema
 });
+
 
 // Allowed fields for sorting FabricGloss
 const allowedFabricGlossSortFields = ['description', 'createdAt', 'updatedAt'];

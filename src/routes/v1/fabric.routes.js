@@ -13,12 +13,12 @@ import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
 
-// Lấy danh sách Fabric
+// Lấy danh sách Vải
 /**
  * @swagger
  * /fabrics:
  *   get:
- *     summary: Get all fabrics with advanced filtering and pagination
+ *     summary: Lấy danh sách vải (có bộ lọc nâng cao và phân trang)
  *     tags: [Fabrics]
  *     security:
  *       - bearerAuth: []
@@ -26,46 +26,46 @@ const router = express.Router();
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
- *         description: Page number
+ *           type: string
+ *         description: Số trang cần lấy
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
- *         description: Items per page
+ *           type: string
+ *         description: Số lượng mục trên mỗi trang
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search keyword (supports searching by color, category, gloss, supplier)
+ *         description: Từ khóa tìm kiếm (hỗ trợ tìm theo màu, loại, độ bóng, hoặc nhà cung cấp)
  *       - in: query
  *         name: glossId
  *         schema:
  *           type: string
- *         description: Filter by gloss id (single or comma-separated values)
+ *         description: Lọc theo ID độ bóng (có thể truyền nhiều giá trị, cách nhau bằng dấu phẩy)
  *       - in: query
  *         name: categoryId
  *         schema:
  *           type: string
- *         description: Filter by category id (single or comma-separated values)
+ *         description: Lọc theo ID loại vải (có thể truyền nhiều giá trị, cách nhau bằng dấu phẩy)
  *       - in: query
  *         name: colorId
  *         schema:
  *           type: string
- *         description: Filter by color id (single or comma-separated values)
+ *         description: Lọc theo ID màu vải (có thể truyền nhiều giá trị, cách nhau bằng dấu phẩy)
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort field (id, createdAt, updatedAt, sellingPrice, quantityInStock, weight, length, width)
+ *         description: Trường để sắp xếp (id, createdAt, updatedAt, sellingPrice, quantityInStock, weight, length, width)
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *         description: Sort order (asc or desc)
+ *         description: Thứ tự sắp xếp (asc hoặc desc)
  *     responses:
  *       200:
- *         description: Fabrics retrieved successfully
+ *         description: Lấy danh sách vải thành công
  *         content:
  *           application/json:
  *             schema:
@@ -73,7 +73,7 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Lấy danh sách fabrics thành công
+ *                   example: Lấy danh sách vải thành công
  *                 data:
  *                   type: array
  *                   items:
@@ -81,7 +81,7 @@ const router = express.Router();
  *                 pagination:
  *                   $ref: '#/components/schemas/PaginationMeta'
  *             example:
- *               message: Lấy danh sách fabrics thành công
+ *               message: Lấy danh sách vải thành công
  *               data:
  *                 - id: 1
  *                   thickness: 0.25
@@ -120,10 +120,9 @@ const router = express.Router();
  *       409:
  *         $ref: '#/components/responses/ConflictError'
  */
+
 router.get(
   '/',
-  authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.VIEW_LIST),
   validate(fabricQuerySchema, 'query'),
   getAllFabrics
 );

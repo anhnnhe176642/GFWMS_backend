@@ -87,8 +87,14 @@ export class FabricRepository {
       filters = {},
     } = queryOptions;
 
+    const searchableFields = [
+      'category.name',
+      'color.name',
+      'supplier.name'
+    ];
+
     // Build where clause (case-sensitive search)
-    const where = buildWhereClause({ search, ...filters });
+    const where = buildWhereClause({ search, ...filters }, searchableFields);
 
     const skip = (page - 1) * limit;
     const orderBy = buildSort(sortBy, order);
@@ -102,7 +108,7 @@ export class FabricRepository {
         take: limit,
         orderBy,
       }),
-      prisma.fabric.count({ where }), // mode: 'insensitive' đã bỏ
+      prisma.fabric.count({ where }), 
     ]);
 
     return formatPaginatedResponse(fabrics, total, page, limit);

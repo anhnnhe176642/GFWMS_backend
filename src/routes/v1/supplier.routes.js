@@ -32,28 +32,23 @@ router.use(authenticateToken);
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
- *           example: 1
+ *           type: string
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
- *           example: 10
+ *           type: string
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *           example: "Nhà cung cấp A"
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *           example: name
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *           example: asc
  *     responses:
  *       200:
  *         description: Supplier list retrieved successfully
@@ -80,6 +75,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
   validate(supplierQuerySchema, 'query'),
   getAllSuppliers
@@ -97,7 +93,7 @@ router.get(
  *       - in: path
  *         name: id
  *         schema:
- *           type: integer
+ *           type: string 
  *         example: 1
  *     responses:
  *       200:
@@ -123,6 +119,7 @@ router.get(
  */
 router.get(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
   validate(supplierIdParamSchema, 'params'),
   getSupplierById
@@ -175,6 +172,7 @@ router.get(
  */
 router.post(
   '/',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
   validate(createSupplierSchema, 'body'),
   createSupplier
@@ -192,7 +190,7 @@ router.post(
  *       - in: path
  *         name: id
  *         schema:
- *           type: integer
+ *           type: string
  *         example: 1
  *     requestBody:
  *       content:
@@ -238,6 +236,7 @@ router.post(
  */
 router.put(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
   validate(supplierIdParamSchema, 'params'),
   validate(updateSupplierSchema, 'body'),

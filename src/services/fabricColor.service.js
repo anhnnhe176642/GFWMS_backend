@@ -1,5 +1,5 @@
 import { NotFoundError } from '../utils/errors.js';
-import { fabricColorRepository } from '../repositories/fabriccolor.repository.js';
+import { fabricColorRepository } from '../repositories/fabricColor.repository.js';
 
 /** 🔹 Lấy tất cả FabricColor với phân trang cơ bản */
 export const getAllFabricColors = async (page, limit) => {
@@ -21,7 +21,7 @@ export const getFabricColorById = async (id) => {
   const color = await fabricColorRepository.findById(id);
 
   if (!color) {
-    throw new NotFoundError('FabricColor không tồn tại');
+    throw new NotFoundError('Màu vải bạn tìm không tồn tại trong hệ thống');
   }
 
   return color;
@@ -31,7 +31,7 @@ export const getFabricColorById = async (id) => {
 export const updateFabricColor = async (id, data) => {
   const existing = await fabricColorRepository.findById(id);
   if (!existing) {
-    throw new NotFoundError('FabricColor không tồn tại');
+    throw new NotFoundError('Màu vải bạn cần cập nhật không tồn tại trong hệ thống');
   }
 
   return await fabricColorRepository.updateById(id, data);

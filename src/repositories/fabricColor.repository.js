@@ -26,17 +26,19 @@ export class FabricColorRepository {
     });
   }
 
-  async create(colorData) {
-    return await withPrismaErrorHandling(
-      () => prisma.fabricColor.create({
-        data: colorData,
-        select: this.#selectOptions
-      }),
-      {
-        name: 'Name đã tồn tại'
-      }
-    );
-  }
+async create(colorData) {
+  return await withPrismaErrorHandling(
+    () => prisma.fabricColor.create({
+      data: colorData,
+      select: this.#selectOptions
+    }),
+    {
+      PRIMARY: 'ID màu đã tồn tại',
+      fabric_color_name_key: 'Tên màu đã tồn tại',
+    }
+  );
+}
+
 
   async updateById(id, colorData) {
     return await withPrismaErrorHandling(
@@ -46,7 +48,7 @@ export class FabricColorRepository {
         select: this.#selectOptions
       }),
       {
-        name: 'Name đã tồn tại'
+        fabric_color_name_key: 'Tên màu đã tồn tại',
       }
     );
   }
