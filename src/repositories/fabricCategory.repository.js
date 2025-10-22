@@ -29,14 +29,15 @@ class FabricCategoryRepository {
 
   async create(categoryData) {
     return await withPrismaErrorHandling(
-      () => prisma.fabricCategory.create({
-        data: categoryData,
-        select: this.#selectOptions
-      }),
-      {
-        name: 'Name đã tồn tại'
-      }
-    );
+  () => prisma.fabricCategory.create({
+    data: categoryData,
+    select: this.#selectOptions
+  }),
+  {
+    fabric_category_name_key: 'Tên loại vải đã tồn tại'
+  }
+);
+
   }
 
   async updateById(id, categoryData) {

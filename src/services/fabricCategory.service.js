@@ -21,7 +21,7 @@ export const getFabricCategoryById = async (id) => {
   const category = await fabricCategoryRepository.findById(id);
 
   if (!category) {
-    throw new NotFoundError('FabricCategory không tồn tại');
+    throw new NotFoundError('Loại vải bạn tìm không tồn tại trong hệ thống');
   }
 
   return category;
@@ -31,7 +31,7 @@ export const getFabricCategoryById = async (id) => {
 export const updateFabricCategory = async (id, data) => {
   const existing = await fabricCategoryRepository.findById(id);
   if (!existing) {
-    throw new NotFoundError('FabricCategory không tồn tại');
+    throw new NotFoundError('Loại vải bạn cần cập nhật không tồn tại trong hệ thống');
   }
 
   return await fabricCategoryRepository.updateById(id, data);

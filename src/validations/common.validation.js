@@ -288,3 +288,21 @@ export const querySchema = Joi.object({
   limit: limitSchema,
   search: searchSchema.optional()
 });
+
+export const idSchema = Joi.number()
+  .integer()
+  .positive()
+  .required()
+  .custom((value, helpers) => {
+    if (value.toString().length > 10) {
+      return helpers.error('number.maxLength');
+    }
+    return value;
+  })
+  .messages({
+    'number.base': 'ID phải là số',
+    'number.integer': 'ID phải là số nguyên',
+    'number.positive': 'ID phải lớn hơn 0',
+    'number.maxLength': 'ID không được vượt quá 10 ký tự',
+    'any.required': 'ID là bắt buộc'
+  });

@@ -55,7 +55,8 @@ export const requirePermission = (permission) => {
       const hasPermission = await userRepository.hasPermission(req.user.id, permissionKey);
       
       if (!hasPermission) {
-        throw new AuthorizationError(`Không có quyền: ${permissionKey}`);
+        console.log("Bạn không có quyền : ",permissionKey)
+        throw new AuthorizationError(`Bạn không có quyền truy cập tính năng này`);
       }
 
       next();
@@ -78,7 +79,8 @@ export const requireAnyPermission = (permissions) => {
       const hasAnyPermission = await userRepository.hasAnyPermission(req.user.id, permissionKeys);
       
       if (!hasAnyPermission) {
-        throw new AuthorizationError(`Không có quyền: ${permissionKeys.join(' hoặc ')}`);
+        console.log("Bạn không có quyền : ",permissionKeys)
+        throw new AuthorizationError(`Bạn không có quyền truy cập tính năng này`);
       }
 
       next();
