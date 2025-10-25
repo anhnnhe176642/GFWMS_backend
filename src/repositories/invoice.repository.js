@@ -62,8 +62,6 @@ export class InvoiceRepository {
                 select: {
                   id: true,
                   name: true
-                  // ⚠️ Nếu bạn có thêm field hexCode trong DB thì có thể thêm dòng này:
-                  // hexCode: true
                 }
               },
               supplier: {
