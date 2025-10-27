@@ -12,7 +12,15 @@ export const PERMISSIONS = {
     VIEW_OWN_PROFILE:   { key: 'user:view_own_profile',   description: 'Xem hồ sơ cá nhân' },
     UPDATE_OWN_PROFILE: { key: 'user:update_own_profile', description: 'Cập nhật hồ sơ cá nhân' }
   },
-  
+  // Customer Management
+  CUSTOMERS: {
+    VIEW_LIST: { key: 'customer:view_list', description: 'Xem danh sách khách hàng' },
+    VIEW_DETAIL: { key: 'customer:view_detail', description: 'Xem chi tiết khách hàng' },
+    UPDATE: { key: 'customer:update', description: 'Cập nhật thông tin khách hàng' },
+    MANAGE_STATUS: { key: 'customer:manage_status', description: 'Quản lý trạng thái khách hàng' }
+  },
+
+
   // Fabric Management
   FABRICS: {
     VIEW_LIST:          { key: 'fabric:view_list',          description: 'Xem danh sách vải' },
