@@ -62,7 +62,13 @@ export const PERMISSIONS = {
     MANAGE_PERMISSIONS:  { key: 'system:manage_permissions',  description: 'Quản lý quyền hạn hệ thống' },
     MANAGE_ROLES:        { key: 'system:manage_roles',        description: 'Quản lý vai trò hệ thống' },
     SYSTEM_CONFIG:       { key: 'system:config',              description: 'Cấu hình hệ thống' }
-  }
+  },
+
+    // Invoice Management 
+  INVOICES: {
+    VIEW_LIST:    { key: 'invoice:view_list',    description: 'Xem danh sách hóa đơn' },
+    VIEW_DETAIL:  { key: 'invoice:view_detail',  description: 'Xem chi tiết hóa đơn' },
+  },
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)
