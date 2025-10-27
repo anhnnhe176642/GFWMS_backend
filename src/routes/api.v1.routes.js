@@ -10,6 +10,7 @@ import fabricColorRouters from './v1/fabricColor.routes.js';
 import fabricCategoryRouters from './v1/fabricCategory.routes.js'; 
 import supplierRouters from './v1/supplier.routes.js';
 import invoiceRouters from './v1/invoice.routes.js';
+import exportFabricRouters from './v1/exportFabric.routes.js';
 
 const router = express.Router();
 
@@ -23,5 +24,5 @@ router.use('/fabric-color', fabricColorRouters);
 router.use('/fabric-category', fabricCategoryRouters);
 router.use('/supplier', supplierRouters);
 router.use('/invoices', invoiceRouters);
-
+router.use('/export-fabrics', exportFabricRouters);
 export default router;
