@@ -34,7 +34,7 @@ class FabricCategoryRepository {
     select: this.#selectOptions
   }),
   {
-    fabric_category_name_key: 'Tên loại vải đã tồn tại'
+    fabric_category_name_key: 'Loại vải này đã tồn tại trong hệ thống'
   }
 );
 
@@ -48,7 +48,7 @@ class FabricCategoryRepository {
         select: this.#selectOptions
       }),
       {
-        name: 'Name đã tồn tại'
+        fabric_category_name_key: 'Loại vải này đã tồn tại trong hệ thống'
       }
     );
   }
