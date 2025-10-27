@@ -91,8 +91,7 @@ export const invoiceQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedInvoiceSortFields),
   order: sortOrderSchema.optional(),
 
-  invoiceStatus: invoiceStatusSchema.optional(), 
-  orderId: createMultiValueFilterSchema(invoiceOrderIdSchema, 'OrderId'),
+  invoiceStatus: createMultiValueFilterSchema(invoiceStatusSchema, 'invoiceStatus').optional(),
 
   createdFrom: dateFromSchema,
   createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({

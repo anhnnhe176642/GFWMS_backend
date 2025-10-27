@@ -159,7 +159,10 @@ export class InvoiceRepository {
     const searchableFields = ['order.user.username', 'order.user.email'];
 
     const where = buildWhereClause({ search, ...filters }, searchableFields);
-  if (filters.invoiceStatus) {
+  
+  if (Array.isArray(filters.invoiceStatus)) {
+    where.invoiceStatus = { in: filters.invoiceStatus };
+  } else if (filters.invoiceStatus) {
     where.invoiceStatus = filters.invoiceStatus;
   }
     const skip = (page - 1) * limit;
