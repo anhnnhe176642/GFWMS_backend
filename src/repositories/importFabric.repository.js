@@ -166,7 +166,6 @@ class ImportFabricRepository {
           data: {
             warehouseId: data.warehouseId,
             importer: data.importer,
-            importDate: data.importDate,
             totalPrice: totalPrice
           }
         });

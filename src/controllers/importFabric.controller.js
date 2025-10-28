@@ -24,7 +24,6 @@ export const createImportFabric = async (req, res, next) => {
     const result = await importFabricService.createImport({
       warehouseId: parseInt(warehouseId),
       importer,
-      importDate: new Date()
     }, transformedItems);
 
     res.status(201).json({
@@ -51,7 +50,7 @@ export const getAllImportFabrics = async (req, res, next) => {
     res.json({
       message: 'Lấy danh sách phiếu nhập thành công',
       data: result.data,
-      pagination: result.pagination
+    pagination: result.pagination
     });
   } catch (error) {
     next(error);

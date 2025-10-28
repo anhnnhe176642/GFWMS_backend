@@ -4,8 +4,9 @@ import {
   dateFromSchema, 
   dateToSchema, 
   createSortBySchema, 
-  sortOrderSchema 
+  sortOrderSchema,
 } from './common.validation.js';
+import { warehouseIdSchema } from './warehouse.validation.js';
 
 
 const numericStringSchema = Joi.string()
@@ -93,19 +94,11 @@ export const importFabricItemSchema = Joi.object({
     'string.pattern.base': 'SupplierId phải là số nguyên dương'
   }),
   
- 
-  fabricId: Joi.forbidden().messages({
-    'any.unknown': 'Không cần gửi fabricId, hệ thống tự động xử lý'
-  }),
-  sellingPrice: Joi.forbidden().messages({
-    'any.unknown': 'Nhân viên nhập kho không có quyền set sellingPrice'
-  }),
-  quantityInStock: Joi.forbidden().messages({
-    'any.unknown': 'Không cần gửi quantityInStock, hệ thống tự động tính'
-  }),
   
   quantity: quantitySchema,
   price: priceSchema
+}).options({ 
+  stripUnknown: true 
 });
 
 
@@ -136,20 +129,4 @@ export const importFabricQuerySchema = querySchema.keys({
   importDateTo: dateToSchema
 });
 
-export const importFabricIdSchema = Joi.object({
-  id: Joi.string()
-    .required()
-    .custom((value, helpers) => {
-      if (value === '{id}' || value === '' || !value) {
-        return helpers.error('any.required');
-      }
-      if (!/^\d+$/.test(value)) {
-        return helpers.error('string.pattern.base');
-      }
-      return value;
-    })
-    .messages({
-      'any.required': 'ID phiếu nhập là bắt buộc',
-      'string.pattern.base': 'ID phiếu nhập phải là số nguyên dương'
-    })
-});
+export const importFabricIdSchema = warehouseIdSchema;
