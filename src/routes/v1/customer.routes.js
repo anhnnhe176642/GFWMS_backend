@@ -1,8 +1,9 @@
 import express from 'express';
-import { getAllCustomers, getCustomerById } from '../../controllers/customer.controller.js';
-import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { getAllCustomers, getCustomerById, getCustomerOrders, getCustomerOrderStatusSummary } from '../../controllers/customer.controller.js';
+import { authenticateToken, requirePermission, requireOwnershipOrPermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { userQuerySchema, uuidParamSchema } from '../../validations/user.validation.js';
+import { orderQuerySchema } from '../../validations/order.validation.js'; // new
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -73,6 +74,26 @@ router.get('/:id',
   requirePermission(PERMISSIONS.CUSTOMERS.VIEW_DETAIL),
   validate(uuidParamSchema, 'params'),
   getCustomerById
+);
+
+// New: Lấy danh sách orders của customer (owner hoặc permission)
+router.get('/:id/orders',
+  requireOwnershipOrPermission(
+    PERMISSIONS.CUSTOMERS.VIEW_DETAIL,
+    (req) => req.params.id
+  ),
+  validate(orderQuerySchema, 'query'),
+  getCustomerOrders
+);
+
+// New: Lấy summary số lượng orders theo trạng thái cho customer
+router.get('/:id/orders/status',
+  requireOwnershipOrPermission(
+    PERMISSIONS.CUSTOMERS.VIEW_DETAIL,
+    (req) => req.params.id
+  ),
+  validate(uuidParamSchema, 'params'),
+  getCustomerOrderStatusSummary
 );
 
 export default router;
