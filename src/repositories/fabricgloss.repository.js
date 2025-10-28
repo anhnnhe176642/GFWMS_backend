@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
-import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+import {  buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
 
@@ -46,7 +46,7 @@ export class FabricGlossRepository {
         select: this.#selectOptions
       }),
       {
-        description: 'Độ bóng này đã tồn tại trong hệ thống'
+        fabric_gloss_description_key: 'Độ bóng này đã tồn tại trong hệ thống'
       }
     );
   }

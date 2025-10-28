@@ -21,7 +21,7 @@ export const getSupplierById = async (id) => {
   const supplier = await supplierRepository.findById(id);
 
   if (!supplier) {
-    throw new NotFoundError('Supplier không tồn tại');
+    throw new NotFoundError('Nhà cung cấp không tồn tại');
   }
 
   return supplier;
@@ -31,7 +31,7 @@ export const getSupplierById = async (id) => {
 export const updateSupplier = async (id, data) => {
   const existing = await supplierRepository.findById(id);
   if (!existing) {
-    throw new NotFoundError('Supplier không tồn tại');
+    throw new NotFoundError('Nhà cung cấp không tồn tại');
   }
 
   return await supplierRepository.updateById(id, data);
