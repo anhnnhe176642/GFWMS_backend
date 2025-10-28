@@ -120,8 +120,7 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
       const errorMessage = error.message || '';
       
       // Trường hợp 1: Xóa khi có bản ghi tham chiếu (delete operation)
-      if (errorMessage.includes('delete') || 
-          errorMessage.includes('Foreign key constraint violated')) {
+      if (errorMessage.includes('delete')) {
         
         // Kiểm tra fieldMappings trước
         const customMessage = fieldMappings[fieldName];
