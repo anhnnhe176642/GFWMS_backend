@@ -1,8 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
+import { normalizeEnumFilters } from '../utils/normalize-enum-filters.js';
 import {
   buildWhereClause,
-  buildPagination,
   buildSort,
   formatPaginatedResponse
 } from '../utils/query-builder.js';
@@ -156,15 +155,12 @@ export class InvoiceRepository {
       filters = {}
     } = queryOptions;
 
+    const normalizedFilters = normalizeEnumFilters(filters, ['invoiceStatus']);
+
     const searchableFields = ['order.user.username', 'order.user.email'];
 
-    const where = buildWhereClause({ search, ...filters }, searchableFields);
-  
-  if (Array.isArray(filters.invoiceStatus)) {
-    where.invoiceStatus = { in: filters.invoiceStatus };
-  } else if (filters.invoiceStatus) {
-    where.invoiceStatus = filters.invoiceStatus;
-  }
+    const where = buildWhereClause({ search, ...normalizedFilters }, searchableFields);
+
     const skip = (page - 1) * limit;
     const orderBy = buildSort(sortBy, order);
 

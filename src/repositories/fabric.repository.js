@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
-import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+import { buildWhereClause, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
 
