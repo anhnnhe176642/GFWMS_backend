@@ -12,6 +12,8 @@ export const PERMISSIONS = {
     VIEW_OWN_PROFILE:   { key: 'user:view_own_profile',   description: 'Xem hồ sơ cá nhân' },
     UPDATE_OWN_PROFILE: { key: 'user:update_own_profile', description: 'Cập nhật hồ sơ cá nhân' }
   },
+
+  
   
   // Fabric Management
   FABRICS: {
@@ -35,6 +37,13 @@ export const PERMISSIONS = {
     DELETE:       { key: 'warehouse:delete',       description: 'Xóa kho (soft delete)' },
     MANAGE_STATUS:{ key: 'warehouse:manage_status',description: 'Quản lý trạng thái kho' }
   },
+
+  // Import Fabric
+IMPORT_FABRICS: {
+  CREATE: { key: 'import_fabrics:create', description: 'Tạo phiếu nhập vải' },
+  VIEW_LIST: { key: 'import_fabrics:view_list', description: 'Xem danh sách phiếu nhập kho' },
+  VIEW_DETAIL: { key: 'import_fabrics:view_detail', description: 'Xem chi tiết phiếu nhập kho' }
+},
   
   // Credit Registration
   CREDITS: {

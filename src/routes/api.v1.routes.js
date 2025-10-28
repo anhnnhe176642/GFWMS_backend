@@ -9,6 +9,7 @@ import fabricGlossRouters from './v1/fabricgloss.routes.js';
 import fabricColorRouters from './v1/fabricColor.routes.js'; 
 import fabricCategoryRouters from './v1/fabricCategory.routes.js'; 
 import supplierRouters from './v1/supplier.routes.js';
+import importFabricRoutes from './v1/importFabric.routes.js';
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.use('/fabric-gloss', fabricGlossRouters);
 router.use('/fabric-color', fabricColorRouters);
 router.use('/fabric-category', fabricCategoryRouters);
 router.use('/supplier', supplierRouters);
+router.use('/import-fabrics', importFabricRoutes);
 
 export default router;
