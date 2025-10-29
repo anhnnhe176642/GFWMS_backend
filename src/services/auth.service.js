@@ -144,6 +144,10 @@ export const loginUser = async (usernameOrEmail, password) => {
     throw new AuthenticationError('Tài khoản chưa được kích hoạt');
   }
 
+  if (user.status === 'SUSPENDED') {
+    throw new AuthenticationError('Tài khoản đã bị khóa');
+  }
+
   // Generate JWT token
   const token = jwt.sign(
     { userId: user.id, username: user.username },
