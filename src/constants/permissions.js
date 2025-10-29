@@ -77,6 +77,11 @@ export const PERMISSIONS = {
     VIEW_LIST:    { key: 'invoice:view_list',    description: 'Xem danh sách hóa đơn' },
     VIEW_DETAIL:  { key: 'invoice:view_detail',  description: 'Xem chi tiết hóa đơn' },
   },
+
+  EXPORT_FABRICS: {
+    VIEW_LIST:    { key: 'exportFabric:view_list',    description: 'Xem danh sách các đơn yêu cầu xuất kho' },
+    VIEW_DETAIL:  { key: 'exportFabric:view_detail',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
+  },
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)

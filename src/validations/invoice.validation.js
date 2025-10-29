@@ -16,41 +16,16 @@ import {
  * ============================
  */
 
-const invoiceOrderIdSchema = Joi.number()
-  .integer()
-  .positive()
-  .required()
-  .messages({
-    'number.base': 'orderId phải là số',
-    'number.integer': 'orderId phải là số nguyên',
-    'number.positive': 'orderId phải lớn hơn 0',
-    'any.required': 'orderId là bắt buộc'
-  });
-
-const invoiceTotalAmountSchema = Joi.number()
-  .positive()
-  .precision(2)
-  .messages({
-    'number.base': 'Tổng tiền phải là số',
-    'number.positive': 'Tổng tiền phải lớn hơn 0'
-  });
 const invoiceStatusSchema = Joi.string()
+  .uppercase()
   .valid('UNPAID','PAID','OVERDUE','CREDIT','REFUNDED','CANCELED')
-  .insensitive() 
+  .trim()
   .messages({
     'string.base': 'Trạng thái hóa đơn phải là chuỗi',
     'any.only': 'Trạng thái hóa đơn chỉ có thể là PAID, UNPAID, OVERDUE, CREDIT,REFUNDED hoặc CANCELED'
   });
 
 
-const invoiceNotesSchema = Joi.string()
-  .max(255)
-  .allow(null, '')
-  .trim()
-  .messages({
-    'string.base': 'Ghi chú phải là chuỗi',
-    'string.max': 'Ghi chú không được vượt quá 255 ký tự'
-  });
 
 /**
  * ============================

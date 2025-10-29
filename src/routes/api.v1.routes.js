@@ -10,8 +10,12 @@ import fabricColorRouters from './v1/fabricColor.routes.js';
 import fabricCategoryRouters from './v1/fabricCategory.routes.js'; 
 import supplierRouters from './v1/supplier.routes.js';
 import invoiceRouters from './v1/invoice.routes.js';
+<<<<<<< HEAD
 import customerRoutes from './v1/customer.routes.js';
 import wishlistRoutes from './v1/wishlist.routes.js';
+=======
+import exportFabricRouters from './v1/exportFabric.routes.js';
+>>>>>>> 88dde7a7235d2c72bbb899300a808998e88d28a3
 
 const router = express.Router();
 
@@ -25,7 +29,11 @@ router.use('/fabric-color', fabricColorRouters);
 router.use('/fabric-category', fabricCategoryRouters);
 router.use('/supplier', supplierRouters);
 router.use('/invoices', invoiceRouters);
+<<<<<<< HEAD
 router.use('/customers', customerRoutes);
 router.use('/wishlist', wishlistRoutes);
 
+=======
+router.use('/export-fabrics', exportFabricRouters);
+>>>>>>> 88dde7a7235d2c72bbb899300a808998e88d28a3
 export default router;

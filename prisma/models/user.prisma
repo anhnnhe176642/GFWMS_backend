@@ -26,6 +26,11 @@ model User {
   notifications  Notification[]
   emailVerificationPins EmailVerificationPin[]
   passwordResetPins PasswordResetPin[]
+<<<<<<< HEAD
 
   Wishlist Wishlist[]
+=======
+  createdExports     ExportFabric[]    @relation("CreatedExportFabric")
+  receivedExports    ExportFabric[]    @relation("ReceivedExportFabric")
+>>>>>>> 88dde7a7235d2c72bbb899300a808998e88d28a3
 }
