@@ -94,11 +94,18 @@ router.get('/',
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
  *             properties:
  *               name:
  *                 type: string
  *                 description: Role name
- *                 example: manager
+ *                 example: ADMIN
+ *               description:
+ *                 type: string
+ *                 description: Role description
+ *                 example: Quản trị viên
+ *                 maxLength: 255
  *     responses:
  *       201:
  *         description: Role created successfully
