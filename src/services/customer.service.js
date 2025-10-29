@@ -1,8 +1,8 @@
 import { NotFoundError } from '../utils/errors.js';
 import { userRepository } from '../repositories/user.repository.js';
+import { orderRepository } from '../repositories/order.repository.js';
 
 export const getAllCustomersAdvanced = async (queryOptions) => {
-  // Thêm filter để chỉ lấy users có role là CUSTOMER
   const customerOptions = {
     ...queryOptions,
     filters: {
@@ -23,3 +23,16 @@ export const getCustomerById = async (id) => {
   
   return customer;
 };
+
+// New: Lấy danh sách orders của customer (filter/sort/pagination)
+export const getCustomerOrders = async (customerId, queryOptions) => {
+  // service đảm bảo chỉ lấy orders của customerId
+  return await orderRepository.findByCustomer(customerId, queryOptions);
+};
+
+// New: Lấy tổng quan số lượng orders theo trạng thái cho customer
+export const getCustomerOrderStatusSummary = async (customerId) => {
+  return await orderRepository.getStatusSummaryByCustomer(customerId);
+};
+
+
