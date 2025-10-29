@@ -11,7 +11,7 @@ import fabricCategoryRouters from './v1/fabricCategory.routes.js';
 import supplierRouters from './v1/supplier.routes.js';
 import invoiceRouters from './v1/invoice.routes.js';
 import exportFabricRouters from './v1/exportFabric.routes.js';
-
+import storeRouters from './v1/store.routes.js';
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -25,4 +25,5 @@ router.use('/fabric-category', fabricCategoryRouters);
 router.use('/supplier', supplierRouters);
 router.use('/invoices', invoiceRouters);
 router.use('/export-fabrics', exportFabricRouters);
+router.use('/stores', storeRouters);
 export default router;
