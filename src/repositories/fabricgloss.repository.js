@@ -33,7 +33,7 @@ export class FabricGlossRepository {
         select: this.#selectOptions
       }),
       {
-        fabric_gloss_description_key: 'Độ bóng này đã tồn tại trong hệ thống'
+        description: 'Độ bóng này đã tồn tại trong hệ thống'
       }
     );
   }
@@ -46,7 +46,7 @@ export class FabricGlossRepository {
         select: this.#selectOptions
       }),
       {
-        fabric_gloss_description_key: 'Độ bóng này đã tồn tại trong hệ thống'
+        description: 'Độ bóng này đã tồn tại trong hệ thống'
       }
     );
   }

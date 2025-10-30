@@ -74,6 +74,15 @@ export const PERMISSIONS = {
     VIEW_LIST:    { key: 'exportFabric:view_list',    description: 'Xem danh sách các đơn yêu cầu xuất kho' },
     VIEW_DETAIL:  { key: 'exportFabric:view_detail',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
   },
+
+    // Warehouse Management
+  STORES: {
+    VIEW_LIST:    { key: 'store:view_list',    description: 'Xem danh sách cửa hàng' },
+    VIEW_DETAIL:  { key: 'store:view_detail',  description: 'Xem chi tiết cửa hàng' },
+    CREATE:       { key: 'store:create',       description: 'Tạo cửa hàng mới' },
+    UPDATE:       { key: 'store:update',       description: 'Cập nhật thông tin cửa hàng' },
+    DELETE:       { key: 'store:delete',       description: 'Xóa cửa hàng (soft delete)' },
+  },
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)
