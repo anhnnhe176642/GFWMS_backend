@@ -8,21 +8,21 @@ export const createImportFabric = async (req, res, next) => {
     
     const transformedItems = items.map(item => ({
       fabricAttributes: {
-        thickness: parseFloat(item.thickness),
-        glossId: parseInt(item.glossId),
-        length: parseFloat(item.length),
-        width: parseFloat(item.width),
-        weight: parseFloat(item.weight),
-        categoryId: parseInt(item.categoryId),
+        thickness: item.thickness,
+        glossId: item.glossId,
+        length: item.length,
+        width: item.width,
+        weight: item.weight,
+        categoryId: item.categoryId,
         colorId: item.colorId,
-        supplierId: parseInt(item.supplierId)
+        supplierId: item.supplierId
       },
-      quantity: parseInt(item.quantity),
-      price: parseFloat(item.price)
+        quantity: item.quantity,
+        price: item.price
     }));
 
     const result = await importFabricService.createImport({
-      warehouseId: parseInt(warehouseId),
+      warehouseId: warehouseId,
       importer,
     }, transformedItems);
 

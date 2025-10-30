@@ -8,93 +8,73 @@ import {
 } from './common.validation.js';
 import { warehouseIdSchema } from './warehouse.validation.js';
 
-
-const numericStringSchema = Joi.string()
-  .pattern(/^\d+$/)
-  .messages({
-    'string.pattern.base': 'Phải là số nguyên dương',
-    'string.empty': 'Trường này không được để trống'
-  });
-
-const floatStringSchema = Joi.string()
-  .pattern(/^\d+(\.\d+)?$/)
-  .messages({
-    'string.pattern.base': 'Phải là số dương',
-    'string.empty': 'Trường này không được để trống'
-  });
-
-export const quantitySchema = Joi.string()
-  .pattern(/^\d+$/)
+export const quantitySchema = Joi.number()
+  .integer()
+  .positive()
   .required()
-  .custom((value, helpers) => {
-    const num = parseInt(value, 10);
-    if (num <= 0) {
-      return helpers.error('any.invalid');
-    }
-    return value;
-  })
   .messages({
-    'string.pattern.base': 'Quantity phải là số nguyên dương',
-    'any.required': 'Quantity là bắt buộc',
-    'string.empty': 'Quantity không được để trống',
-    'any.invalid': 'Quantity phải lớn hơn 0'
+    'number.base': 'Quantity phải là số',
+    'number.integer': 'Quantity phải là số nguyên',
+    'number.positive': 'Quantity phải lớn hơn 0',
+    'any.required': 'Quantity là bắt buộc'
   });
 
-export const priceSchema = Joi.string()
-  .pattern(/^\d+(\.\d+)?$/)
+export const priceSchema = Joi.number()
+  .min(0)
   .required()
-  .custom((value, helpers) => {
-    const num = parseFloat(value);
-    if (num < 0) {
-      return helpers.error('any.invalid');
-    }
-    return value;
-  })
   .messages({
-    'string.pattern.base': 'Price phải là số dương',
-    'any.required': 'Price là bắt buộc',
-    'string.empty': 'Price không được để trống',
-    'any.invalid': 'Price không được âm'
+    'number.base': 'Price phải là số',
+    'number.min': 'Price không được âm',
+    'any.required': 'Price là bắt buộc'
   });
 
 
 export const importFabricItemSchema = Joi.object({
 
 
-  thickness: floatStringSchema.required().messages({
-    'any.required': 'Thickness là bắt buộc',
-    'string.pattern.base': 'Thickness phải là số dương'
+   thickness: Joi.number().positive().required().messages({
+    'number.base': 'Thickness phải là số',
+    'number.positive': 'Thickness phải là số dương',
+    'any.required': 'Thickness là bắt buộc'
   }),
-  glossId: numericStringSchema.required().messages({
-    'any.required': 'GlossId là bắt buộc',
-    'string.pattern.base': 'GlossId phải là số nguyên dương'
+  glossId: Joi.number().integer().positive().required().messages({
+    'number.base': 'GlossId phải là số',
+    'number.integer': 'GlossId phải là số nguyên',
+    'number.positive': 'GlossId phải là số nguyên dương',
+    'any.required': 'GlossId là bắt buộc'
   }),
-  length: floatStringSchema.required().messages({
-    'any.required': 'Length là bắt buộc',
-    'string.pattern.base': 'Length phải là số dương'
+
+  length: Joi.number().positive().required().messages({
+    'number.base': 'Length phải là số',
+    'number.positive': 'Length phải là số dương',
+    'any.required': 'Length là bắt buộc'
   }),
-  width: floatStringSchema.required().messages({
-    'any.required': 'Width là bắt buộc',
-    'string.pattern.base': 'Width phải là số dương'
+  width: Joi.number().positive().required().messages({
+    'number.base': 'Width phải là số',
+    'number.positive': 'Width phải là số dương',
+    'any.required': 'Width là bắt buộc'
   }),
-  weight: floatStringSchema.required().messages({
-    'any.required': 'Weight là bắt buộc',
-    'string.pattern.base': 'Weight phải là số dương'
+  weight: Joi.number().positive().required().messages({
+    'number.base': 'Weight phải là số',
+    'number.positive': 'Weight phải là số dương',
+    'any.required': 'Weight là bắt buộc'
   }),
-  categoryId: numericStringSchema.required().messages({
-    'any.required': 'CategoryId là bắt buộc',
-    'string.pattern.base': 'CategoryId phải là số nguyên dương'
+  categoryId: Joi.number().integer().positive().required().messages({
+    'number.base': 'CategoryId phải là số',
+    'number.integer': 'CategoryId phải là số nguyên',
+    'number.positive': 'CategoryId phải là số nguyên dương',
+    'any.required': 'CategoryId là bắt buộc'
   }),
   colorId: Joi.string().required().messages({
     'any.required': 'ColorId là bắt buộc',
     'string.empty': 'ColorId không được để trống'
   }),
-  supplierId: numericStringSchema.required().messages({
-    'any.required': 'SupplierId là bắt buộc',
-    'string.pattern.base': 'SupplierId phải là số nguyên dương'
+  supplierId: Joi.number().integer().positive().required().messages({
+    'number.base': 'SupplierId phải là số',
+    'number.integer': 'SupplierId phải là số nguyên',
+    'number.positive': 'SupplierId phải là số nguyên dương',
+    'any.required': 'SupplierId là bắt buộc'
   }),
-  
-  
   quantity: quantitySchema,
   price: priceSchema
 }).options({ 
@@ -103,9 +83,10 @@ export const importFabricItemSchema = Joi.object({
 
 
 export const createImportFabricSchema = Joi.object({
-  warehouseId: numericStringSchema.required().messages({
-    'any.required': 'Warehouse ID là bắt buộc',
-    'string.pattern.base': 'Warehouse ID phải là số nguyên dương'
+  warehouseId: Joi.number().integer().positive().required().messages({
+    'number.base': 'Warehouse ID phải là số',
+    'number.integer': 'Warehouse ID phải là số nguyên dương',
+    'any.required': 'Warehouse ID là bắt buộc'
   }),
   items: Joi.array()
     .min(1)
@@ -121,7 +102,7 @@ export const createImportFabricSchema = Joi.object({
 const allowedImportFabricSortFields = ['id', 'importDate', 'totalPrice', 'createdAt'];
 
 export const importFabricQuerySchema = querySchema.keys({
-  warehouseId: numericStringSchema.optional(),
+  warehouseId: warehouseIdSchema.optional(),
   importer: Joi.string().optional(),
   sortBy: createSortBySchema(allowedImportFabricSortFields),
   order: sortOrderSchema,
