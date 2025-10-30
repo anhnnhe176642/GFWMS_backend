@@ -9,6 +9,7 @@ export class RoleRepository {
     return await prisma.role.findMany({
       select: {
         name: true,
+        description: true,
         rolePermissions: {
           select: {
             permission: true
@@ -23,6 +24,7 @@ export class RoleRepository {
       where: { name },
       select: {
         name: true,
+        description: true,
         rolePermissions: {
           select: {
             permission: true
@@ -107,11 +109,7 @@ export class RoleRepository {
         orderBy,
         select: {
           name: true,
-          rolePermissions: {
-            select: {
-              permission: true
-            }
-          }
+          description: true
         }
       }),
       prisma.role.count({ where })

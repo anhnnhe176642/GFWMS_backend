@@ -55,3 +55,18 @@ export const deleteRole = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateRole = async (req, res, next) => {
+  try {
+    const { name } = req.params;
+    const roleData = req.body;
+    const role = await roleService.updateRole(name, roleData);
+    
+    res.json({
+      message: 'Cập nhật role thành công',
+      data: role
+    });
+  } catch (error) {
+    next(error);
+  }
+};

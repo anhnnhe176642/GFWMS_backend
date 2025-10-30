@@ -2,10 +2,6 @@ import bcrypt from 'bcryptjs';
 import { NotFoundError } from '../utils/errors.js';
 import { userRepository } from '../repositories/user.repository.js';
 
-export const getAllUsers = async (page, limit) => {
-  return await userRepository.findWithPagination(page, limit);
-};
-
 export const createUser = async (data) => {
   // Hash password if provided
   if (data.password) {
