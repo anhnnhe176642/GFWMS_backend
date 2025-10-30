@@ -18,6 +18,7 @@ export const storeNameSchema = Joi.string()
   .required()
   .empty('')
   .messages({
+    'string.base': 'Tên cửa hàng phải là chuỗi',
     'string.min': 'Tên cửa hàng phải có ít nhất 2 ký tự',
     'string.max': 'Tên cửa hàng không được vượt quá 100 ký tự',
     'any.required': 'Tên cửa hàng là bắt buộc',
@@ -32,6 +33,7 @@ export const storeAddressSchema = addressSchema
   .required()
   .empty('')
   .messages({
+    'string.base': 'Địa chỉ cửa hàng phải là chuỗi',
     'string.min': 'Địa chỉ cửa hàng phải có ít nhất 5 ký tự',
     'any.required': 'Địa chỉ cửa hàng là bắt buộc',
     'string.empty': 'Địa chỉ cửa hàng là bắt buộc'
@@ -78,10 +80,16 @@ export const updateStoreSchema = Joi.object({
 const allowedStoreSortFields = ['id', 'name', 'address', 'isActive', 'createdAt', 'updatedAt'];
 
 export const storeQuerySchema = querySchema.keys({
-  isActive: createMultiValueFilterSchema(
-    Joi.boolean(), 
-    'Trạng thái hoạt động'
-  ),
+isActive: createMultiValueFilterSchema(
+  Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .messages({
+      'boolean.base': 'Chỉ chấp nhận true hoặc false',
+    }),
+  'Trạng thái hoạt động'
+),
+
   sortBy: createSortBySchema(allowedStoreSortFields),
   order: sortOrderSchema,
   createdFrom: dateFromSchema,
