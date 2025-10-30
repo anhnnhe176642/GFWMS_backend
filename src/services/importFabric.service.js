@@ -84,7 +84,7 @@ class ImportFabricService {
     const processedItems = [];
     
     for (const item of items) {
-      const fabricId = await this.#findOrCreateFabric(item.fabricAttributes);
+      const fabricId = await this.#findOrCreateFabric(item);
 
       processedItems.push({
         fabricId,

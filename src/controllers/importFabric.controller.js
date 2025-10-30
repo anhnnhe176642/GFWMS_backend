@@ -5,26 +5,11 @@ export const createImportFabric = async (req, res, next) => {
   try {
     const { warehouseId, items } = req.body; 
     const importer = req.user.id;
-    
-    const transformedItems = items.map(item => ({
-      fabricAttributes: {
-        thickness: item.thickness,
-        glossId: item.glossId,
-        length: item.length,
-        width: item.width,
-        weight: item.weight,
-        categoryId: item.categoryId,
-        colorId: item.colorId,
-        supplierId: item.supplierId
-      },
-        quantity: item.quantity,
-        price: item.price
-    }));
 
     const result = await importFabricService.createImport({
-      warehouseId: warehouseId,
+      warehouseId,
       importer,
-    }, transformedItems);
+    }, items);
 
     res.status(201).json({
       message: 'Nhập vải thành công',
