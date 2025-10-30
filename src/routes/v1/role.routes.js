@@ -1,10 +1,10 @@
 import express from 'express';
-import { getAllRoles, createRole, getRoleByName, deleteRole } from '../../controllers/role.controller.js';
+import { getAllRoles, createRole, getRoleByName, deleteRole, updateRole } from '../../controllers/role.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { requirePermission } from '../../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 import { validate } from '../../middlewares/validation.middleware.js';
-import { createRoleSchema, roleNameParamSchema, roleQuerySchema } from '../../validations/role.validation.js';
+import { createRoleSchema, roleNameParamSchema, roleQuerySchema, updateRoleSchema } from '../../validations/role.validation.js';
 
 const router = express.Router();
 
@@ -94,11 +94,18 @@ router.get('/',
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
  *             properties:
  *               name:
  *                 type: string
  *                 description: Role name
- *                 example: manager
+ *                 example: ADMIN
+ *               description:
+ *                 type: string
+ *                 description: Role description
+ *                 example: Quản trị viên
+ *                 maxLength: 255
  *     responses:
  *       201:
  *         description: Role created successfully
@@ -234,6 +241,72 @@ router.delete('/:name',
   requirePermission(PERMISSIONS.ROLES.DELETE),
   validate(roleNameParamSchema, 'params'),
   deleteRole
+);
+
+/**
+ * @swagger
+ * /roles/{name}:
+ *   put:
+ *     summary: Update role
+ *     tags: [Roles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Role name to update
+ *         example: ADMIN
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *                 description: Role description
+ *                 example: Quản trị viên hệ thống
+ *                 maxLength: 255
+ *     responses:
+ *       200:
+ *         description: Role updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - message
+ *                 - data
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Cập nhật role thành công
+ *                 data:
+ *                   $ref: '#/components/schemas/Role'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       409:
+ *         description: Description already exists for another role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.put('/:name', 
+  requirePermission(PERMISSIONS.ROLES.UPDATE),
+  validate(roleNameParamSchema, 'params'),
+  validate(updateRoleSchema, 'body'),
+  updateRole
 );
 
 export default router;

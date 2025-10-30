@@ -52,11 +52,12 @@ export const requirePermission = (permission) => {
 
       // Hỗ trợ cả object {key, description} và string
       const permissionKey = permission?.key || permission;
+      const permissionDesc = permission?.description || permissionKey;
       const hasPermission = await userRepository.hasPermission(req.user.id, permissionKey);
       
       if (!hasPermission) {
-        console.log("Bạn không có quyền : ",permissionKey)
-        throw new AuthorizationError(`Bạn không có quyền truy cập tính năng này`);
+        console.log("Bạn không có quyền : ", permissionKey)
+        throw new AuthorizationError(`Bạn không có quyền: ${permissionDesc}`);
       }
 
       next();
@@ -76,11 +77,12 @@ export const requireAnyPermission = (permissions) => {
 
       // Hỗ trợ cả object {key, description} và string
       const permissionKeys = permissions.map(p => p?.key || p);
+      const permissionDescs = permissions.map(p => p?.description || p?.key || p);
       const hasAnyPermission = await userRepository.hasAnyPermission(req.user.id, permissionKeys);
       
       if (!hasAnyPermission) {
-        console.log("Bạn không có quyền : ",permissionKeys)
-        throw new AuthorizationError(`Bạn không có quyền truy cập tính năng này`);
+        console.log("Bạn không có quyền : ", permissionKeys)
+        throw new AuthorizationError(`Bạn cần ít nhất một trong các quyền sau: ${permissionDescs.join(', ')}`);
       }
 
       next();
@@ -100,10 +102,11 @@ export const requireAllPermissions = (permissions) => {
 
       // Hỗ trợ cả object {key, description} và string
       const permissionKeys = permissions.map(p => p?.key || p);
+      const permissionDescs = permissions.map(p => p?.description || p?.key || p);
       const hasAllPermissions = await userRepository.hasAllPermissions(req.user.id, permissionKeys);
       
       if (!hasAllPermissions) {
-        throw new AuthorizationError(`Không có đủ quyền: ${permissionKeys.join(', ')}`);
+        throw new AuthorizationError(`Bạn cần tất cả các quyền sau: ${permissionDescs.join(', ')}`);
       }
 
       next();
@@ -123,6 +126,7 @@ export const requireOwnershipOrPermission = (permission, getResourceOwnerId) => 
 
       // Hỗ trợ cả object {key, description} và string
       const permissionKey = permission?.key || permission;
+      const permissionDesc = permission?.description || permissionKey;
       const hasPermission = await userRepository.hasPermission(req.user.id, permissionKey);
       if (hasPermission) {
         return next();
@@ -134,7 +138,7 @@ export const requireOwnershipOrPermission = (permission, getResourceOwnerId) => 
         return next();
       }
 
-      throw new AuthorizationError('Không có quyền truy cập resource này');
+      throw new AuthorizationError(`Bạn không có quyền: ${permissionDesc} và không phải chủ sở hữu resource này`);
     } catch (error) {
       next(error);
     }

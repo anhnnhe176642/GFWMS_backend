@@ -181,10 +181,12 @@ export const userStatusSchema = Joi.string()
 
 // UUID validation
 export const uuidSchema = Joi.string()
-  .uuid()
+  .guid({ version: ['uuidv4', 'uuidv5'] })
+  .required()
   .messages({
-    'string.uuid': 'ID phải là UUID hợp lệ',
-    'any.required': 'ID là bắt buộc'
+    'string.guid': 'ID phải là UUID hợp lệ',
+    'any.required': 'ID là bắt buộc',
+    'string.base': 'ID phải là chuỗi hợp lệ'
   });
 
 // Pagination validation
@@ -193,6 +195,7 @@ export const pageSchema = Joi.number()
   .min(1)
   .default(1)
   .messages({
+    'number.base': 'Page không phải là số hợp lệ',
     'number.integer': 'Page phải là số nguyên',
     'number.min': 'Page phải lớn hơn 0'
   });
@@ -203,6 +206,7 @@ export const limitSchema = Joi.number()
   .max(100)
   .default(10)
   .messages({
+    'number.base': 'Limit không phải là số hợp lệ',
     'number.integer': 'Limit phải là số nguyên',
     'number.min': 'Limit phải lớn hơn 0',
     'number.max': 'Limit không được vượt quá 100'

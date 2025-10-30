@@ -33,8 +33,8 @@ async create(colorData) {
       select: this.#selectOptions
     }),
     {
-      PRIMARY: 'ID màu đã tồn tại',
-      fabric_color_name_key: 'Tên màu đã tồn tại',
+      id: 'ID màu đã tồn tại',
+      name: 'Tên màu đã tồn tại',
     }
   );
 }
@@ -48,7 +48,7 @@ async create(colorData) {
         select: this.#selectOptions
       }),
       {
-        fabric_color_name_key: 'Tên màu đã tồn tại',
+        name: 'Tên màu đã tồn tại',
       }
     );
   }

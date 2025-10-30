@@ -38,6 +38,14 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Lỗi kết nối database Prisma
+  if (err.name === 'PrismaClientInitializationError' || err.name === 'PrismaClientRuntimeError') {
+    console.error('Database connection error:', err);
+    return res.status(503).json({ 
+      message: 'Không thể kết nối cơ sở dữ liệu. Vui lòng thử lại sau.' 
+    });
+  }
+
   // Lỗi Prisma chưa được xử lý 
   if (err.code && err.code.startsWith('P')) {
     console.error('Unhandled Prisma error:', err);
