@@ -15,17 +15,28 @@ const extractFieldFromConstraint = (constraintName) => {
     
     // Duyệt qua tất cả models
     for (const model of dmmf.datamodel.models) {
-      // 1. Kiểm tra single field unique constraints (@unique)
+      // Lấy tên bảng thực tế (có thể khác với model.name nếu có @@map)
+      const tableName = model.dbName || model.name;
+      
+      // 1. Kiểm tra PRIMARY KEY constraint
+      if (constraintName === 'PRIMARY') {
+        return 'id';
+      }
+      
+      // 2. Kiểm tra single field unique constraints (@unique)
       for (const field of model.fields) {
         if (field.isUnique) {
-          const expectedConstraintName = `${model.name}_${field.name}_key`;
-          if (expectedConstraintName === constraintName) {
+          // Kiểm tra cả model.name và tableName (dbName)
+          const expectedConstraintName1 = `${model.name}_${field.name}_key`;
+          const expectedConstraintName2 = `${tableName}_${field.name}_key`;
+          
+          if (expectedConstraintName1 === constraintName || expectedConstraintName2 === constraintName) {
             return field.name;
           }
         }
       }
       
-      // 2. Kiểm tra composite unique constraints (@@unique)
+      // 3. Kiểm tra composite unique constraints (@@unique)
       if (model.uniqueIndexes) {
         for (const uniqueIndex of model.uniqueIndexes) {
           if (uniqueIndex.name === constraintName) {
@@ -36,7 +47,7 @@ const extractFieldFromConstraint = (constraintName) => {
         }
       }
       
-      // 3. Kiểm tra primary key constraints (@@id)
+      // 4. Kiểm tra primary key constraints với tên cụ thể (@@id)
       if (model.primaryKey && model.primaryKey.name === constraintName) {
         return model.primaryKey.fields.length === 1
           ? model.primaryKey.fields[0]
@@ -120,8 +131,7 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
       const errorMessage = error.message || '';
       
       // Trường hợp 1: Xóa khi có bản ghi tham chiếu (delete operation)
-      if (errorMessage.includes('delete') || 
-          errorMessage.includes('Foreign key constraint violated')) {
+      if (errorMessage.includes('delete')) {
         
         // Kiểm tra fieldMappings trước
         const customMessage = fieldMappings[fieldName];

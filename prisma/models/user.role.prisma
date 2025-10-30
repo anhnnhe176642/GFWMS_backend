@@ -1,5 +1,8 @@
 model Role {
     name String  @id @db.VarChar(50)
+    description String? @db.VarChar(255)
     users User[]
     rolePermissions  RolePermission[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }

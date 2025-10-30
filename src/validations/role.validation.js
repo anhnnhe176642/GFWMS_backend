@@ -8,7 +8,8 @@ import {
 
 // Schema validation cho tạo role
 export const createRoleSchema = Joi.object({
-  name: roleSchema.required()
+  name: roleSchema.required(),
+  description: Joi.string().max(255).optional()
 });
 
 // Schema validation cho role name parameter

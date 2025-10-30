@@ -14,7 +14,7 @@ export const registerUser = async (userData) => {
   const existing = await userRepository.findByEmail(userData.email);
   if (existing) {
     if (existing.emailVerified) {
-      throw new ConflictError('Email đã được sử dụng');
+      throw new ConflictError('Email đã được sử dụng', 'email');
     }
 
     await emailVerificationRepository.invalidatePinsForUser(existing.id);
@@ -57,7 +57,7 @@ export const verifyEmailPin = async (email, pin) => {
   }
 
   if (user.emailVerified) {
-    throw new ValidationError('Email đã được xác thực');
+    throw new ValidationError('Email đã được xác thực', 'email');
   }
 
   // Find the latest active pin for user
@@ -103,7 +103,7 @@ export const resendVerificationPin = async (email) => {
   }
 
   if (user.emailVerified) {
-    throw new ValidationError('Email đã được xác thực');
+    throw new ValidationError('Email đã được xác thực', 'email');
   }
 
   // Check cooldown for resending
@@ -121,7 +121,7 @@ export const resendVerificationPin = async (email) => {
   const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
   await emailVerificationRepository.createPin({ userId: user.id, pinHash, expiresAt });
-  await sendVerificationCodeEmail(user.email, pin, expiresInMinutes);
+  sendVerificationCodeEmail(user.email, pin, expiresInMinutes);
   return { message: 'Mã xác thực đã được gửi lại' };
 };
 
@@ -142,6 +142,10 @@ export const loginUser = async (usernameOrEmail, password) => {
   // Check user status
   if (user.status === 'INACTIVE') {
     throw new AuthenticationError('Tài khoản chưa được kích hoạt');
+  }
+
+  if (user.status === 'SUSPENDED') {
+    throw new AuthenticationError('Tài khoản đã bị khóa');
   }
 
   // Generate JWT token
