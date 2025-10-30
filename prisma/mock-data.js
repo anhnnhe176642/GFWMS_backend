@@ -27,6 +27,10 @@ const CONFIG = {
   EXPORT_ITEMS_PER_EXPORT: parseInt(process.env.MOCK_EXPORT_ITEMS_PER_EXPORT) || 40,
   FABRIC_SHELVES: parseInt(process.env.MOCK_FABRIC_SHELVES) || 400,
   FABRIC_STORES: parseInt(process.env.MOCK_FABRIC_STORES) || 350,
+  ORDERS: parseInt(process.env.MOCK_ORDERS) || 200,
+  ORDER_ITEMS_PER_ORDER: parseInt(process.env.MOCK_ORDER_ITEMS_PER_ORDER) || 3,
+  INVOICE_PERCENTAGE: parseFloat(process.env.MOCK_INVOICE_PERCENTAGE) || 0.9,
+  PAYMENT_PERCENTAGE: parseFloat(process.env.MOCK_PAYMENT_PERCENTAGE) || 0.8,
 };
 
 async function main() {
@@ -40,7 +44,9 @@ async function main() {
   console.log(`   - Warehouses: ${CONFIG.WAREHOUSES}`);
   console.log(`   - Stores: ${CONFIG.STORES}`);
   console.log(`   - Fabrics: ${CONFIG.FABRICS}`);
-  console.log(`   - Shelves per Warehouse: ${CONFIG.SHELVES_PER_WAREHOUSE}\n`);
+  console.log(`   - Shelves per Warehouse: ${CONFIG.SHELVES_PER_WAREHOUSE}`);
+  console.log(`   - Orders: ${CONFIG.ORDERS}`);
+  console.log(`   - Order Items per Order: ${CONFIG.ORDER_ITEMS_PER_ORDER}\n`);
 
   // Lấy roles có sẵn từ seed
   const roles = await prisma.role.findMany();
@@ -464,9 +470,146 @@ async function main() {
   const exportItemsResult = await prisma.exportFabricItem.createMany({ data: exportItemsToCreate, skipDuplicates: true });
   console.log(`✅ Created ${exportItemsResult.count} export fabric items`);
 
+  // 15. TẠO ORDERS
+  console.log('\n📝 Preparing orders...');
+  const orderStatuses = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELED'];
+  const ordersToCreate = [];
+  
+  for (let i = 0; i < CONFIG.ORDERS; i++) {
+    const randomUser = faker.helpers.arrayElement(allUsers);
+    const orderDate = faker.date.between({ from: '2024-01-01', to: new Date() });
+    
+    ordersToCreate.push({
+      userId: randomUser.id,
+      orderDate,
+      status: faker.helpers.arrayElement(orderStatuses),
+      totalAmount: 0, // Will be calculated based on order items
+      notes: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.3 }),
+    });
+  }
+  
+  const ordersResult = await prisma.order.createMany({ data: ordersToCreate, skipDuplicates: true });
+  console.log(`✅ Created ${ordersResult.count} orders`);
+  
+  // Lấy tất cả orders vừa tạo
+  const allOrders = await prisma.order.findMany({ orderBy: { id: 'asc' } });
+
+  // 16. TẠO ORDER ITEMS
+  console.log('\n📝 Preparing order items...');
+  const orderItemsToCreate = [];
+  const orderItemKeys = new Set();
+  const orderTotals = new Map(); // Track total amount for each order
+  
+  for (const order of allOrders) {
+    const itemsCount = Math.min(CONFIG.ORDER_ITEMS_PER_ORDER, allFabrics.length);
+    const selectedFabrics = faker.helpers.arrayElements(allFabrics, itemsCount);
+    let orderTotal = 0;
+    
+    for (const fabric of selectedFabrics) {
+      const key = `${order.id}-${fabric.id}`;
+      if (!orderItemKeys.has(key)) {
+        const quantity = faker.number.int({ min: 1, max: 20 });
+        const price = faker.number.float({ min: 50000, max: 1000000, multipleOf: 1000 });
+        const itemTotal = quantity * price;
+        
+        orderItemsToCreate.push({
+          orderId: order.id,
+          fabricId: fabric.id,
+          quantity,
+          price,
+        });
+        orderItemKeys.add(key);
+        orderTotal += itemTotal;
+      }
+    }
+    
+    orderTotals.set(order.id, orderTotal);
+  }
+  
+  const orderItemsResult = await prisma.orderItem.createMany({ data: orderItemsToCreate, skipDuplicates: true });
+  console.log(`✅ Created ${orderItemsResult.count} order items`);
+
+  // Update order total amounts
+  console.log('\n📝 Updating order totals...');
+  const orderUpdatePromises = [];
+  for (const [orderId, totalAmount] of orderTotals.entries()) {
+    orderUpdatePromises.push(
+      prisma.order.update({
+        where: { id: orderId },
+        data: { totalAmount },
+      })
+    );
+  }
+  await Promise.all(orderUpdatePromises);
+  console.log(`✅ Updated ${orderUpdatePromises.length} order totals`);
+
+  // 17. TẠO INVOICES (90% của orders)
+  console.log('\n📝 Preparing invoices...');
+  const invoiceStatuses = ['UNPAID', 'PAID', 'OVERDUE', 'CREDIT', 'REFUNDED', 'CANCELED'];
+  const invoicesToCreate = [];
+  const ordersWithInvoices = faker.helpers.arrayElements(
+    allOrders, 
+    Math.floor(allOrders.length * CONFIG.INVOICE_PERCENTAGE)
+  );
+  
+  for (const order of ordersWithInvoices) {
+    const invoiceDate = new Date(order.orderDate);
+    const dueDate = faker.date.soon({ days: 30, refDate: invoiceDate });
+    
+    invoicesToCreate.push({
+      orderId: order.id,
+      invoiceDate,
+      dueDate,
+      invoiceStatus: faker.helpers.arrayElement(invoiceStatuses),
+      totalAmount: order.totalAmount,
+      notes: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.3 }),
+    });
+  }
+  
+  const invoicesResult = await prisma.invoice.createMany({ data: invoicesToCreate, skipDuplicates: true });
+  console.log(`✅ Created ${invoicesResult.count} invoices`);
+  
+  // Lấy tất cả invoices vừa tạo
+  const allInvoices = await prisma.invoice.findMany({ orderBy: { id: 'asc' } });
+
+  // 18. TẠO PAYMENTS (80% của invoices)
+  console.log('\n📝 Preparing payments...');
+  const paymentMethods = ['CREDIT_CARD', 'DEBIT_CARD', 'BANK_TRANSFER', 'CASH', 'E_WALLET'];
+  const paymentsToCreate = [];
+  const invoicesWithPayments = faker.helpers.arrayElements(
+    allInvoices, 
+    Math.floor(allInvoices.length * CONFIG.PAYMENT_PERCENTAGE)
+  );
+  
+  for (const invoice of invoicesWithPayments) {
+    const paymentDate = faker.date.between({ 
+      from: invoice.invoiceDate, 
+      to: new Date() 
+    });
+    
+    paymentsToCreate.push({
+      invoiceId: invoice.id,
+      paymentDate,
+      amount: faker.number.float({ 
+        min: invoice.totalAmount * 0.5, 
+        max: invoice.totalAmount, 
+        multipleOf: 1000 
+      }),
+      paymentMethod: faker.helpers.arrayElement(paymentMethods),
+      transactionId: faker.helpers.maybe(() => 
+        `TXN-${faker.string.alphanumeric(12).toUpperCase()}`, 
+        { probability: 0.7 }
+      ),
+      notes: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.3 }),
+    });
+  }
+  
+  const paymentsResult = await prisma.payment.createMany({ data: paymentsToCreate, skipDuplicates: true });
+  console.log(`✅ Created ${paymentsResult.count} payments`);
+
   // Lấy tổng số cho các bảng relationships
   console.log('\n📊 Counting total records...');
-  const [totalFabricShelves, totalFabricStores, totalImportFabrics, totalImportItems, totalExportFabrics, totalExportItems, totalWarehouseManages] = await Promise.all([
+  const [totalFabricShelves, totalFabricStores, totalImportFabrics, totalImportItems, totalExportFabrics, totalExportItems, totalWarehouseManages, totalOrders, totalOrderItems, totalInvoices, totalPayments] = await Promise.all([
     prisma.fabricShelf.count(),
     prisma.fabricStore.count(),
     prisma.importFabric.count(),
@@ -474,6 +617,10 @@ async function main() {
     prisma.exportFabric.count(),
     prisma.exportFabricItem.count(),
     prisma.warehouseManage.count(),
+    prisma.order.count(),
+    prisma.orderItem.count(),
+    prisma.invoice.count(),
+    prisma.payment.count(),
   ]);
 
   // ANSI color codes
@@ -506,6 +653,10 @@ async function main() {
   console.log(`   - Export Fabric Records: ${colors.green}${exportFabricsResult.count} new${colors.reset} / ${colors.cyan}${totalExportFabrics} total${colors.reset}`);
   console.log(`   - Export Fabric Items: ${colors.green}${exportItemsResult.count} new${colors.reset} / ${colors.cyan}${totalExportItems} total${colors.reset}`);
   console.log(`   - Warehouse Managers: ${colors.green}${warehouseManagesResult.count} new${colors.reset} / ${colors.cyan}${totalWarehouseManages} total${colors.reset}`);
+  console.log(`   - Orders: ${colors.green}${ordersResult.count} new${colors.reset} / ${colors.cyan}${totalOrders} total${colors.reset}`);
+  console.log(`   - Order Items: ${colors.green}${orderItemsResult.count} new${colors.reset} / ${colors.cyan}${totalOrderItems} total${colors.reset}`);
+  console.log(`   - Invoices: ${colors.green}${invoicesResult.count} new${colors.reset} / ${colors.cyan}${totalInvoices} total${colors.reset}`);
+  console.log(`   - Payments: ${colors.green}${paymentsResult.count} new${colors.reset} / ${colors.cyan}${totalPayments} total${colors.reset}`);
   console.log('\n' + '='.repeat(60) + '\n');
 }
 
