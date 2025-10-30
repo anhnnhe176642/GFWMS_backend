@@ -9,7 +9,16 @@ import {
 // Schema validation cho tạo role
 export const createRoleSchema = Joi.object({
   name: roleSchema.required(),
-  description: Joi.string().max(255).optional()
+  description: Joi.string().max(255).optional().messages({
+    'string.max': 'Description không được vượt quá 255 ký tự'
+  })
+});
+
+// Schema validation cho update role
+export const updateRoleSchema = Joi.object({
+  description: Joi.string().max(255).optional().messages({
+    'string.max': 'Description không được vượt quá 255 ký tự'
+  })
 });
 
 // Schema validation cho role name parameter

@@ -26,6 +26,15 @@ export const deleteRole = async (name) => {
   return await roleRepository.delete(name);
 };
 
+export const updateRole = async (name, roleData) => {
+  const existingRole = await roleRepository.findByName(name);
+  if (!existingRole) {
+    throw new NotFoundError('Role không tồn tại');
+  }
+  
+  return await roleRepository.update(name, roleData);
+};
+
 export const getAllRolesAdvanced = async (queryOptions) => {
   return await roleRepository.findWithAdvancedQuery(queryOptions);
 };
