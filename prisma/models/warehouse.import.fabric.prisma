@@ -4,6 +4,7 @@ model ImportFabric {
     importDate    DateTime  @default(now())
     importer      String
     totalPrice    Float     
+    status        ImportFabricStatus @default(PENDING)
     createdAt     DateTime  @default(now())
     updatedAt     DateTime  @updatedAt
 

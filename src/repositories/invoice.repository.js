@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { normalizeEnumFilters } from '../utils/normalize-enum-filters.js';
 import {
   buildWhereClause,
   buildSort,
@@ -155,12 +154,11 @@ export class InvoiceRepository {
       filters = {}
     } = queryOptions;
 
-    const normalizedFilters = normalizeEnumFilters(filters, ['invoiceStatus']);
-
+    
     const searchableFields = ['order.user.username', 'order.user.email'];
 
-    const where = buildWhereClause({ search, ...normalizedFilters }, searchableFields);
-
+    const where = buildWhereClause({ search, ...filters }, searchableFields);
+  
     const skip = (page - 1) * limit;
     const orderBy = buildSort(sortBy, order);
 

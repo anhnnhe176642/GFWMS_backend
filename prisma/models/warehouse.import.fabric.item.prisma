@@ -3,6 +3,7 @@ model ImportFabricItem {
     fabricId        Int
     quantity        Int
     price           Float
+    status          ImportFabricItemStatus @default(PENDING)
     createdAt       DateTime  @default(now())
     updatedAt       DateTime  @updatedAt
 

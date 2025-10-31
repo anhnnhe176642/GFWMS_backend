@@ -25,7 +25,8 @@ export const PERMISSIONS = {
     MANAGE_CATEGORIES:  { key: 'fabric:manage_categories',  description: 'Quản lý danh mục vải' },
     MANAGE_COLORS:      { key: 'fabric:manage_colors',      description: 'Quản lý màu sắc vải' },
     MANAGE_GLOSS:       { key: 'fabric:manage_gloss',       description: 'Quản lý độ bóng vải' },
-    MANAGE_SUPPLIER:    { key: 'fabric:manage_supplier',    description: 'Quản lý nhà cung cấp vải' }
+    MANAGE_SUPPLIER:    { key: 'fabric:manage_supplier',    description: 'Quản lý nhà cung cấp vải' },
+    ALLOCATE_TO_SHELF:  { key: 'fabric:allocate_to_shelf',  description: 'Thêm vải vào các kệ' }
   },
 
   // Warehouse Management
@@ -39,11 +40,11 @@ export const PERMISSIONS = {
   },
 
   // Import Fabric
-IMPORT_FABRICS: {
-  CREATE: { key: 'import_fabrics:create', description: 'Tạo phiếu nhập vải' },
-  VIEW_LIST: { key: 'import_fabrics:view_list', description: 'Xem danh sách phiếu nhập kho' },
-  VIEW_DETAIL: { key: 'import_fabrics:view_detail', description: 'Xem chi tiết phiếu nhập kho' }
-},
+  IMPORT_FABRICS: {
+    CREATE: { key: 'import_fabrics:create', description: 'Tạo phiếu nhập vải' },
+    VIEW_LIST: { key: 'import_fabrics:view_list', description: 'Xem danh sách phiếu nhập kho' },
+    VIEW_DETAIL: { key: 'import_fabrics:view_detail', description: 'Xem chi tiết phiếu nhập kho' }
+  },
   
   // Credit Registration
   CREDITS: {
