@@ -112,6 +112,44 @@ export class FabricRepository {
 
     return formatPaginatedResponse(fabrics, total, page, limit);
   }
+
+  async findAllWithSellingPrice(queryOptions = {}) {
+  const {
+    page = 1,
+    limit = 10,
+    search = '',
+    sortBy = 'createdAt',
+    order = 'desc',
+    filters = {},
+  } = queryOptions;
+
+  const searchableFields = [
+    'category.name',
+    'color.name',
+    'supplier.name'
+  ];
+  
+  let where = buildWhereClause({ search, ...filters }, searchableFields);
+  
+  where.sellingPrice = { not: null };
+
+  const skip = (page - 1) * limit;
+  const orderBy = buildSort(sortBy, order);
+
+  // Lấy dữ liệu và đếm tổng số
+  const [fabrics, total] = await Promise.all([
+    prisma.fabric.findMany({
+      where,
+      select: this.#fabricSelectOptions,
+      skip,
+      take: limit,
+      orderBy,
+    }),
+    prisma.fabric.count({ where }), 
+  ]);
+
+  return formatPaginatedResponse(fabrics, total, page, limit);
+}
 }
 
 export const fabricRepository = new FabricRepository();

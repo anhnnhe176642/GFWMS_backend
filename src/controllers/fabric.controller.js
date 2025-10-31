@@ -43,4 +43,26 @@ export const getFabricById = async (req, res, next) => {
   }
 };
 
+export const getFabricsWithSellingPrice = async (req, res, next) => {
+  try {
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['colorId', 'categoryId', 'glossId', 'supplierId'],
+      dateRangeConfig: {
+        fromField: 'createdFrom',
+        toField: 'createdTo',
+        targetField: 'createdAt'
+      }
+    });
+
+    const result = await fabricService.getFabricsWithSellingPrice(queryParams);
+
+    res.json({
+      message: 'Lấy danh sách vải có giá bán thành công',
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 

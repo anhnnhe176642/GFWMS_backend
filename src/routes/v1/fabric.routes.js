@@ -1,7 +1,8 @@
 import express from 'express';
 import {
   getAllFabrics,
-  getFabricById
+  getFabricById,
+  getFabricsWithSellingPrice 
 } from '../../controllers/fabric.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
@@ -125,6 +126,83 @@ router.get(
   '/',
   validate(fabricQuerySchema, 'query'),
   getAllFabrics
+);
+
+/**
+ * @swagger
+ * /fabrics/with-selling-price:
+ *   get:
+ *     summary: Lấy danh sách vải có giá bán
+ *     tags: [Fabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: string
+ *         description: Số trang cần lấy
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: string
+ *         description: Số lượng mục trên mỗi trang
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Từ khóa tìm kiếm (hỗ trợ tìm theo màu, loại, độ bóng, hoặc nhà cung cấp)
+ *       - in: query
+ *         name: glossId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID độ bóng
+ *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID loại vải
+ *       - in: query
+ *         name: colorId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID màu vải
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Trường để sắp xếp (sellingPrice, quantityInStock, createdAt, etc.)
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *         description: Thứ tự sắp xếp (asc hoặc desc)
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách vải có giá bán thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách vải có giá bán thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Fabric'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/PaginationMeta'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.get(
+  '/with-selling-price',
+  validate(fabricQuerySchema, 'query'),
+  getFabricsWithSellingPrice
 );
 
 
