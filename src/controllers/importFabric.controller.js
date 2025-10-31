@@ -9,7 +9,7 @@ export const createImportFabric = async (req, res, next) => {
     const result = await importFabricService.createImport({
       warehouseId,
       importer,
-    }, items);
+    }, items, req.user);
 
     res.status(201).json({
       message: 'Nhập vải thành công',

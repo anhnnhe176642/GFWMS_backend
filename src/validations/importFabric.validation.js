@@ -41,6 +41,15 @@ export const positiveIntegerSchema = Joi.number().integer().positive().required(
   'any.required': 'Trường này là bắt buộc'
 });
 
+export const sellingPriceSchema = Joi.number()
+  .min(0)
+  .optional()
+  .allow(null) 
+  .messages({
+    'number.base': 'Giá bán phải là số',
+    'number.min': 'Giá bán không được âm'
+  });
+
 export const importFabricItemSchema = Joi.object({
 
     thickness: positiveNumberSchema,
@@ -56,7 +65,8 @@ export const importFabricItemSchema = Joi.object({
   }),
   supplierId: positiveIntegerSchema,
   quantity: quantitySchema,
-  price: priceSchema
+  price: priceSchema,
+  sellingPrice: sellingPriceSchema
 }).options({ 
   stripUnknown: true 
 });

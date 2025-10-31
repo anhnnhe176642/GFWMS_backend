@@ -42,7 +42,8 @@ export const PERMISSIONS = {
 IMPORT_FABRICS: {
   CREATE: { key: 'import_fabrics:create', description: 'Tạo phiếu nhập vải' },
   VIEW_LIST: { key: 'import_fabrics:view_list', description: 'Xem danh sách phiếu nhập kho' },
-  VIEW_DETAIL: { key: 'import_fabrics:view_detail', description: 'Xem chi tiết phiếu nhập kho' }
+  VIEW_DETAIL: { key: 'import_fabrics:view_detail', description: 'Xem chi tiết phiếu nhập kho' },
+  SET_SELLING_PRICE: { key: 'import_fabrics:set_selling_price', description: 'Nhập giá bán khi import vải' }
 },
   
   // Credit Registration
