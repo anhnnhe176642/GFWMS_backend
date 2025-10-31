@@ -15,7 +15,6 @@ import {
  * @param {Object} options - Upload options
  * @param {string} options.folder - Cloudinary folder
  * @param {string} options.preset - Transformation preset
- * @param {string} options.publicIdPrefix - Prefix for public ID
  * @param {string} options.oldPublicId - Old public ID to delete
  * @param {string} options.fieldName - Field name for errors
  * @returns {Promise<Object>} - { url, publicId }
@@ -28,16 +27,12 @@ export const uploadSingleImage = async (file, options = {}) => {
   const {
     folder = 'uploads',
     preset = 'avatar',
-    publicIdPrefix,
     oldPublicId,
     fieldName = 'file'
   } = options;
 
-  const publicId = publicIdPrefix ? `${publicIdPrefix}_${Date.now()}` : undefined;
-
   const result = await uploadImageToCloudinary(file.buffer, {
     folder,
-    publicId,
     oldPublicId,
     preset,
     fieldName
@@ -64,7 +59,6 @@ export const uploadMultipleImages = async (files, options = {}) => {
   const {
     folder = 'uploads',
     preset = 'product',
-    publicIdPrefix,
     oldPublicIds = [],
     fieldName = 'files'
   } = options;
@@ -79,7 +73,6 @@ export const uploadMultipleImages = async (files, options = {}) => {
   const buffers = files.map(file => file.buffer);
   const results = await uploadMultipleImagesToCloudinary(buffers, {
     folder,
-    publicId: publicIdPrefix ? `${publicIdPrefix}_${Date.now()}` : undefined,
     preset,
     fieldName
   });

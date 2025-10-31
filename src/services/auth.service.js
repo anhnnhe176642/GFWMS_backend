@@ -192,7 +192,6 @@ export const updateUserAvatar = async (userId, avatarFile) => {
   const result = await uploadSingleImage(avatarFile, {
     folder: 'avatars',
     preset: 'avatar',
-    publicIdPrefix: `user_${userId}`,
     oldPublicId: currentUser?.avatarPublicId,
     fieldName: 'avatar'
   });
