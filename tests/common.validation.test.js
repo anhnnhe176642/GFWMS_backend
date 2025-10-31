@@ -334,9 +334,9 @@ describe("Common single value schemas", () => {
     expect(value).toBe("ADMIN");
   });
   it("rejects invalid role (too long)", () => {
-    const { error } = roleSchema.validate("A".repeat(51));
+    const { error } = roleSchema.validate("A".repeat(11));
     expect(error).toBeDefined();
-    expect(error.message).toContain("Role name không được vượt quá 50 ký tự");
+    expect(error.message).toContain("Role name không được vượt quá 10 ký tự");
   });
 
   it("validates correct user status", () => {

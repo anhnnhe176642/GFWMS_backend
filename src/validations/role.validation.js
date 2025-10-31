@@ -6,24 +6,26 @@ import {
   sortOrderSchema 
 } from './common.validation.js';
 
+const roleDescriptionSchema = Joi.string().max(15).optional().messages({
+  'string.max': 'Description không được vượt quá 15 ký tự'
+});
+
+const rolePermissionsSchema = Joi.array().items(Joi.number().integer().positive()).optional().messages({
+  'array.base': 'Permissions phải là một mảng',
+  'number.base': 'Permission ID phải là số nguyên',
+  'number.positive': 'Permission ID phải là số dương'
+});
+
 // Schema validation cho tạo role
 export const createRoleSchema = Joi.object({
   name: roleSchema.required(),
-  description: Joi.string().max(255).optional().messages({
-    'string.max': 'Description không được vượt quá 255 ký tự'
-  })
+  description: roleDescriptionSchema
 });
 
 // Schema validation cho update role
 export const updateRoleSchema = Joi.object({
-  description: Joi.string().max(255).optional().messages({
-    'string.max': 'Description không được vượt quá 255 ký tự'
-  }),
-  permissions: Joi.array().items(Joi.number().integer().positive()).optional().messages({
-    'array.base': 'Permissions phải là một mảng',
-    'number.base': 'Permission ID phải là số nguyên',
-    'number.positive': 'Permission ID phải là số dương'
-  })
+  description: roleDescriptionSchema,
+  permissions: rolePermissionsSchema
 });
 
 // Schema validation cho role name parameter
