@@ -12,6 +12,7 @@ export class UserRepository {
     phone: true,
     email: true,
     avatar: true,
+    avatarPublicId: true,
     gender: true,
     address: true,
     dob: true,
