@@ -271,6 +271,12 @@ router.delete('/:name',
  *                 description: Role description
  *                 example: Quản trị viên hệ thống
  *                 maxLength: 255
+ *               permissions:
+ *                 type: array
+ *                 description: Array of permission IDs to assign to role
+ *                 items:
+ *                   type: integer
+ *                 example: [1, 2, 3, 4, 5]
  *     responses:
  *       200:
  *         description: Role updated successfully

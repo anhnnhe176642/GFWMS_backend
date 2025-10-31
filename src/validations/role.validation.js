@@ -18,6 +18,11 @@ export const createRoleSchema = Joi.object({
 export const updateRoleSchema = Joi.object({
   description: Joi.string().max(255).optional().messages({
     'string.max': 'Description không được vượt quá 255 ký tự'
+  }),
+  permissions: Joi.array().items(Joi.number().integer().positive()).optional().messages({
+    'array.base': 'Permissions phải là một mảng',
+    'number.base': 'Permission ID phải là số nguyên',
+    'number.positive': 'Permission ID phải là số dương'
   })
 });
 

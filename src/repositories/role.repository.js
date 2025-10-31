@@ -54,36 +54,72 @@ export class RoleRepository {
     );
   }
 
-  // Kiểm tra xem role có đang được sử dụng bởi user nào không
-  async isRoleInUse(name) {
-    const userCount = await prisma.user.count({
-      where: {
-        role: name,
-        status: {
-          not: 'DELETED'
-        }
-      }
-    });
-    
-    return userCount > 0;
-  }
+  // Update role
+  async update(name, data) {
+    const { permissions, ...roleData } = data;
 
-  // Lấy danh sách user đang sử dụng role 
-  async getUsersUsingRole(name) {
-    return await prisma.user.findMany({
-      where: {
-        role: name,
-        status: {
-          not: 'DELETED'
+    return await withPrismaErrorHandling(
+      async () => {
+        // Nếu có permissions, cập nhật cả role và permissions
+        if (permissions !== undefined) {
+          return await prisma.$transaction(async (tx) => {
+            // Cập nhật thông tin role
+            await tx.role.update({
+              where: { name },
+              data: roleData,
+            });
+
+            // Xóa tất cả permissions cũ
+            await tx.rolePermission.deleteMany({
+              where: { role: name }
+            });
+
+            // Thêm permissions mới (nếu có)
+            if (permissions.length > 0) {
+              await tx.rolePermission.createMany({
+                data: permissions.map(permissionId => ({
+                  role: name,
+                  permissionId
+                }))
+              });
+            }
+
+            // Lấy role với permissions mới
+            return await tx.role.findUnique({
+              where: { name },
+              select: {
+                name: true,
+                description: true,
+                rolePermissions: {
+                  select: {
+                    permission: true
+                  }
+                }
+              }
+            });
+          });
         }
+
+        // Nếu không có permissions, chỉ cập nhật role
+        return await prisma.role.update({
+          where: { name },
+          data: roleData,
+          select: {
+            name: true,
+            description: true,
+            rolePermissions: {
+              select: {
+                permission: true
+              }
+            }
+          }
+        });
       },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        fullname: true
+      {
+        description: 'Description này đã được sử dụng cho role khác',
+        permissionId: 'id quyền không hợp lệ'
       }
-    });
+    );
   }
 
   // Advanced query method với search, filter, sort
