@@ -93,6 +93,13 @@ export const PERMISSIONS = {
     UPDATE:       { key: 'store:update',       description: 'Cập nhật thông tin cửa hàng' },
     DELETE:       { key: 'store:delete',       description: 'Xóa cửa hàng (soft delete)' },
   },
+  SHELVES: {
+    VIEW_LIST:    { key: 'shelf:view_list',    description: 'Xem danh sách kệ trong kho' },
+    VIEW_DETAIL:  { key: 'shelf:view_detail',  description: 'Xem chi tiết kệ' },
+    CREATE:       { key: 'shelf:create',       description: 'Tạo kệ mới' },
+    UPDATE:       { key: 'shelf:update',       description: 'Cập nhật thông tin kệ' },
+    DELETE:       { key: 'shelf:delete',       description: 'Xóa kệ (soft delete)' },
+  },
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)
