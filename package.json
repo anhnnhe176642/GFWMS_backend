@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
-    "init": "pnpm i && pnpm run prisma:all && pnpm run seed",
+    "init": "pnpm i && pnpm run prisma:all && pnpm run seed && pnpm run mock",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "vitest --reporter=verbose",

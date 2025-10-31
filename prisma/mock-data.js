@@ -63,8 +63,8 @@ async function main() {
   
   const usersToCreate = [];
   for (let i = 0; i < CONFIG.USERS; i++) {
-    const username = `user_${faker.string.alphanumeric(8).toLowerCase()}_${Date.now()}_${i}`;
-    const email = `user_${Date.now()}_${i}_${faker.string.alphanumeric(6)}@test.com`.toLowerCase();
+    const username = faker.person.fullName().toLowerCase().replace(/ /g, '');
+    const email = faker.internet.email();
     const phone = `09${String(10000000 + i).padStart(8, '0')}`;
     
     if (!existingUsernames.has(username) && !existingEmails.has(email) && !existingPhones.has(phone)) {
