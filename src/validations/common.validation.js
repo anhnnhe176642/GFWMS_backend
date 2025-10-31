@@ -36,9 +36,6 @@ import Joi from 'joi';
  * });
  */
 export const createMultiValueFilterSchema = (singleValueSchema, fieldName) => {
-  // Kiểm tra xem schema có phải là kiểu number/integer không
-  const isNumberType = singleValueSchema.type === 'number';
-  
   return Joi.string()
     .pattern(/^[^,]+(,\s*[^,]+)*$/) // Check format: không rỗng và có dấu phẩy hợp lệ
     .optional()
@@ -47,32 +44,21 @@ export const createMultiValueFilterSchema = (singleValueSchema, fieldName) => {
       const values = value.split(',').map(v => v.trim());
       const result = [];
       
-      // Validate và convert từng giá trị
+      // Validate và transform từng giá trị
       for (const val of values) {
-        // Nếu là number type, convert sang số trước khi validate
-        let processedValue = val;
-        if (isNumberType) {
-          processedValue = Number(val);
-          // Kiểm tra nếu convert thất bại
-          if (isNaN(processedValue)) {
-            return helpers.error('any.invalid', { 
-              message: `Giá trị "${val}" không phải là số hợp lệ` 
-            });
-          }
-        }
-        
-        // Validate giá trị đã được xử lý
-        const { error } = singleValueSchema.validate(processedValue);
+        // Validate và lấy giá trị đã được transform (uppercase/lowercase/number conversion)
+        const { error, value: transformedValue } = singleValueSchema.validate(val);
         if (error) {
           return helpers.error('any.invalid', { 
             message: error.details[0].message 
           });
         }
         
-        result.push(processedValue);
+        // Sử dụng transformedValue đã được Joi transform tự động
+        result.push(transformedValue);
       }
       
-      // Trả về mảng đã được validate và convert
+      // Trả về mảng đã được validate và transform
       return result;
     })
     .messages({
