@@ -6,7 +6,7 @@ model Fabric {
     length          Float
     width           Float
     weight          Float
-    sellingPrice    Float
+    sellingPrice    Float?
     quantityInStock Int
     categoryId      Int
     category        FabricCategory @relation(fields: [categoryId], references: [id])
