@@ -20,16 +20,14 @@ const getPrimaryKeyFields = (model) => {
 };
 
 /**
- * Kiểm tra constraint có khớp với unique field pattern không
+ * Constraint name pattern: {table}_{column}_key
  * @param {string} constraintName - Constraint name từ error
- * @param {string} modelName - Model name
- * @param {string} tableName - Table name (có thể khác model name nếu có @@map)
- * @param {string} fieldName - Field name
+ * @param {string} tableName - Table name (model.dbName hoặc model.name)
+ * @param {string} columnName - Column name trong DB (field.dbName hoặc field.name)
  * @returns {boolean}
  */
-const matchesUniqueConstraint = (constraintName, modelName, tableName, fieldName) => {
-  return constraintName === `${modelName}_${fieldName}_key` ||
-         constraintName === `${tableName}_${fieldName}_key`;
+const matchesUniqueConstraint = (constraintName, tableName, columnName) => {
+  return constraintName === `${tableName}_${columnName}_key`;
 };
 
 /**
@@ -63,20 +61,20 @@ const extractFieldFromConstraint = (constraintName, modelName) => {
     }
     
     // 3. Kiểm tra composite unique constraints (@@unique)
-    if (model.uniqueIndexes) {
-      const uniqueIndex = model.uniqueIndexes.find(idx => idx.name === constraintName);
-      if (uniqueIndex) {
-        return uniqueIndex.fields.length === 1
-          ? uniqueIndex.fields[0]
-          : uniqueIndex.fields.join('_');
-      }
+    const uniqueIndex = model.uniqueIndexes?.find(idx => idx.name === constraintName);
+    if (uniqueIndex) {
+      return uniqueIndex.fields.length === 1
+        ? uniqueIndex.fields[0]
+        : uniqueIndex.fields.join('_');
     }
     
     // 4. Kiểm tra single field unique constraints (@unique)
     const tableName = model.dbName || model.name;
-    const uniqueField = model.fields.find(field => 
-      field.isUnique && matchesUniqueConstraint(constraintName, model.name, tableName, field.name)
-    );
+    const uniqueField = model.fields.find(field => {
+      if (!field.isUnique) return false;
+      const columnName = field.dbName || field.name;
+      return matchesUniqueConstraint(constraintName, tableName, columnName);
+    });
     
     if (uniqueField) {
       return uniqueField.name;
