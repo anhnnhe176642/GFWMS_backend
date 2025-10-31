@@ -19,7 +19,8 @@ const rolePermissionsSchema = Joi.array().items(Joi.number().integer().positive(
 // Schema validation cho tạo role
 export const createRoleSchema = Joi.object({
   name: roleSchema.required(),
-  description: roleDescriptionSchema
+  description: roleDescriptionSchema,
+  permissions: rolePermissionsSchema
 });
 
 // Schema validation cho update role

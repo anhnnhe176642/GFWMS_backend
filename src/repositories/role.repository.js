@@ -35,10 +35,60 @@ export class RoleRepository {
   }
 
   async create(data) {
+    const { permissions, ...roleData } = data;
+
     return await withPrismaErrorHandling(
-      () => prisma.role.create({ data }),
+      async () => {
+        // Nếu có permissions, tạo role và permissions cùng lúc
+        if (permissions !== undefined && permissions.length > 0) {
+          return await prisma.$transaction(async (tx) => {
+            // Tạo role
+            const newRole = await tx.role.create({
+              data: roleData
+            });
+
+            // Tạo role permissions
+            await tx.rolePermission.createMany({
+              data: permissions.map(permissionId => ({
+                role: newRole.name,
+                permissionId
+              }))
+            });
+
+            // Lấy role với permissions
+            return await tx.role.findUnique({
+              where: { name: newRole.name },
+              select: {
+                name: true,
+                description: true,
+                rolePermissions: {
+                  select: {
+                    permission: true
+                  }
+                }
+              }
+            });
+          });
+        }
+
+        // Nếu không có permissions, chỉ tạo role
+        return await prisma.role.create({
+          data: roleData,
+          select: {
+            name: true,
+            description: true,
+            rolePermissions: {
+              select: {
+                permission: true
+              }
+            }
+          }
+        });
+      },
       {
-        name: 'Tên role đã tồn tại'
+        name: 'Tên role đã tồn tại',
+        description: 'Description này đã được sử dụng cho role khác',
+        permissionId: 'Permission ID không hợp lệ'
       }
     );
   }
