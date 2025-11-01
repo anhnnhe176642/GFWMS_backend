@@ -122,10 +122,10 @@ export const fullnameSchema = Joi.string()
 
 // Gender validation
 export const genderSchema = Joi.string()
-  .valid('MALE', 'FEMALE', 'OTHER')
+  .valid('MALE', 'FEMALE')
   .allow(null)
   .messages({
-    'any.only': 'Giới tính phải là MALE, FEMALE hoặc OTHER'
+    'any.only': 'Giới tính phải là MALE hoặc FEMALE'
   });
 
 // Address validation
