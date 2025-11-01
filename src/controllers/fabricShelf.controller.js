@@ -8,10 +8,7 @@ export const allocateFabricToShelves = async (req, res, next) => {
     const result = await fabricShelfService.assignFabricToShelves({
       fabricId,
       importFabricId,
-      shelves: shelves.map(s => ({
-        shelfId: Number(s.shelfId),
-        quantity: Number(s.quantity)
-      }))
+      shelves
     });
 
     res.status(200).json({
