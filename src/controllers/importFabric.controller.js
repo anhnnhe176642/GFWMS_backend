@@ -53,3 +53,14 @@ export const getImportFabricById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getFabricSellingPrice = async (req, res, next) => {
+  try {
+    const result = await importFabricService.getFabricSellingPrice(req.query);
+    res.json({
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

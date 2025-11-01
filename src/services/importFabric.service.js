@@ -2,6 +2,7 @@ import { importFabricRepository } from '../repositories/importFabric.repository.
 import { userRepository } from '../repositories/user.repository.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
 import { PrismaClient } from '@prisma/client';
+import { PERMISSIONS } from '../constants/permissions.js';
 
 const prisma = new PrismaClient();
 
@@ -44,12 +45,12 @@ class ImportFabricService {
     });
 
     
-     const finalSellingPrice = hasSellingPricePermission && sellingPrice !== undefined 
+     const finalSellingPrice = hasSellingPricePermission && (sellingPrice !== undefined) 
       ? sellingPrice 
       : null;
       
       if (existingFabric) {
-      if (hasSellingPricePermission && sellingPrice !== undefined) {
+      if (finalSellingPrice !== null) {
           await prisma.fabric.update({
             where: { id: existingFabric.id },
             data: { sellingPrice: finalSellingPrice }
@@ -91,7 +92,7 @@ class ImportFabricService {
 
     const hasSellingPricePermission = await userRepository.hasPermission(
       user.id, 
-      'import_fabrics:set_selling_price'
+      PERMISSIONS.IMPORT_FABRICS.SET_SELLING_PRICE.key
     );
 
     const processedItems = [];
@@ -115,6 +116,48 @@ class ImportFabricService {
 
   async getAllImportFabricsAdvanced(queryOptions) {
     return await importFabricRepository.findAllImportFabric(queryOptions);
+  }
+
+
+  // lay gia ban cua vai dua tren thuoc tinh
+  async getFabricSellingPrice(fabricAttributes) {
+    const {
+      thickness,
+      glossId,
+      length,
+      width,
+      weight,
+      categoryId,
+      colorId,
+      supplierId
+    } = fabricAttributes;
+
+    const existingFabric = await prisma.fabric.findFirst({
+      where: {
+        thickness,
+        glossId,
+        length,
+        width,
+        weight,
+        categoryId,
+        colorId,
+        supplierId
+      },
+      select: {
+        id: true,
+        sellingPrice: true
+      }
+    });
+
+    if (!existingFabric) {
+      return {
+        sellingPrice: null
+      };
+    }
+
+    return {
+      sellingPrice: existingFabric.sellingPrice
+    };
   }
 
 }

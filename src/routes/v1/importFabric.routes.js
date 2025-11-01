@@ -1,8 +1,8 @@
 import express from 'express';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
-import { createImportFabric, getAllImportFabrics, getImportFabricById  } from '../../controllers/importFabric.controller.js';
+import { createImportFabric, getAllImportFabrics, getImportFabricById, getFabricSellingPrice  } from '../../controllers/importFabric.controller.js';
 import { validate } from '../../middlewares/validation.middleware.js';
-import { createImportFabricSchema,importFabricQuerySchema, importFabricIdSchema } from '../../validations/importFabric.validation.js';
+import { createImportFabricSchema,importFabricQuerySchema, importFabricIdSchema, getFabricSellingPriceSchema } from '../../validations/importFabric.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -306,6 +306,82 @@ router.get('/',
 
 /**
  * @swagger
+ * /import-fabrics/fabric-selling-price:
+ *   get:
+ *     summary: Lấy giá bán của vải theo thuộc tính
+ *     tags: [Import Fabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: thickness
+ *         schema:
+ *         example: 1.5
+ *       - in: query
+ *         name: glossId
+ *         schema:
+ *         example: 1
+ *       - in: query
+ *         name: length
+ *         
+ *         schema:
+ *         example: 100
+ *       - in: query
+ *         name: width
+ *         
+ *         schema:
+ *         example: 150
+ *       - in: query
+ *         name: weight
+ *        
+ *         schema:
+ *         example: 200
+ *       - in: query
+ *         name: categoryId
+ *         
+ *         schema:
+ *         example: 1
+ *       - in: query
+ *         name: colorId
+ *       
+ *         schema:
+ *         example: "RED001"
+ *       - in: query
+ *         name: supplierId
+ *        
+ *         schema:
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sellingPrice:
+ *                       type: number
+ *                       nullable: true
+ *                       example: 150000
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ */
+router.get('/fabric-selling-price',
+  authenticateToken,
+  requirePermission(PERMISSIONS.IMPORT_FABRICS.SET_SELLING_PRICE),
+  validate(getFabricSellingPriceSchema, 'query'),
+  getFabricSellingPrice
+);
+
+/**
+ * @swagger
  * /import-fabrics/{id}:
  *   get:
  *     summary: Lấy chi tiết phiếu nhập kho
@@ -331,6 +407,8 @@ router.get('/:id',
   validate(importFabricIdSchema, 'params'),
   getImportFabricById
 );
+
+
 
 
 export default router;
