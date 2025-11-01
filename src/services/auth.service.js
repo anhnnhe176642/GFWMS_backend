@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import process from 'process';
 import { AuthenticationError, NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
+import { UserStatus } from '@prisma/client';
 import { userRepository } from '../repositories/user.repository.js';
 import { emailVerificationRepository } from '../repositories/emailVerification.repository.js';
 import { hashPin, generateNumericPin } from '../utils/hash.js';
@@ -141,11 +142,11 @@ export const loginUser = async (usernameOrEmail, password) => {
   }
 
   // Check user status
-  if (user.status === 'INACTIVE') {
+  if (user.status === UserStatus.INACTIVE) {
     throw new AuthenticationError('Tài khoản chưa được kích hoạt');
   }
 
-  if (user.status === 'SUSPENDED') {
+  if (user.status === UserStatus.SUSPENDED) {
     throw new AuthenticationError('Tài khoản đã bị khóa');
   }
 

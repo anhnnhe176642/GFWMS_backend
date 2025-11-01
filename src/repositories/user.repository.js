@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserStatus } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
 import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
 
@@ -26,37 +26,29 @@ export class UserRepository {
     creditRegistration: true
   };
 
+  #notDeletedWhere = {
+    status: {
+      not: UserStatus.DELETED
+    }
+  };
+
   async findAll() {
     return await prisma.user.findMany({
-      where: {
-        status: {
-          not: 'DELETED'
-        }
-      },
+      where: this.#notDeletedWhere,
       select: this.#userSelectOptions
     });
   }
 
   async findById(id) {
     return await prisma.user.findFirst({
-      where: { 
-        id,
-        status: {
-          not: 'DELETED'
-        }
-      },
+      where: { id, ...this.#notDeletedWhere },
       select: this.#userSelectOptions
     });
   }
 
   async findByIdWithPermissions(id) {
     const user = await prisma.user.findFirst({
-      where: { 
-        id,
-        status: {
-          not: 'DELETED'
-        }
-      },
+      where: { id, ...this.#notDeletedWhere },
       select: {
         ...this.#userSelectOptions,
         roleRel: {
@@ -90,9 +82,7 @@ export class UserRepository {
     return await prisma.user.findFirst({
       where: { 
         username,
-        status: {
-          not: 'DELETED'
-        }
+        ...this.#notDeletedWhere
       },
       select: this.#userSelectOptions
     });
@@ -102,9 +92,7 @@ export class UserRepository {
     return await prisma.user.findFirst({
       where: { 
         email,
-        status: {
-          not: 'DELETED'
-        }
+        ...this.#notDeletedWhere
       },
       select: this.#userSelectOptions
     });
@@ -124,12 +112,7 @@ export class UserRepository {
   // Method để lấy user với password cho change password
   async findByIdWithPassword(id) {
     return await prisma.user.findFirst({
-      where: { 
-        id,
-        status: {
-          not: 'DELETED'
-        }
-      }
+      where: { id, ...this.#notDeletedWhere }
     });
   }
 
@@ -143,11 +126,7 @@ export class UserRepository {
               { email: usernameOrEmail }
             ]
           },
-          {
-            status: {
-              not: 'DELETED'
-            }
-          }
+          this.#notDeletedWhere
         ]
       },
       select: this.#userSelectOptions
@@ -183,7 +162,7 @@ export class UserRepository {
 
   // Soft delete
   async softDelete(id) {
-    return await this.updateById(id, { status: 'DELETED' });
+  return await this.updateById(id, { status: UserStatus.DELETED });
   }
 
   /**
@@ -204,7 +183,7 @@ export class UserRepository {
           email: anonEmail,
           username: anonUsername,
           phone: anonPhone,
-          status: 'DELETED',
+          status: UserStatus.DELETED,
           updatedAt: new Date()
         },
         select: this.#userSelectOptions
@@ -234,7 +213,7 @@ export class UserRepository {
         data: {
           emailVerified: true,
           emailVerifiedAt: new Date(),
-          status: 'ACTIVE',
+          status: UserStatus.ACTIVE,
           updatedAt: new Date()
         },
         select: this.#userSelectOptions
@@ -244,11 +223,7 @@ export class UserRepository {
 
   async count() {
     return await prisma.user.count({
-      where: {
-        status: {
-          not: 'DELETED'
-        }
-      }
+      where: this.#notDeletedWhere
     });
   }
 
@@ -265,9 +240,7 @@ export class UserRepository {
 
     // Build where clause với search và filters
     const searchableFields = ['username', 'email', 'fullname', 'phone'];
-    const baseWhere = {
-      status: { not: 'DELETED' }
-    };
+    const baseWhere = this.#notDeletedWhere;
     
     const filterWhere = buildWhereClause(
       { search, ...filters },
@@ -302,12 +275,7 @@ export class UserRepository {
   // Lấy danh sách tất cả permissions của user theo role
   async getUserPermissions(userId) {
     const result = await prisma.user.findUnique({
-      where: {
-        id: userId,
-        status: {
-          not: 'DELETED'
-        }
-      },
+      where: { id: userId, ...this.#notDeletedWhere },
       select: {
         role: true,
         roleRel: {
@@ -345,9 +313,7 @@ export class UserRepository {
     const result = await prisma.user.findFirst({
       where: {
         id: userId,
-        status: {
-          not: 'DELETED'
-        }
+        ...this.#notDeletedWhere
       },
       select: {
         role: true,
@@ -376,9 +342,7 @@ export class UserRepository {
     const result = await prisma.user.findFirst({
       where: {
         id: userId,
-        status: {
-          not: 'DELETED'
-        }
+        ...this.#notDeletedWhere
       },
       select: {
         roleRel: {
@@ -408,9 +372,7 @@ export class UserRepository {
     const result = await prisma.user.findFirst({
       where: {
         id: userId,
-        status: {
-          not: 'DELETED'
-        }
+        ...this.#notDeletedWhere
       },
       select: {
         roleRel: {
