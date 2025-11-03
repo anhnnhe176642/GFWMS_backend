@@ -17,7 +17,6 @@ import {
  */
 
 const invoiceStatusSchema = Joi.string()
-  .uppercase()
   .valid('UNPAID','PAID','OVERDUE','CREDIT','REFUNDED','CANCELED')
   .trim()
   .messages({
