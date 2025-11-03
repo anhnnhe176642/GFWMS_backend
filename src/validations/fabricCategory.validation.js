@@ -4,7 +4,7 @@ import { querySchema, createSortBySchema, sortOrderSchema } from './common.valid
 // Schema cơ bản cho name của FabricCategory
 export const nameSchema = Joi.string()
   .trim()
-  .min(1) 
+  .min(1)
   .max(100)
   .required()
   .messages({
@@ -14,31 +14,53 @@ export const nameSchema = Joi.string()
     'any.required': 'Tên loại vải là bắt buộc'
   });
 
-
-// Schema cơ bản cho description của FabricCategory (không bắt buộc)
+// Schema cho description (không bắt buộc)
 export const descriptionSchema = Joi.string()
   .trim()
-  .min(1)
   .max(255)
-  .required()
+  .allow('', null)
   .messages({
-    'string.empty': 'Mô tả loại vải không được để trống',
-    'string.min': 'Mô tả loại vải không được để trống',
-    'string.max': 'Mô tả loại vải không được vượt quá 255 ký tự',
-    'any.required': 'Mô tả loại vải là bắt buộc'
+    'string.max': 'Mô tả loại vải không được vượt quá 255 ký tự'
   });
 
+// Schema cho giá bán theo mét
+export const sellingPricePerMeterSchema = Joi.number()
+  .positive()
+  .precision(2)
+  .required()
+  .messages({
+    'number.base': 'Giá bán theo mét phải là số',
+    'number.positive': 'Giá bán theo mét phải lớn hơn 0',
+    'any.required': 'Giá bán theo mét là bắt buộc'
+  });
+
+// Schema cho giá bán theo cuộn
+export const sellingPricePerRollSchema = Joi.number()
+  .positive()
+  .precision(2)
+  .required()
+  .messages({
+    'number.base': 'Giá bán theo cuộn phải là số',
+    'number.positive': 'Giá bán theo cuộn phải lớn hơn 0',
+    'any.required': 'Giá bán theo cuộn là bắt buộc'
+  });
 
 // Schema validation cho tạo FabricCategory
 export const createFabricCategorySchema = Joi.object({
   name: nameSchema,
-  description: descriptionSchema.optional()
+  description: descriptionSchema.optional(),
+  sellingPricePerMeter: sellingPricePerMeterSchema,
+  sellingPricePerRoll: sellingPricePerRollSchema
 });
 
 // Schema validation cho cập nhật FabricCategory
 export const updateFabricCategorySchema = Joi.object({
-  name: nameSchema,
-  description: descriptionSchema
+  name: nameSchema.optional(),
+  description: descriptionSchema.optional(),
+  sellingPricePerMeter: sellingPricePerMeterSchema.optional(),
+  sellingPricePerRoll: sellingPricePerRollSchema.optional()
+}).min(1).messages({
+  'object.min': 'Phải có ít nhất một trường cần cập nhật'
 });
 
 // Schema validation cho param id (Int)
@@ -52,7 +74,13 @@ export const fabricCategoryIdParamSchema = Joi.object({
 });
 
 // Allowed fields for sorting FabricCategory
-const allowedFabricCategorySortFields = ['name', 'createdAt', 'updatedAt'];
+const allowedFabricCategorySortFields = [
+  'name',
+  'createdAt',
+  'updatedAt',
+  'sellingPricePerMeter',
+  'sellingPricePerRoll'
+];
 
 // Advanced query schema cho FabricCategory với search, sort, pagination
 export const fabricCategoryQuerySchema = querySchema.keys({

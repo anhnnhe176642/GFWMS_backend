@@ -1,6 +1,5 @@
 // src/repositories/exportFabric.repository.js
 import { PrismaClient } from '@prisma/client';
-import { normalizeEnumFilters } from '../utils/normalize-enum-filters.js';
 import { buildWhereClause, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
@@ -98,10 +97,8 @@ export class ExportFabricRepository {
       filters = {}
     } = queryOptions;
 
-    const normalizedFilters = normalizeEnumFilters(filters, ['status']);
-
-    const searchableFields = ['warehouse.name', 'store.name', 'createdBy.username', 'receivedBy.username'];
-    const where = buildWhereClause({ search, ...normalizedFilters }, searchableFields);
+    const searchableFields = ['note', 'warehouse.name', 'store.name', 'createdBy.username', 'receivedBy.username'];
+    const where = buildWhereClause({ search, ...filters }, searchableFields);
 
     const skip = (page - 1) * limit;
     const orderBy = buildSort(sortBy, order);
