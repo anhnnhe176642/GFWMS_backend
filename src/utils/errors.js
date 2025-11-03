@@ -11,14 +11,13 @@ export class AppError extends Error {
 
 export class ValidationError extends AppError {
   constructor(message, field = null) {
-    super(message, 400);
+    super("Dữ liệu không hợp lệ", 400);
     
     if (field) {
       this.errors = [{
         field: field,
         message: message
       }];
-      this.message = 'Dữ liệu không hợp lệ';
     }
   }
 }
@@ -43,7 +42,7 @@ export class NotFoundError extends AppError {
 
 export class ConflictError extends AppError {
   constructor(message, field = null) {
-    super(message, 409);
+    super("Xung đột dữ liệu", 409);
     
     if (field) {
       this.errors = [{

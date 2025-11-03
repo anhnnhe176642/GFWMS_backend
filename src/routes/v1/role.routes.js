@@ -100,12 +100,18 @@ router.get('/',
  *               name:
  *                 type: string
  *                 description: Role name
- *                 example: ADMIN
+ *                 example: MANAGER
  *               description:
  *                 type: string
  *                 description: Role description
- *                 example: Quản trị viên
+ *                 example: Quản lý
  *                 maxLength: 255
+ *               permissions:
+ *                 type: array
+ *                 description: Array of permission IDs to assign to role
+ *                 items:
+ *                   type: integer
+ *                 example: [1, 2, 3, 4, 5]
  *     responses:
  *       201:
  *         description: Role created successfully
@@ -271,6 +277,12 @@ router.delete('/:name',
  *                 description: Role description
  *                 example: Quản trị viên hệ thống
  *                 maxLength: 255
+ *               permissions:
+ *                 type: array
+ *                 description: Array of permission IDs to assign to role
+ *                 items:
+ *                   type: integer
+ *                 example: [1, 2, 3, 4, 5]
  *     responses:
  *       200:
  *         description: Role updated successfully
