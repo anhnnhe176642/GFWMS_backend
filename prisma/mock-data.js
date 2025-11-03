@@ -111,6 +111,8 @@ async function main() {
     if (!existingCategoryNames.has(name)) {
       categoriesToCreate.push({
         name,
+        sellingPricePerMeter: faker.number.float({ min: 50000, max: 300000, multipleOf: 1000 }),
+        sellingPricePerRoll: faker.number.float({ min: 500000, max: 3000000, multipleOf: 10000 }),
         description: faker.commerce.productDescription(),
       });
       existingCategoryNames.add(name);
