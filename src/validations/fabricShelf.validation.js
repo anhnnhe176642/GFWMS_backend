@@ -50,7 +50,7 @@ export const shelfAllocationItemSchema = Joi.object({
   stripUnknown: true
 });
 
-// ✅ Schema cho request body khi phân bổ vải
+//  Schema cho request body khi phân bổ vải
 export const allocateFabricSchema = Joi.object({
       importFabricId: Joi.number().integer().required().messages({
     'number.base': 'importFabricId phải là số',

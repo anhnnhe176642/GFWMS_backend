@@ -43,17 +43,9 @@ export const getFabricCategoryById = async (req, res, next) => {
   }
 };
 
-/** 🔹 Tạo mới FabricCategory */
 export const createFabricCategory = async (req, res, next) => {
   try {
-    const { name, description, sellingPricePerMeter, sellingPricePerRoll } = req.body;
-
-    const fabricCategory = await fabricCategoryService.createFabricCategory({
-      name,
-      description,
-      sellingPricePerMeter,
-      sellingPricePerRoll
-    });
+    const fabricCategory = await fabricCategoryService.createFabricCategory(req.body);
 
     res.status(201).json({
       message: 'Tạo fabric category thành công',
@@ -68,14 +60,7 @@ export const createFabricCategory = async (req, res, next) => {
 export const updateFabricCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, sellingPricePerMeter, sellingPricePerRoll } = req.body;
-
-    const updatedFabricCategory = await fabricCategoryService.updateFabricCategory(id, {
-      name,
-      description,
-      sellingPricePerMeter,
-      sellingPricePerRoll
-    });
+    const updatedFabricCategory = await fabricCategoryService.updateFabricCategory(id, req.body);
 
     res.json({
       message: 'Cập nhật fabric category thành công',

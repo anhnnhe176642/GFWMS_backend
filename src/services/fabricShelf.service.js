@@ -10,16 +10,12 @@ class FabricShelfService {
    * Phân bổ vải vào các kệ trong 1 đơn nhập cụ thể
    */
   async assignFabricToShelves({ fabricId, importFabricId, shelves }) {
-    if (!fabricId) throw new ValidationError('ID vải là bắt buộc');
-    if (!importFabricId) throw new ValidationError('ID đơn nhập là bắt buộc');
-    if (!shelves || shelves.length === 0)
-      throw new ValidationError('Danh sách kệ không được để trống');
 
-    // 🔹 Kiểm tra tồn tại vải
+    //  Kiểm tra tồn tại vải
     const fabric = await prisma.fabric.findUnique({ where: { id: fabricId } });
     if (!fabric) throw new NotFoundError(`Không tìm thấy vải có ID: ${fabricId}`);
 
-  // 🔹 Tìm bản ghi bất kỳ (không cần status)
+  //  Tìm bản ghi bất kỳ (không cần status)
   const importItemAny = await prisma.importFabricItem.findFirst({
     where: { importFabricId, fabricId }
   });
@@ -30,20 +26,20 @@ class FabricShelfService {
     );
   }
 
-  // 🔹 Nếu bản ghi tồn tại nhưng không phải PENDING
+  //  Nếu bản ghi tồn tại nhưng không phải PENDING
   if (importItemAny.status !== ImportFabricItemStatus.PENDING) {
     throw new ValidationError(
       `Vải có ID ${fabricId} trong đơn nhập ${importFabricId} đã được phân bổ lên kệ rồi`
     );
   }
 
-  // 🔹 Lúc này chắc chắn là PENDING
+  //  Lúc này chắc chắn là PENDING
   const importItem = importItemAny;
 
 
     const totalImportedQty = importItem.quantity;
 
-    // 🔹 Tổng số lượng người dùng muốn phân bổ
+    //  Tổng số lượng người dùng muốn phân bổ
     const totalAssignedQty = shelves.reduce((sum, s) => sum + s.quantity, 0);
 
     if (totalAssignedQty !== totalImportedQty) {
@@ -52,7 +48,7 @@ class FabricShelfService {
       );
     }
 
-    // 🔹 Lấy danh sách kệ
+    //  Lấy danh sách kệ
     const shelfIds = shelves.map(s => s.shelfId);
     const foundShelves = await prisma.shelf.findMany({
       where: { id: { in: shelfIds } },
@@ -64,13 +60,13 @@ class FabricShelfService {
       throw new NotFoundError(`Không tìm thấy các kệ: ${missing.join(', ')}`);
     }
 
-    // 🔹 Kiểm tra cùng kho
+    //  Kiểm tra cùng kho
     const warehouseId = foundShelves[0].warehouseId;
     if (foundShelves.some(s => s.warehouseId !== warehouseId)) {
       throw new ValidationError('Tất cả kệ phải thuộc cùng một kho');
     }
 
-    // 🔹 Kiểm tra sức chứa kệ
+    //  Kiểm tra sức chứa kệ
     for (const s of shelves) {
       const shelf = foundShelves.find(f => f.id === s.shelfId);
       const remaining = shelf.maxQuantity - shelf.currentQuantity;
@@ -81,7 +77,7 @@ class FabricShelfService {
       }
     }
 
-    // 🔹 Transaction
+    //  Transaction
     return await prisma.$transaction(async tx => {
       for (const s of shelves) {
         await fabricShelfRepository.assignToShelf(tx, {

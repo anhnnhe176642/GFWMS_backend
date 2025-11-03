@@ -2,13 +2,9 @@ import { fabricShelfService } from '../services/fabricShelf.service.js';
 
 export const allocateFabricToShelves = async (req, res, next) => {
   try {
-    const fabricId = Number(req.params.fabricId);
-    const { importFabricId, shelves } = req.body;
-
     const result = await fabricShelfService.assignFabricToShelves({
-      fabricId,
-      importFabricId,
-      shelves
+      ...req.params,
+      ...req.body
     });
 
     res.status(200).json({
@@ -19,3 +15,4 @@ export const allocateFabricToShelves = async (req, res, next) => {
     next(error);
   }
 };
+
