@@ -155,7 +155,8 @@ export class UserRepository {
       }),
       {
         email: 'Email đã được sử dụng',
-        username: 'Tên đăng nhập đã tồn tại'
+        username: 'Tên đăng nhập đã tồn tại',
+        phone: 'Số điện thoại đã được sử dụng',
       }
     );
   }
@@ -165,36 +166,6 @@ export class UserRepository {
   return await this.updateById(id, { status: UserStatus.DELETED });
   }
 
-  /**
-   * Anonymize unique fields (email, username, phone) and soft-delete the user.
-   * This frees up unique values so they can be reused by a new registration while
-   * preserving the existing DB row (avoids FK cascade issues).
-   */
-  async anonymizeAndSoftDelete(id) {
-    const anonSuffix = `${Date.now()}`;
-    const anonEmail = `deleted_${id}_${anonSuffix}@deleted.local`;
-    const anonUsername = `deleted_${id}_${anonSuffix}`;
-    const anonPhone = `deleted_phone_${id}_${anonSuffix}`;
-
-    return await withPrismaErrorHandling(
-      () => prisma.user.update({
-        where: { id },
-        data: {
-          email: anonEmail,
-          username: anonUsername,
-          phone: anonPhone,
-          status: UserStatus.DELETED,
-          updatedAt: new Date()
-        },
-        select: this.#userSelectOptions
-      }),
-      {
-        email: 'Không thể anonymize email',
-        username: 'Không thể anonymize username',
-        phone: 'Không thể anonymize phone'
-      }
-    );
-  }
 
   // Hard delete user row (may fail if FK constraints exist)
   async deleteById(id) {
