@@ -1,7 +1,7 @@
 import * as fabricCategoryService from '../services/fabricCategory.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-/** 🔹 Lấy danh sách FabricCategory (hỗ trợ filter, sort, pagination) */
+/**  Lấy danh sách FabricCategory (hỗ trợ filter, sort, pagination) */
 export const getAllFabricCategories = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
@@ -24,7 +24,7 @@ export const getAllFabricCategories = async (req, res, next) => {
   }
 };
 
-/** 🔹 Lấy FabricCategory theo ID */
+/** Lấy FabricCategory theo ID */
 export const getFabricCategoryById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -56,7 +56,7 @@ export const createFabricCategory = async (req, res, next) => {
   }
 };
 
-/** 🔹 Cập nhật FabricCategory */
+/**  Cập nhật FabricCategory */
 export const updateFabricCategory = async (req, res, next) => {
   try {
     const { id } = req.params;

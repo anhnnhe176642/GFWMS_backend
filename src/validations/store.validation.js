@@ -10,7 +10,7 @@ import {
 } from './common.validation.js';
 
 /**
- * 🔹 Store Name Schema
+ *  Store Name Schema
  */
 export const storeNameSchema = Joi.string()
   .min(2)
@@ -26,7 +26,7 @@ export const storeNameSchema = Joi.string()
   });
 
 /**
- * 🔹 Store Address Schema
+ *  Store Address Schema
  */
 export const storeAddressSchema = addressSchema
   .min(5)
@@ -40,7 +40,7 @@ export const storeAddressSchema = addressSchema
   });
 
 /**
- * 🔹 Create Store Schema
+ *  Create Store Schema
  */
 export const createStoreSchema = Joi.object({
   name: storeNameSchema,
@@ -48,7 +48,7 @@ export const createStoreSchema = Joi.object({
 });
 
 /**
- * 🔹 Store Status Schema
+ *  Store Status Schema
  */
 export const storeStatusSchema = Joi.boolean()
   .messages({
@@ -56,7 +56,7 @@ export const storeStatusSchema = Joi.boolean()
   });
 
 /**
- * 🔹 Update Store Schema
+ *  Update Store Schema
  */
 export const updateStoreSchema = Joi.object({
   name: storeNameSchema
@@ -75,7 +75,7 @@ export const updateStoreSchema = Joi.object({
 });
 
 /**
- * 🔹 Store Query Schema
+ *  Store Query Schema
  */
 const allowedStoreSortFields = ['id', 'name', 'address', 'isActive', 'createdAt', 'updatedAt'];
 
@@ -97,7 +97,7 @@ isActive: createMultiValueFilterSchema(
 });
 
 /**
- * 🔹 Store ID Schema
+ *  Store ID Schema
  */
 export const storeIdSchema = Joi.object({
   id: Joi.string()

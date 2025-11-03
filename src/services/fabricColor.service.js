@@ -1,22 +1,22 @@
 import { NotFoundError } from '../utils/errors.js';
 import { fabricColorRepository } from '../repositories/fabricColor.repository.js';
 
-/** 🔹 Lấy tất cả FabricColor với phân trang cơ bản */
+/**  Lấy tất cả FabricColor với phân trang cơ bản */
 export const getAllFabricColors = async (page, limit) => {
   return await fabricColorRepository.findWithPagination(page, limit);
 };
 
-/** 🔹 Lấy tất cả FabricColor với filter/search/sort/pagination nâng cao */
+/**  Lấy tất cả FabricColor với filter/search/sort/pagination nâng cao */
 export const getAllFabricColorsAdvanced = async (queryOptions) => {
   return await fabricColorRepository.findWithAdvancedQuery(queryOptions);
 };
 
-/** 🔹 Tạo mới FabricColor */
+/**  Tạo mới FabricColor */
 export const createFabricColor = async (data) => {
   return await fabricColorRepository.create(data);
 };
 
-/** 🔹 Lấy FabricColor theo ID */
+/**  Lấy FabricColor theo ID */
 export const getFabricColorById = async (id) => {
   const color = await fabricColorRepository.findById(id);
 
@@ -27,7 +27,7 @@ export const getFabricColorById = async (id) => {
   return color;
 };
 
-/** 🔹 Cập nhật FabricColor */
+/**  Cập nhật FabricColor */
 export const updateFabricColor = async (id, data) => {
   const existing = await fabricColorRepository.findById(id);
   if (!existing) {
