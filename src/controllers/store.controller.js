@@ -1,7 +1,7 @@
 import { storeService } from '../services/store.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-// 🔹 Lấy danh sách store (có filter, search, date range)
+//  Lấy danh sách store (có filter, search, date range)
 export const getAllStores = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
@@ -24,7 +24,7 @@ export const getAllStores = async (req, res, next) => {
   }
 };
 
-// 🔹 Tạo mới store
+//  Tạo mới store
 export const createStore = async (req, res, next) => {
   try {
     const store = await storeService.createStore(req.body);
@@ -37,7 +37,7 @@ export const createStore = async (req, res, next) => {
   }
 };
 
-// 🔹 Lấy chi tiết store theo ID
+//  Lấy chi tiết store theo ID
 export const getStoreById = async (req, res, next) => {
   try {
     const store = await storeService.getStoreById(req.params.id);
@@ -50,7 +50,7 @@ export const getStoreById = async (req, res, next) => {
   }
 };
 
-// 🔹 Cập nhật store
+//  Cập nhật store
 export const updateStore = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -66,7 +66,7 @@ export const updateStore = async (req, res, next) => {
   }
 };
 
-// 🔹 Xóa (hoặc ngưng hoạt động) store
+//  Xóa (hoặc ngưng hoạt động) store
 export const deleteStore = async (req, res, next) => {
   try {
     const { id } = req.params;

@@ -5,7 +5,7 @@ import { buildPagination, buildSort, formatPaginatedResponse } from '../utils/qu
 const prisma = new PrismaClient();
 
 class FabricCategoryRepository {
-  // 🔹 Các field cần select
+  //  Các field cần select
   #selectOptions = {
     id: true,
     name: true,
@@ -16,14 +16,14 @@ class FabricCategoryRepository {
     updatedAt: true,
   };
 
-  /** 🔹 Lấy tất cả */
+  /**  Lấy tất cả */
   async findAll() {
     return await prisma.fabricCategory.findMany({
       select: this.#selectOptions
     });
   }
 
-  /** 🔹 Lấy theo ID */
+  /**  Lấy theo ID */
   async findById(id) {
     return await prisma.fabricCategory.findUnique({
       where: { id: Number(id) },
@@ -31,7 +31,7 @@ class FabricCategoryRepository {
     });
   }
 
-  /** 🔹 Tạo mới */
+  /**  Tạo mới */
   async create(categoryData) {
     return await withPrismaErrorHandling(
       () =>
@@ -45,7 +45,7 @@ class FabricCategoryRepository {
     );
   }
 
-  /** 🔹 Cập nhật theo ID */
+  /**  Cập nhật theo ID */
   async updateById(id, categoryData) {
     return await withPrismaErrorHandling(
       () =>
@@ -60,12 +60,12 @@ class FabricCategoryRepository {
     );
   }
 
-  /** 🔹 Đếm tổng */
+  /**  Đếm tổng */
   async count(where = {}) {
     return await prisma.fabricCategory.count({ where });
   }
 
-  /** 🔹 Phân trang cơ bản */
+  /**  Phân trang cơ bản */
   async findWithPagination(page = 1, limit = 10) {
     const { skip, take } = buildPagination(page, limit);
 
@@ -82,7 +82,7 @@ class FabricCategoryRepository {
     return formatPaginatedResponse(items, total, page, take);
   }
 
-  /** 🔹 Filter + Search + Sort + Pagination nâng cao */
+  /**  Filter + Search + Sort + Pagination nâng cao */
   async findWithAdvancedQuery(queryOptions = {}) {
     const {
       page = 1,

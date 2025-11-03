@@ -1,7 +1,7 @@
 import * as fabricGlossService from '../services/fabricgloss.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-/** 🔹 Lấy danh sách FabricGloss (hỗ trợ filter, sort, pagination) */
+/**  Lấy danh sách FabricGloss (hỗ trợ filter, sort, pagination) */
 export const getAllFabricGlosses = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
@@ -24,7 +24,7 @@ export const getAllFabricGlosses = async (req, res, next) => {
   }
 };
 
-/** 🔹 Lấy FabricGloss theo ID */
+/**  Lấy FabricGloss theo ID */
 export const getFabricGlossById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -43,7 +43,7 @@ export const getFabricGlossById = async (req, res, next) => {
   }
 };
 
-/** 🔹 Tạo mới FabricGloss */
+/** Tạo mới FabricGloss */
 export const createFabricGloss = async (req, res, next) => {
   try {
     const glossData = req.body;
@@ -58,7 +58,7 @@ export const createFabricGloss = async (req, res, next) => {
   }
 };
 
-/** 🔹 Cập nhật FabricGloss */
+/**  Cập nhật FabricGloss */
 export const updateFabricGloss = async (req, res, next) => {
   try {
     const { id } = req.params;

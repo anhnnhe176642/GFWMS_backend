@@ -25,7 +25,7 @@ export class FabricRepository {
     updatedAt: true,
   };
 
-  /** 🔹 Lấy tất cả Fabric */
+  /**  Lấy tất cả Fabric */
   async findAll() {
     return await prisma.fabric.findMany({
       select: this.#fabricSelectOptions,
@@ -33,7 +33,7 @@ export class FabricRepository {
     });
   }
 
-  /** 🔹 Lấy Fabric theo ID */
+  /**  Lấy Fabric theo ID */
   async findById(id) {
     return await prisma.fabric.findUnique({
       where: { id },
@@ -43,14 +43,14 @@ export class FabricRepository {
 
 
 
-  /** 🔹 Đếm tổng số Fabric */
+  /**  Đếm tổng số Fabric */
   async count(filters = {}) {
     return await prisma.fabric.count({
       where: filters
     });
   }
 
-  /** 🔹 Lấy danh sách có phân trang */
+  /**  Lấy danh sách có phân trang */
   async findWithPagination(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
@@ -75,7 +75,7 @@ export class FabricRepository {
     };
   }
 
-  /** 🔹 Tìm kiếm nâng cao với filter, sort, pagination */
+  /**  Tìm kiếm nâng cao với filter, sort, pagination */
   async findWithAdvancedQuery(queryOptions = {}) {
     const {
       page = 1,

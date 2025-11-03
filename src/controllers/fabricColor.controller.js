@@ -1,7 +1,7 @@
 import * as fabricColorService from '../services/fabricColor.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-/** 🔹 Lấy danh sách FabricColor (hỗ trợ filter, sort, pagination) */
+/**  Lấy danh sách FabricColor (hỗ trợ filter, sort, pagination) */
 export const getAllFabricColors = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
@@ -24,7 +24,7 @@ export const getAllFabricColors = async (req, res, next) => {
   }
 };
 
-/** 🔹 Lấy FabricColor theo ID */
+/**  Lấy FabricColor theo ID */
 export const getFabricColorById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -43,7 +43,7 @@ export const getFabricColorById = async (req, res, next) => {
   }
 };
 
-/** 🔹 Tạo mới FabricColor */
+/**  Tạo mới FabricColor */
 export const createFabricColor = async (req, res, next) => {
   try {
     const colorData = req.body;
@@ -58,7 +58,7 @@ export const createFabricColor = async (req, res, next) => {
   }
 };
 
-/** 🔹 Cập nhật FabricColor */
+/**  Cập nhật FabricColor */
 export const updateFabricColor = async (req, res, next) => {
   try {
     const { id } = req.params;

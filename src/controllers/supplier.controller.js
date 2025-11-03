@@ -1,7 +1,7 @@
 import * as supplierService from '../services/supplier.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-/** 🔹 Lấy danh sách Supplier (hỗ trợ filter, sort, pagination) */
+/**  Lấy danh sách Supplier (hỗ trợ filter, sort, pagination) */
 export const getAllSuppliers = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
@@ -24,7 +24,7 @@ export const getAllSuppliers = async (req, res, next) => {
   }
 };
 
-/** 🔹 Lấy Supplier theo ID */
+/**  Lấy Supplier theo ID */
 export const getSupplierById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -43,7 +43,7 @@ export const getSupplierById = async (req, res, next) => {
   }
 };
 
-/** 🔹 Tạo mới Supplier */
+/**  Tạo mới Supplier */
 export const createSupplier = async (req, res, next) => {
   try {
     const supplierData = req.body;
@@ -58,7 +58,7 @@ export const createSupplier = async (req, res, next) => {
   }
 };
 
-/** 🔹 Cập nhật Supplier */
+/**  Cập nhật Supplier */
 export const updateSupplier = async (req, res, next) => {
   try {
     const { id } = req.params;

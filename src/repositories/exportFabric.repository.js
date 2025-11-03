@@ -4,7 +4,7 @@ import { buildWhereClause, buildSort, formatPaginatedResponse } from '../utils/q
 const prisma = new PrismaClient();
 
 export class ExportFabricRepository {
-  // 🔹 Select rút gọn cho danh sách (get all)
+  //  Select rút gọn cho danh sách (get all)
   #exportFabricListSelect = {
     id: true,
     warehouse: { select: { id: true, name: true } },
@@ -15,7 +15,7 @@ export class ExportFabricRepository {
     createdBy: { select: { username: true } },
   };
 
-  // 🔹 Select chi tiết (get detail)
+  //  Select chi tiết (get detail)
   #exportFabricDetailSelect = {
     id: true,
     warehouseId: true,
@@ -51,7 +51,7 @@ export class ExportFabricRepository {
     }
   };
 
-  /** 🔹 Lấy tất cả (ít trường, không chi tiết exportItems) */
+  /**  Lấy tất cả (ít trường, không chi tiết exportItems) */
   async findAll() {
     return await prisma.exportFabric.findMany({
       select: this.#exportFabricListSelect,
@@ -59,7 +59,7 @@ export class ExportFabricRepository {
     });
   }
 
-  /** 🔹 Lấy chi tiết theo ID (đầy đủ quan hệ) */
+  /**  Lấy chi tiết theo ID (đầy đủ quan hệ) */
   async findById(id) {
     return await prisma.exportFabric.findUnique({
       where: { id },
@@ -67,7 +67,7 @@ export class ExportFabricRepository {
     });
   }
 
-  /** 🔹 Lấy danh sách có phân trang (dùng select rút gọn) */
+  /**  Lấy danh sách có phân trang (dùng select rút gọn) */
   async findWithPagination(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
@@ -92,7 +92,7 @@ export class ExportFabricRepository {
     };
   }
 
-  /** 🔹 Lấy danh sách nâng cao (lọc, tìm kiếm, sắp xếp, phân trang) */
+  /**  Lấy danh sách nâng cao (lọc, tìm kiếm, sắp xếp, phân trang) */
   async findWithAdvancedQuery(queryOptions = {}) {
     const {
       page = 1,
