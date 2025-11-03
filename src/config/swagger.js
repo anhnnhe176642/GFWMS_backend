@@ -843,24 +843,28 @@ const options = {
         description: 'Fabric management endpoints'
       },
       {
-        name: 'Fabric Categories',
+        name: 'FabricCategory',
         description: 'Fabric category management endpoints'
       },
       {
-        name: 'Fabric Colors',
+        name: 'FabricColor',
         description: 'Fabric color management endpoints'
       },
       {
-        name: 'Fabric Gloss',
+        name: 'FabricGloss',
         description: 'Fabric gloss management endpoints'
       },
       {
-        name: 'Suppliers',
+        name: 'Supplier',
         description: 'Supplier management endpoints'
       },
       {
         name: 'Warehouses',
         description: 'Warehouse management endpoints'
+      },
+      {
+        name: 'Shelves',
+        description: 'Shelf management endpoints'
       },
       {
         name: 'Stores',
@@ -879,7 +883,7 @@ const options = {
         description: 'Fabric import management endpoints'
       },
       {
-        name: 'Export Fabrics',
+        name: 'ExportFabrics',
         description: 'Fabric export management endpoints'
       },
       {
