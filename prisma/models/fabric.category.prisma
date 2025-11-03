@@ -2,8 +2,8 @@ model FabricCategory {
   id               Int       @id @default(autoincrement())
   name             String    @db.VarChar(100) @unique
   description      String?   @db.VarChar(255)
-  sellingPricePerMeter Float? 
-  sellingPricePerRoll  Float? 
+  sellingPricePerMeter Float
+  sellingPricePerRoll  Float 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   Fabric           Fabric[]
