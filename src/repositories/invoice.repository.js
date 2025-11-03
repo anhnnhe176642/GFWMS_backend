@@ -8,7 +8,7 @@ import {
 const prisma = new PrismaClient();
 
 export class InvoiceRepository {
-  // 🔹 Select options cho danh sách (GET ALL)
+  //  Select options cho danh sách (GET ALL)
   #invoiceListSelectOptions = {
     id: true,
     orderId: true,
@@ -34,7 +34,7 @@ export class InvoiceRepository {
     updatedAt: true
   };
 
-  // 🔹 Select options cho chi tiết (GET DETAIL)
+  //  Select options cho chi tiết (GET DETAIL)
   #invoiceDetailSelectOptions = {
     id: true,
     orderId: true,
@@ -100,7 +100,7 @@ export class InvoiceRepository {
     }
   };
 
-  /** 🔹 Lấy tất cả Invoice (danh sách) */
+  /**  Lấy tất cả Invoice (danh sách) */
   async findAll() {
     return await prisma.invoice.findMany({
       select: this.#invoiceListSelectOptions,
@@ -108,7 +108,7 @@ export class InvoiceRepository {
     });
   }
 
-  /** 🔹 Lấy Invoice theo ID (chi tiết) */
+  /**  Lấy Invoice theo ID (chi tiết) */
   async findById(id) {
     return await prisma.invoice.findUnique({
       where: { id },
@@ -116,7 +116,7 @@ export class InvoiceRepository {
     });
   }
 
-  /** 🔹 Đếm tổng số Invoice */
+  /**  Đếm tổng số Invoice */
   async count(filters = {}) {
     const where = { ...filters };
     if (filters.invoiceStatus && Array.isArray(filters.invoiceStatus)) {
@@ -125,7 +125,7 @@ export class InvoiceRepository {
     return await prisma.invoice.count({ where });
   }
 
-  /** 🔹 Lấy danh sách có phân trang */
+  /**  Lấy danh sách có phân trang */
   async findWithPagination(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
@@ -151,7 +151,7 @@ export class InvoiceRepository {
   }
 
   /**
-   * 🔹 Tìm kiếm nâng cao với filter, sort, pagination
+   *  Tìm kiếm nâng cao với filter, sort, pagination
    * @param {object} queryOptions
    * @param {boolean} detail - true nếu muốn lấy chi tiết, false lấy danh sách
    */
