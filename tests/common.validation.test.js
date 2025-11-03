@@ -334,9 +334,9 @@ describe("Common single value schemas", () => {
     expect(value).toBe("ADMIN");
   });
   it("rejects invalid role (too long)", () => {
-    const { error } = roleSchema.validate("A".repeat(51));
+    const { error } = roleSchema.validate("A".repeat(11));
     expect(error).toBeDefined();
-    expect(error.message).toContain("Role name không được vượt quá 50 ký tự");
+    expect(error.message).toContain("Role name không được vượt quá 10 ký tự");
   });
 
   it("validates correct user status", () => {
@@ -363,5 +363,60 @@ describe("Common single value schemas", () => {
     const { error } = uuidSchema.validate("not-a-uuid");
     expect(error).toBeDefined();
     expect(error.message).toContain("ID phải là UUID hợp lệ");
+  });
+
+  it("validates and transforms role to uppercase", () => {
+    const { error, value } = roleSchema.validate("admin");
+    expect(error).toBeUndefined();
+    expect(value).toBe("ADMIN");
+  });
+
+  it("transforms role with mixed case to uppercase", () => {
+    const { error, value } = roleSchema.validate("AdMiN");
+    expect(error).toBeUndefined();
+    expect(value).toBe("ADMIN");
+  });
+});
+
+describe("createMultiValueFilterSchema with uppercase transform", () => {
+  // Test với schema có .uppercase()
+  const statusSchema = Joi.string()
+    .trim()
+    .uppercase()
+    .valid('ACTIVE', 'INACTIVE', 'SUSPENDED')
+    .messages({
+      'any.only': 'Trạng thái không hợp lệ'
+    });
+  
+  const statusFilter = createMultiValueFilterSchema(statusSchema, 'status');
+
+  it("transforms single lowercase value to uppercase", () => {
+    const { error, value } = statusFilter.validate('active');
+    expect(error).toBeUndefined();
+    expect(value).toEqual(['ACTIVE']);
+  });
+
+  it("transforms multiple lowercase values to uppercase", () => {
+    const { error, value } = statusFilter.validate('active,inactive,suspended');
+    expect(error).toBeUndefined();
+    expect(value).toEqual(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
+  });
+
+  it("transforms mixed case values to uppercase", () => {
+    const { error, value } = statusFilter.validate('AcTiVe,InAcTiVe');
+    expect(error).toBeUndefined();
+    expect(value).toEqual(['ACTIVE', 'INACTIVE']);
+  });
+
+  it("transforms with whitespace and different cases", () => {
+    const { error, value } = statusFilter.validate(' active , INACTIVE , Suspended ');
+    expect(error).toBeUndefined();
+    expect(value).toEqual(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
+  });
+
+  it("rejects invalid values after uppercase transform", () => {
+    const { error } = statusFilter.validate('active,invalid,suspended');
+    expect(error).toBeDefined();
+    expect(error.message).toContain('Trạng thái không hợp lệ');
   });
 });
