@@ -1,40 +1,71 @@
-// Middleware validation sử dụng Joi
+// Validation options
+const VALIDATION_OPTIONS = {
+  abortEarly: false, // Hiển thị tất cả lỗi validation
+  allowUnknown: true, // Cho phép các field không được định nghĩa trong schema
+  stripUnknown: true // Loại bỏ các field không được định nghĩa
+};
+
+/**
+ * Lấy dữ liệu từ request theo source
+ */
+const getDataFromRequest = (req, source) => {
+  const sourceMap = {
+    body: req.body,
+    params: req.params,
+    query: req.query,
+    headers: req.headers
+  };
+  return sourceMap[source] || req.body;
+};
+
+/**
+ * Cập nhật dữ liệu đã validate vào request
+ */
+const setDataToRequest = (req, source, value) => {
+  switch (source) {
+    case 'body':
+      req.body = value;
+      break;
+    case 'params':
+      req.params = value;
+      break;
+    case 'query':
+      // Force overwrite read-only query property
+      Object.defineProperty(req, 'query', {
+        value,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
+      break;
+    case 'headers':
+      req.headers = value;
+      break;
+  }
+};
+
+/**
+ * Format lỗi validation thành response
+ */
+const formatValidationErrors = (error, sourcePrefix = '') => {
+  return error.details.map(detail => ({
+    field: sourcePrefix ? `${sourcePrefix}.${detail.path.join('.')}` : detail.path.join('.'),
+    message: detail.message
+  }));
+};
+
+/**
+ * Middleware validation sử dụng Joi
+ */
 export const validate = (schema, source = 'body') => {
   return (req, res, next) => {
-    let dataToValidate;
-    
-    // Xác định nguồn dữ liệu cần validate
-    switch (source) {
-      case 'body':
-        dataToValidate = req.body;
-        break;
-      case 'params':
-        dataToValidate = req.params;
-        break;
-      case 'query':
-        dataToValidate = req.query;
-        break;
-      case 'headers':
-        dataToValidate = req.headers;
-        break;
-      default:
-        dataToValidate = req.body;
-    }
+    const dataToValidate = getDataFromRequest(req, source);
 
     // Thực hiện validation
-    const { error, value } = schema.validate(dataToValidate, {
-      abortEarly: false, // Hiển thị tất cả lỗi validation
-      allowUnknown: true, // Cho phép các field không được định nghĩa trong schema
-      stripUnknown: true // Loại bỏ các field không được định nghĩa
-    });
+    const { error, value } = schema.validate(dataToValidate, VALIDATION_OPTIONS);
 
     if (error) {
-      // Xử lý lỗi validation
-      const errorDetails = error.details.map(detail => ({
-        field: detail.path.join('.'),
-        message: detail.message
-      }));
-
+      const errorDetails = formatValidationErrors(error);
       return res.status(400).json({
         message: 'Dữ liệu không hợp lệ',
         errors: errorDetails
@@ -42,91 +73,29 @@ export const validate = (schema, source = 'body') => {
     }
 
     // Cập nhật request với dữ liệu đã được validate và làm sạch
-    switch (source) {
-      case 'body':
-        req.body = value;
-        break;
-      case 'params':
-        req.params = value;
-        break;
-      case 'query':
-        // Force overwrite read-only query property
-        Object.defineProperty(req, 'query', {
-          value: value,
-          writable: true,
-          enumerable: true,
-          configurable: true
-        });
-        break;
-      case 'headers':
-        req.headers = value;
-        break;
-    }
-
+    setDataToRequest(req, source, value);
     next();
   };
 };
 
-// Middleware validation cho multiple sources
+/**
+ * Middleware validation cho multiple sources
+ */
 export const validateMultiple = (validations) => {
   return (req, res, next) => {
     const errors = [];
 
     // Validate từng source
     for (const { schema, source } of validations) {
-      let dataToValidate;
-      
-      switch (source) {
-        case 'body':
-          dataToValidate = req.body;
-          break;
-        case 'params':
-          dataToValidate = req.params;
-          break;
-        case 'query':
-          dataToValidate = req.query;
-          break;
-        case 'headers':
-          dataToValidate = req.headers;
-          break;
-        default:
-          dataToValidate = req.body;
-      }
-
-      const { error, value } = schema.validate(dataToValidate, {
-        abortEarly: false,
-        allowUnknown: true,
-        stripUnknown: true
-      });
+      const dataToValidate = getDataFromRequest(req, source);
+      const { error, value } = schema.validate(dataToValidate, VALIDATION_OPTIONS);
 
       if (error) {
-        const errorDetails = error.details.map(detail => ({
-          field: `${source}.${detail.path.join('.')}`,
-          message: detail.message
-        }));
+        const errorDetails = formatValidationErrors(error, source);
         errors.push(...errorDetails);
       } else {
         // Cập nhật dữ liệu đã validate
-        switch (source) {
-          case 'body':
-            req.body = value;
-            break;
-          case 'params':
-            req.params = value;
-            break;
-          case 'query':
-            // Force overwrite read-only query property
-            Object.defineProperty(req, 'query', {
-              value: value,
-              writable: true,
-              enumerable: true,
-              configurable: true
-            });
-            break;
-          case 'headers':
-            req.headers = value;
-            break;
-        }
+        setDataToRequest(req, source, value);
       }
     }
 

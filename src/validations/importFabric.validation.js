@@ -68,12 +68,9 @@ export const importFabricItemSchema = fabricAttributesSchema.keys({
   quantity: quantitySchema,
   price: priceSchema,
   sellingPrice: sellingPriceSchema
-}).options({ 
-  stripUnknown: true 
 });
 
 export const getFabricSellingPriceSchema = fabricAttributesSchema.options({ 
-  stripUnknown: true,
   convert: true
 });
 

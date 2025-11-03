@@ -1,0 +1,5 @@
+enum ImportFabricItemStatus {
+  PENDING
+  STORED
+  CANCELLED
+}

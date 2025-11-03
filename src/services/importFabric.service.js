@@ -13,7 +13,13 @@ class ImportFabricService {
 
     const [gloss, category, color, supplier] = await Promise.all([
       prisma.fabricGloss.findUnique({ where: { id: glossId } }),
-      prisma.fabricCategory.findUnique({ where: { id: categoryId } }),
+      prisma.fabricCategory.findUnique({ 
+        where: { id: categoryId },
+        select: {
+          id: true,
+          sellingPricePerRoll: true
+        }
+      }),
       prisma.fabricColor.findUnique({ where: { id: colorId } }),
       prisma.supplier.findUnique({ where: { id: supplierId } })
     ]);
@@ -44,20 +50,29 @@ class ImportFabricService {
       }
     });
 
-    
-     const finalSellingPrice = hasSellingPricePermission && (sellingPrice !== undefined) 
-      ? sellingPrice 
-      : null;
+    let finalSellingPrice = null;
+
+    if (hasSellingPricePermission && ((sellingPrice !== undefined) && (sellingPrice !== null))) {
+        finalSellingPrice = sellingPrice;
+      } else if ((sellingPrice === null) || (sellingPrice === undefined)) {
+        finalSellingPrice = category.sellingPricePerRoll;
+    }
       
-      if (existingFabric) {
+    if (existingFabric) {
+      let priceToUpdate;
       if (finalSellingPrice !== null) {
+        priceToUpdate = finalSellingPrice;
+      } else {
+        priceToUpdate = existingFabric.sellingPrice ?? category.sellingPricePerRoll ?? null;
+      }
+      if (priceToUpdate !== existingFabric.sellingPrice) {
           await prisma.fabric.update({
             where: { id: existingFabric.id },
-            data: { sellingPrice: finalSellingPrice }
+            data: { sellingPrice: priceToUpdate }
           });
         }
       return existingFabric.id;
-      }
+    }
 
     const newFabric = await prisma.fabric.create({
       data: {
@@ -143,20 +158,27 @@ class ImportFabricService {
         colorId,
         supplierId
       },
-      select: {
-        id: true,
-        sellingPrice: true
+      include: {
+        category: {
+          select: {
+            sellingPricePerRoll: true
+          }
+        }
       }
     });
 
     if (!existingFabric) {
+      const category = await prisma.fabricCategory.findUnique({
+        where: { id: categoryId },
+        select: { sellingPricePerRoll: true }
+      });
       return {
-        sellingPrice: null
+        sellingPrice: category?.sellingPricePerRoll ?? null
       };
     }
 
     return {
-      sellingPrice: existingFabric.sellingPrice
+      sellingPrice: existingFabric.sellingPrice ?? existingFabric.category.sellingPricePerRoll
     };
   }
 

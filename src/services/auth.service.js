@@ -2,12 +2,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import process from 'process';
 import { AuthenticationError, NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
+import { UserStatus } from '@prisma/client';
 import { userRepository } from '../repositories/user.repository.js';
 import { emailVerificationRepository } from '../repositories/emailVerification.repository.js';
 import { hashPin, generateNumericPin } from '../utils/hash.js';
 import { sendVerificationCodeEmail } from './email.service.js';
 import { passwordResetPinRepository } from '../repositories/passwordResetPin.repository.js';
 import { sendPasswordResetPin } from '../utils/mailer.js';
+import { uploadSingleImage } from './upload.service.js';
 
 export const registerUser = async (userData) => {
   // If email already exists and is verified -> conflict
@@ -140,11 +142,11 @@ export const loginUser = async (usernameOrEmail, password) => {
   }
 
   // Check user status
-  if (user.status === 'INACTIVE') {
+  if (user.status === UserStatus.INACTIVE) {
     throw new AuthenticationError('Tài khoản chưa được kích hoạt');
   }
 
-  if (user.status === 'SUSPENDED') {
+  if (user.status === UserStatus.SUSPENDED) {
     throw new AuthenticationError('Tài khoản đã bị khóa');
   }
 
@@ -176,6 +178,31 @@ export const getUserProfile = async (userId) => {
 
 export const updateUserProfile = async (userId, updateData) => {
   const user = await userRepository.updateById(userId, updateData);
+  return user;
+};
+
+export const updateUserAvatar = async (userId, avatarFile) => {
+  if (!avatarFile) {
+    throw new ValidationError('Avatar file là bắt buộc', 'avatar');
+  }
+
+  // Get current user to get old avatar publicId
+  const currentUser = await userRepository.findById(userId);
+  
+  // Upload new avatar and auto-delete old one
+  const result = await uploadSingleImage(avatarFile, {
+    folder: 'avatars',
+    preset: 'avatar',
+    oldPublicId: currentUser?.avatarPublicId,
+    fieldName: 'avatar'
+  });
+  
+  // Update user with new avatar URL and publicId
+  const user = await userRepository.updateById(userId, {
+    avatar: result.url,
+    avatarPublicId: result.publicId
+  });
+  
   return user;
 };
 

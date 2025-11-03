@@ -9,7 +9,6 @@ import {
   addressSchema,
   dobSchema,
   roleSchema,
-  avatarSchema,
   userStatusSchema,
   uuidSchema,
   pageSchema,
@@ -33,8 +32,7 @@ export const createUserSchema = Joi.object({
   address: addressSchema.optional(),
   dob: dobSchema.optional(),
   status: userStatusSchema.optional(),
-  role: roleSchema.required(),
-  avatar: avatarSchema.optional()
+  role: roleSchema.required()
 });
 
 // Schema validation cho update user status
