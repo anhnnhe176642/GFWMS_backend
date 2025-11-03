@@ -5,7 +5,7 @@ import { buildQueryParams } from '../utils/filter-builder.js';
 export const getAllFabricCategories = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
-      filterFields: [], // nếu muốn filter theo field nào thêm vào đây
+      filterFields: ['name', 'sellingPricePerMeter', 'sellingPricePerRoll'], // có thể filter thêm theo giá
       dateRangeConfig: {
         fromField: 'createdFrom',
         toField: 'createdTo',
@@ -36,7 +36,7 @@ export const getFabricCategoryById = async (req, res, next) => {
 
     res.json({
       message: 'Lấy thông tin fabric category thành công',
-      fabricCategory
+      data: fabricCategory
     });
   } catch (error) {
     next(error);
@@ -46,12 +46,18 @@ export const getFabricCategoryById = async (req, res, next) => {
 /** 🔹 Tạo mới FabricCategory */
 export const createFabricCategory = async (req, res, next) => {
   try {
-    const categoryData = req.body;
-    const fabricCategory = await fabricCategoryService.createFabricCategory(categoryData);
+    const { name, description, sellingPricePerMeter, sellingPricePerRoll } = req.body;
+
+    const fabricCategory = await fabricCategoryService.createFabricCategory({
+      name,
+      description,
+      sellingPricePerMeter,
+      sellingPricePerRoll
+    });
 
     res.status(201).json({
       message: 'Tạo fabric category thành công',
-      fabricCategory
+      data: fabricCategory
     });
   } catch (error) {
     next(error);
@@ -62,13 +68,18 @@ export const createFabricCategory = async (req, res, next) => {
 export const updateFabricCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const categoryData = req.body;
+    const { name, description, sellingPricePerMeter, sellingPricePerRoll } = req.body;
 
-    const updatedFabricCategory = await fabricCategoryService.updateFabricCategory(id, categoryData);
+    const updatedFabricCategory = await fabricCategoryService.updateFabricCategory(id, {
+      name,
+      description,
+      sellingPricePerMeter,
+      sellingPricePerRoll
+    });
 
     res.json({
       message: 'Cập nhật fabric category thành công',
-      fabricCategory: updatedFabricCategory
+      data: updatedFabricCategory
     });
   } catch (error) {
     next(error);

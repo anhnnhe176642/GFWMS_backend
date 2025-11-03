@@ -1,4 +1,4 @@
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 import fabricCategoryRepository from '../repositories/fabricCategory.repository.js';
 
 /** 🔹 Lấy tất cả FabricCategory với phân trang cơ bản */
@@ -13,7 +13,22 @@ export const getAllFabricCategoriesAdvanced = async (queryOptions) => {
 
 /** 🔹 Tạo mới FabricCategory */
 export const createFabricCategory = async (data) => {
-  return await fabricCategoryRepository.create(data);
+  const { name, description, sellingPricePerMeter, sellingPricePerRoll } = data;
+
+  // Kiểm tra giá hợp lệ
+  if (
+    (sellingPricePerMeter && sellingPricePerMeter < 0) ||
+    (sellingPricePerRoll && sellingPricePerRoll < 0)
+  ) {
+    throw new ValidationError('Giá bán không được nhỏ hơn 0');
+  }
+
+  return await fabricCategoryRepository.create({
+    name,
+    description,
+    sellingPricePerMeter,
+    sellingPricePerRoll
+  });
 };
 
 /** 🔹 Lấy FabricCategory theo ID */
@@ -32,6 +47,16 @@ export const updateFabricCategory = async (id, data) => {
   const existing = await fabricCategoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError('Loại vải bạn cần cập nhật không tồn tại trong hệ thống');
+  }
+
+  const { sellingPricePerMeter, sellingPricePerRoll } = data;
+
+  // Kiểm tra giá hợp lệ
+  if (
+    (sellingPricePerMeter && sellingPricePerMeter < 0) ||
+    (sellingPricePerRoll && sellingPricePerRoll < 0)
+  ) {
+    throw new ValidationError('Giá bán không được nhỏ hơn 0');
   }
 
   return await fabricCategoryRepository.updateById(id, data);

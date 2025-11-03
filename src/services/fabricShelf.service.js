@@ -90,10 +90,6 @@ class FabricShelfService {
           quantity: s.quantity
         });
 
-        // await tx.shelf.update({
-        //   where: { id: s.shelfId },
-        //   data: { currentQuantity: { increment: s.quantity } }
-        // });
       }
 
     // Cập nhật status importFabricItem thành STORED
