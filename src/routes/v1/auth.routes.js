@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getProfile, updateProfile, uploadAvatar, changePassword, verifyEmail, resendVerification } from '../../controllers/auth.controller.js';
+import { register, login, getProfile, updateProfile, uploadAvatar, changePassword, verifyEmail, resendVerification, getMe } from '../../controllers/auth.controller.js';
 import { requestPasswordReset, verifyResetPin, setNewPassword } from '../../controllers/auth.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
@@ -241,6 +241,59 @@ router.post('/verify-reset-pin', validate(verifyResetPinSchema), verifyResetPin)
  *                   type: string
  */
 router.post('/set-new-password', validate(setNewPasswordSchema), setNewPassword);
+
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current authenticated user information with permissions
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - message
+ *                 - user
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin user thành công
+ *                 user:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/User'
+ *                     - type: object
+ *                       properties:
+ *                         permissionKeys:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           description: Array of user permission keys
+ *                           example: ["users:view_list", "users:view_detail"]
+ *       401:
+ *         description: Unauthorized - Invalid or expired token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Account inactive or suspended
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/me', 
+  authenticateToken, 
+  getMe
+);
 
 /**
  * @swagger

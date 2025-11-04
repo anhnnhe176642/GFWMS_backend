@@ -302,3 +302,24 @@ export const setNewPasswordWithVerifiedPin = async (email, pin, newPassword) => 
   return { message: 'Mật khẩu đã được đặt lại thành công' };
 };
 
+export const getCurrentUserWithPermissions = async (userId) => {
+  const user = await userRepository.findById(userId);
+  
+  if (!user) {
+    throw new NotFoundError('User không tồn tại');
+  }
+
+  // Check user status
+  if (user.status === UserStatus.INACTIVE) {
+    throw new AuthenticationError('Tài khoản chưa được kích hoạt');
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AuthenticationError('Tài khoản đã bị khóa');
+  }
+
+  user.permissionKeys = await userRepository.getUserPermissionKeys(user.id);
+  
+  return user;
+};
+
