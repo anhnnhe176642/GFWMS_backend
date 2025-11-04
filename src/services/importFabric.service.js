@@ -50,13 +50,7 @@ class ImportFabricService {
       }
     });
 
-    let finalSellingPrice = null;
-
-    if (hasSellingPricePermission && ((sellingPrice !== undefined) && (sellingPrice !== null))) {
-        finalSellingPrice = sellingPrice;
-      } else if ((sellingPrice === null) || (sellingPrice === undefined)) {
-        finalSellingPrice = category.sellingPricePerRoll;
-    }
+    const finalSellingPrice = hasSellingPricePermission && sellingPrice != null ? sellingPrice : category.sellingPricePerRoll;
       
     if (existingFabric) {
       let priceToUpdate;
