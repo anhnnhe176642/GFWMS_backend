@@ -9,7 +9,7 @@ export const createImportFabric = async (req, res, next) => {
     const result = await importFabricService.createImport({
       warehouseId,
       importer,
-    }, items);
+    }, items, req.user);
 
     res.status(201).json({
       message: 'Nhập vải thành công',
@@ -48,6 +48,17 @@ export const getImportFabricById = async (req, res, next) => {
     res.json({
       message: 'Lấy chi tiết phiếu nhập thành công',
       data: importFabric 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getFabricSellingPrice = async (req, res, next) => {
+  try {
+    const result = await importFabricService.getFabricSellingPrice(req.query);
+    res.json({
+      data: result
     });
   } catch (error) {
     next(error);

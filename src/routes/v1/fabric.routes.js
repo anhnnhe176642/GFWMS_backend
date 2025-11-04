@@ -128,6 +128,8 @@ router.get(
 );
 
 
+
+
 // Lấy chi tiết Fabric
 /**
  * @swagger

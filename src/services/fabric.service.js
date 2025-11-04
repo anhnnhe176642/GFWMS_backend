@@ -30,3 +30,4 @@ export const getFabricById = async (id) => {
 export const getAllFabricsAdvanced = async (queryOptions) => {
   return await fabricRepository.findWithAdvancedQuery(queryOptions);
 };
+

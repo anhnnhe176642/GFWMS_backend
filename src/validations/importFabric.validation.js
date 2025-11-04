@@ -41,24 +41,37 @@ export const positiveIntegerSchema = Joi.number().integer().positive().required(
   'any.required': 'Trường này là bắt buộc'
 });
 
-export const importFabricItemSchema = Joi.object({
+export const sellingPriceSchema = Joi.number()
+  .min(0)
+  .optional()
+  .allow(null) 
+  .messages({
+    'number.base': 'Giá bán phải là số',
+    'number.min': 'Giá bán không được âm'
+  });
 
-    thickness: positiveNumberSchema,
-    glossId: positiveIntegerSchema,
-    length: positiveNumberSchema,
-    width: positiveNumberSchema,
-    weight: positiveNumberSchema,
-    categoryId: positiveIntegerSchema,
-
+export const fabricAttributesSchema = Joi.object({
+  thickness: positiveNumberSchema,
+  glossId: positiveIntegerSchema,
+  length: positiveNumberSchema,
+  width: positiveNumberSchema,
+  weight: positiveNumberSchema,
+  categoryId: positiveIntegerSchema,
   colorId: Joi.string().required().messages({
     'any.required': 'ColorId là bắt buộc',
     'string.empty': 'ColorId không được để trống'
   }),
-  supplierId: positiveIntegerSchema,
+  supplierId: positiveIntegerSchema
+});
+
+export const importFabricItemSchema = fabricAttributesSchema.keys({
   quantity: quantitySchema,
-  price: priceSchema
-}).options({ 
-  stripUnknown: true 
+  price: priceSchema,
+  sellingPrice: sellingPriceSchema
+});
+
+export const getFabricSellingPriceSchema = fabricAttributesSchema.options({ 
+  convert: true
 });
 
 
@@ -85,5 +98,8 @@ export const importFabricQuerySchema = querySchema.keys({
   importDateFrom: dateFromSchema,
   importDateTo: dateToSchema
 });
+
+
+
 
 export const importFabricIdSchema = warehouseIdSchema;

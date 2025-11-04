@@ -112,6 +112,8 @@ export class FabricRepository {
 
     return formatPaginatedResponse(fabrics, total, page, limit);
   }
+
+  
 }
 
 export const fabricRepository = new FabricRepository();
