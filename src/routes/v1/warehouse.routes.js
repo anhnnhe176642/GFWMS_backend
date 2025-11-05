@@ -158,7 +158,7 @@ router.get('/:id',
 /**
  * @swagger
  * /warehouses/{id}:
- *   put:
+ *   patch:
  *     summary: Cập nhật kho
  *     tags: [Warehouses]
  *     security:
@@ -197,7 +197,7 @@ router.get('/:id',
  *             schema:
  *               type: object
  */
-router.put('/:id', 
+router.patch('/:id', 
   requirePermission(PERMISSIONS.WAREHOUSES.UPDATE),
   validate(updateWarehouseSchema, 'body'),
   validate(warehouseIdSchema, 'params'),
