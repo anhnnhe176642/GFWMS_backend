@@ -35,7 +35,7 @@ export const roleNameParamSchema = Joi.object({
 });
 
 // Allowed fields for sorting roles
-const allowedRoleSortFields = ['name'];
+const allowedRoleSortFields = ['name','description','createdAt','updatedAt'];
 
 // Advanced query schema cho role với search, sort
 export const roleQuerySchema = querySchema.keys({

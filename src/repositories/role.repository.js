@@ -93,6 +93,12 @@ export class RoleRepository {
     );
   }
 
+  async countUsersWithRole(name) {
+    return await prisma.user.count({
+      where: { role: name }
+    });
+  }
+
   async delete(name) {
     return await withPrismaErrorHandling(
       () => prisma.role.delete({
@@ -182,7 +188,7 @@ export class RoleRepository {
       order = 'asc'
     } = queryOptions;
 
-    const searchableFields = ['name'];
+    const searchableFields = ['name', 'description'];
     const where = buildWhereClause({ search }, searchableFields);
     const { skip, take } = buildPagination(page, limit);
     const orderBy = buildSort(sortBy, order);
@@ -195,7 +201,9 @@ export class RoleRepository {
         orderBy,
         select: {
           name: true,
-          description: true
+          description: true,
+          createdAt: true,
+          updatedAt: true
         }
       }),
       prisma.role.count({ where })
