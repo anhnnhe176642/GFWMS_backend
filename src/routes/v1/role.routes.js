@@ -75,7 +75,7 @@ router.use(authenticateToken);
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.get('/', 
-  requirePermission(PERMISSIONS.ROLES.VIEW),
+  requirePermission(PERMISSIONS.ROLES.VIEW_LIST),
   validate(roleQuerySchema, 'query'),
   getAllRoles
 );
@@ -185,7 +185,7 @@ router.post('/',
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get('/:name', 
-  requirePermission(PERMISSIONS.ROLES.VIEW),
+  requirePermission(PERMISSIONS.ROLES.VIEW_DETAIL),
   validate(roleNameParamSchema, 'params'),
   getRoleByName
 );

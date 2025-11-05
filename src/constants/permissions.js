@@ -62,10 +62,11 @@ export const PERMISSIONS = {
   
   // Role Management
   ROLES: {
-    VIEW:   { key: 'role:view',   description: 'Xem danh sách vai trò' },
-    CREATE: { key: 'role:create', description: 'Tạo vai trò mới' },
-    UPDATE: { key: 'role:update', description: 'Cập nhật vai trò' },
-    DELETE: { key: 'role:delete', description: 'Xóa vai trò' }
+    VIEW_LIST:   { key: 'role:view_list',    description: 'Xem danh sách vai trò' },
+    VIEW_DETAIL: { key: 'role:view_detail', description: 'Xem chi tiết vai trò' },
+    CREATE:      { key: 'role:create',      description: 'Tạo vai trò mới' },
+    UPDATE:      { key: 'role:update',      description: 'Cập nhật vai trò' },
+    DELETE:      { key: 'role:delete',      description: 'Xóa vai trò' }
   },
   
   // System Administration
