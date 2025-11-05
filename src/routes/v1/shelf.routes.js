@@ -25,7 +25,9 @@ router.use(authenticateToken);
  * @swagger
  * /shelves:
  *   get:
- *     summary: Lấy tất cả kệ với filter tùy chọn
+ *     summary: Lấy danh sách kệ với hỗ trợ lọc, tìm kiếm và phân trang
+ *     description: |
+ *       Lấy danh sách tất cả các kệ trong hệ thống với các tùy chọn lọc, tìm kiếm và sắp xếp nâng cao.
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -33,28 +35,133 @@ router.use(authenticateToken);
  *       - in: query
  *         name: page
  *         schema:
- *           type: string
+ *           type: integer
  *         description: Trang hiện tại
- *         example: "1"
+ *         example: 1
  *       - in: query
  *         name: limit
  *         schema:
- *           type: string
- *         description: Số lượng bản ghi trên trang
- *         example: "10"
+ *           type: integer
+ *         description: Số lượng bản ghi trên một trang
+ *         example: 10
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Tìm theo code kệ
+ *         description: Tìm kiếm theo mã kệ
+ *         example: "K001"
  *       - in: query
  *         name: warehouseId
  *         schema:
  *           type: string
- *         description: Lọc theo kho
+ *         description: Lọc theo ID kho hàng (hỗ trợ nhiều ID, cách nhau bởi dấu phẩy). Ví dụ "1" hoặc "1,2,3"
+ *         example: "1,2,3"
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Trường dùng để sắp xếp
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *         description: Thứ tự sắp xếp (asc = tăng, desc = giảm)
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *         description: Lọc kệ được tạo từ ngày này
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *         description: Lọc kệ được tạo đến ngày này
  *     responses:
  *       200:
- *         description: Success
+ *         description: Lấy danh sách kệ thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách kệ thành công"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Shelf'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/Pagination'
+ *       400:
+ *         description: |
+ *           Dữ liệu query không hợp lệ. 
+ *           Các lỗi có thể bao gồm:
+ *           - Page phải là số nguyên dương
+ *           - Limit phải là số nguyên dương
+ *           - WarehouseId phải là số nguyên hợp lệ
+ *           - SortBy phải là trường hợp lệ (id, code, currentQuantity, maxQuantity, warehouseId, createdAt, updatedAt)
+ *           - Order phải là asc hoặc desc
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ *             examples:
+ *               invalidPage:
+ *                 summary: Trang không hợp lệ
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "page"
+ *                       message: "page phải là số nguyên dương"
+ *               invalidWarehouseId:
+ *                 summary: ID kho không hợp lệ
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "warehouseId"
+ *                       message: "warehouseId phải là số nguyên"
+ *       401:
+ *         description: |
+ *           Không có quyền truy cập.
+ *           - Token không được cung cấp
+ *           - Token không hợp lệ hoặc đã hết hạn
+ *           - User không tồn tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               missingToken:
+ *                 summary: Thiếu token
+ *                 value:
+ *                   message: "Token không được cung cấp"
+ *               invalidToken:
+ *                 summary: Token không hợp lệ
+ *                 value:
+ *                   message: "Token không hợp lệ"
+ *               expiredToken:
+ *                 summary: Token hết hạn
+ *                 value:
+ *                   message: "Token đã hết hạn"
+ *       403:
+ *         description: |
+ *           Không có quyền xem danh sách kệ.
+ *           User không có permission SHELVES.VIEW_LIST
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Bạn không có quyền truy cập tài nguyên này"
+ *       500:
+ *         description: Lỗi server không mong muốn
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Lỗi server nội bộ"
  */
 router.get('/',
   requirePermission(PERMISSIONS.SHELVES.VIEW_LIST),
@@ -67,6 +174,8 @@ router.get('/',
  * /shelves:
  *   post:
  *     summary: Tạo kệ mới
+ *     description: |
+ *       Tạo một kệ mới trong hệ thống. Kệ sẽ được khởi tạo với số lượng hiện tại = 0.
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -76,19 +185,18 @@ router.get('/',
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - code
- *               - maxQuantity
- *               - warehouseId
  *             properties:
  *               code:
  *                 type: string
+ *                 description: Mã định danh của kệ
  *                 example: "K001"
  *               maxQuantity:
  *                 type: integer
+ *                 description: Sức chứa tối đa của kệ
  *                 example: 50
  *               warehouseId:
  *                 type: integer
+ *                 description: ID của kho hàng chứa kệ này
  *                 example: 1
  *     responses:
  *       201:
@@ -102,41 +210,78 @@ router.get('/',
  *                   type: string
  *                   example: "Tạo kệ thành công"
  *                 shelf:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     code:
- *                       type: string
- *                       example: "K001"
- *                     currentQuantity:
- *                       type: integer
- *                       example: 0
- *                     maxQuantity:
- *                       type: integer
- *                       example: 50
- *                     warehouseId:
- *                       type: integer
- *                       example: 1
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-11-01T00:00:00.000Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-11-01T00:00:00.000Z"
+ *                   $ref: '#/components/schemas/Shelf'
  *       400:
- *         description: Dữ liệu gửi lên không hợp lệ
+ *         description: |
+ *           Dữ liệu gửi lên không hợp lệ.
+ *           Các lỗi có thể bao gồm:
+ *           - code là bắt buộc, phải là string từ 2-50 ký tự
+ *           - maxQuantity là bắt buộc, phải là số nguyên > 0
+ *           - warehouseId là bắt buộc, phải là số nguyên
+ *           - code đã tồn tại (trùng với kệ khác)
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Mã kệ đã tồn tại"
+ *               $ref: '#/components/schemas/ValidationError'
+ *             examples:
+ *               missingCode:
+ *                 summary: Thiếu mã kệ
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "code"
+ *                       message: "code là bắt buộc"
+ *               codeTooShort:
+ *                 summary: Mã kệ quá ngắn
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "code"
+ *                       message: "Mã kệ phải có ít nhất 2 ký tự"
+ *               duplicateCode:
+ *                 summary: Mã kệ đã tồn tại
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "code"
+ *                       message: "Mã kệ đã tồn tại"
+ *               invalidMaxQuantity:
+ *                 summary: Sức chứa không hợp lệ
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "maxQuantity"
+ *                       message: "Sức chứa tối đa phải lớn hơn 0"
+ *       401:
+ *         description: |
+ *           Không có quyền truy cập.
+ *           - Token không được cung cấp
+ *           - Token không hợp lệ hoặc đã hết hạn
+ *           - User không tồn tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Token không hợp lệ"
+ *       403:
+ *         description: |
+ *           Không có quyền tạo kệ.
+ *           User không có permission SHELVES.CREATE
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Bạn không có quyền truy cập tài nguyên này"
+ *       500:
+ *         description: Lỗi server không mong muốn
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Lỗi server nội bộ"
  */
 router.post('/',
   requirePermission(PERMISSIONS.SHELVES.CREATE),
@@ -150,6 +295,7 @@ router.post('/',
  * /shelves/{id}:
  *   get:
  *     summary: Lấy thông tin kệ theo ID
+ *     description: Lấy thông tin chi tiết của một kệ cụ thể theo ID của nó.
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -157,13 +303,13 @@ router.post('/',
  *       - in: path
  *         name: id
  *         schema:
- *           type: string
+ *           type: integer
  *         required: true
- *         description: ID của kệ cần lấy
- *         example: "1"
+ *         description: ID duy nhất của kệ cần lấy thông tin
+ *         example: 1
  *     responses:
  *       200:
- *         description: Thông tin kệ
+ *         description: Lấy thông tin kệ thành công
  *         content:
  *           application/json:
  *             schema:
@@ -173,41 +319,64 @@ router.post('/',
  *                   type: string
  *                   example: "Lấy thông tin kệ thành công"
  *                 shelf:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     code:
- *                       type: string
- *                       example: "K001"
- *                     currentQuantity:
- *                       type: integer
- *                       example: 10
- *                     maxQuantity:
- *                       type: integer
- *                       example: 50
- *                     warehouseId:
- *                       type: integer
- *                       example: 1
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-11-01T00:00:00.000Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-11-01T01:00:00.000Z"
- *       404:
- *         description: Không tìm thấy kệ
+ *                   $ref: '#/components/schemas/Shelf'
+ *       400:
+ *         description: |
+ *           ID không hợp lệ.
+ *           - ID phải là số nguyên dương
+ *           - ID không được để trống
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Không tìm thấy kệ"
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               invalidId:
+ *                 summary: ID không phải số
+ *                 value:
+ *                   message: "ID kệ phải là số nguyên dương"
+ *               missingId:
+ *                 summary: ID không được cung cấp
+ *                 value:
+ *                   message: "ID kệ là bắt buộc"
+ *       401:
+ *         description: |
+ *           Không có quyền truy cập.
+ *           - Token không được cung cấp
+ *           - Token không hợp lệ hoặc đã hết hạn
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Token không hợp lệ"
+ *       403:
+ *         description: |
+ *           Không có quyền xem chi tiết kệ.
+ *           User không có permission SHELVES.VIEW_DETAIL
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Bạn không có quyền truy cập tài nguyên này"
+ *       404:
+ *         description: |
+ *           Không tìm thấy kệ với ID được chỉ định.
+ *           Kệ có thể đã bị xóa hoặc ID không tồn tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Không tìm thấy kệ"
+ *       500:
+ *         description: Lỗi server không mong muốn
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Lỗi server nội bộ"
  */
 router.get('/:id',
   requirePermission(PERMISSIONS.SHELVES.VIEW_DETAIL),
@@ -220,7 +389,10 @@ router.get('/:id',
  * @swagger
  * /shelves/{id}:
  *   put:
- *     summary: Cập nhật kệ
+ *     summary: Cập nhật thông tin kệ
+ *     description: |
+ *       Cập nhật thông tin của một kệ. Cho phép cập nhật mã kệ, số lượng hiện tại, sức chứa tối đa, 
+ *       hoặc kho hàng chứa kệ.
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -229,9 +401,9 @@ router.get('/:id',
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *         description: ID kệ cần cập nhật
- *         example: "1"
+ *           type: integer
+ *         description: ID duy nhất của kệ cần cập nhật
+ *         example: 1
  *     requestBody:
  *       required: true
  *       content:
@@ -241,15 +413,19 @@ router.get('/:id',
  *             properties:
  *               code:
  *                 type: string
+ *                 description: Mã kệ mới
  *                 example: "K002"
- *               maxQuantity:
- *                 type: integer
- *                 example: 60
  *               currentQuantity:
  *                 type: integer
+ *                 description: Số lượng vải hiện tại trên kệ
  *                 example: 10
+ *               maxQuantity:
+ *                 type: integer
+ *                 description: Sức chứa tối đa của kệ
+ *                 example: 60
  *               warehouseId:
  *                 type: integer
+ *                 description: ID của kho hàng
  *                 example: 1
  *     responses:
  *       200:
@@ -263,51 +439,81 @@ router.get('/:id',
  *                   type: string
  *                   example: "Cập nhật kệ thành công"
  *                 shelf:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     code:
- *                       type: string
- *                       example: "K002"
- *                     currentQuantity:
- *                       type: integer
- *                       example: 10
- *                     maxQuantity:
- *                       type: integer
- *                       example: 60
- *                     warehouseId:
- *                       type: integer
- *                       example: 1
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-11-01T00:00:00.000Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-11-01T01:00:00.000Z"
+ *                   $ref: '#/components/schemas/Shelf'
  *       400:
- *         description: Dữ liệu không hợp lệ hoặc trùng mã kệ
+ *         description: |
+ *           Dữ liệu không hợp lệ hoặc có lỗi ràng buộc.
+ *           - ID kệ không hợp lệ
+ *           - code phải là string từ 2-50 ký tự
+ *           - code đã tồn tại (trùng với kệ khác)
+ *           - maxQuantity phải lớn hơn 0
+ *           - currentQuantity phải >= 0
+ *           - warehouseId phải là số nguyên hợp lệ
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Mã kệ đã tồn tại"
+ *               $ref: '#/components/schemas/ValidationError'
+ *             examples:
+ *               duplicateCode:
+ *                 summary: Mã kệ đã tồn tại
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "code"
+ *                       message: "Mã kệ đã tồn tại"
+ *               invalidId:
+ *                 summary: ID không hợp lệ
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "id"
+ *                       message: "ID kệ phải là số nguyên dương"
+ *               invalidMaxQuantity:
+ *                 summary: Sức chứa không hợp lệ
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "maxQuantity"
+ *                       message: "Sức chứa tối đa phải lớn hơn 0"
+ *       401:
+ *         description: |
+ *           Không có quyền truy cập.
+ *           - Token không được cung cấp
+ *           - Token không hợp lệ hoặc đã hết hạn
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Token không hợp lệ"
+ *       403:
+ *         description: |
+ *           Không có quyền cập nhật kệ.
+ *           User không có permission SHELVES.UPDATE
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Bạn không có quyền truy cập tài nguyên này"
  *       404:
- *         description: Không tìm thấy kệ
+ *         description: |
+ *           Không tìm thấy kệ với ID được chỉ định.
+ *           Kệ có thể đã bị xóa hoặc ID không tồn tại
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Không tìm thấy kệ"
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Không tìm thấy kệ"
+ *       500:
+ *         description: Lỗi server không mong muốn
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Lỗi server nội bộ"
  */
 router.put('/:id',
   requirePermission(PERMISSIONS.SHELVES.UPDATE),
@@ -321,6 +527,8 @@ router.put('/:id',
  * /shelves/{id}:
  *   delete:
  *     summary: Xóa kệ
+ *     description: |
+ *       Xóa một kệ khỏi hệ thống.
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -329,9 +537,9 @@ router.put('/:id',
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *         description: ID kệ cần xóa
- *         example: "1"
+ *           type: integer
+ *         description: ID duy nhất của kệ cần xóa
+ *         example: 1
  *     responses:
  *       200:
  *         description: Xóa kệ thành công
@@ -348,26 +556,70 @@ router.put('/:id',
  *                   example: "Xóa kệ thành công"
  *                 data:
  *                   type: object
- *       404:
- *         description: Không tìm thấy kệ
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Không tìm thấy kệ"
+ *                   description: Thông tin kệ đã bị xóa
  *       400:
- *         description: Kệ đang được sử dụng hoặc có ràng buộc dữ liệu
+ *         description: |
+ *           ID không hợp lệ hoặc kệ không thể xóa.
+ *           - ID phải là số nguyên dương
+ *           - ID không được để trống
+ *           - Kệ đang được sử dụng có vải trên kho
+ *           - Kệ có liên kết dữ liệu từ bảng khác
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Kệ đang được sử dụng, không thể xóa"
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               invalidId:
+ *                 summary: ID không hợp lệ
+ *                 value:
+ *                   message: "ID kệ phải là số nguyên dương"
+ *               shelfInUse:
+ *                 summary: Kệ đang được sử dụng
+ *                 value:
+ *                   message: "Kệ đang được sử dụng, không thể xóa"
+ *               foreignKeyConstraint:
+ *                 summary: Kệ có liên kết dữ liệu
+ *                 value:
+ *                   message: "Không thể xóa Shelf vì có dữ liệu khác đang tham chiếu đến bản ghi này"
+ *       401:
+ *         description: |
+ *           Không có quyền truy cập.
+ *           - Token không được cung cấp
+ *           - Token không hợp lệ hoặc đã hết hạn
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Token không hợp lệ"
+ *       403:
+ *         description: |
+ *           Không có quyền xóa kệ.
+ *           User không có permission SHELVES.DELETE
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Bạn không có quyền truy cập tài nguyên này"
+ *       404:
+ *         description: |
+ *           Không tìm thấy kệ với ID được chỉ định.
+ *           Kệ có thể đã bị xóa hoặc ID không tồn tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Không tìm thấy kệ"
+ *       500:
+ *         description: Lỗi server không mong muốn
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Lỗi server nội bộ"
  */
 router.delete('/:id',
   requirePermission(PERMISSIONS.SHELVES.DELETE),

@@ -651,6 +651,70 @@ const options = {
             }
           }
         },
+        Shelf: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'Shelf ID'
+            },
+            code: {
+              type: 'string',
+              description: 'Shelf code (unique identifier)'
+            },
+            currentQuantity: {
+              type: 'integer',
+              description: 'Current quantity of fabric on shelf'
+            },
+            maxQuantity: {
+              type: 'integer',
+              description: 'Maximum capacity of shelf'
+            },
+            warehouseId: {
+              type: 'integer',
+              description: 'Warehouse ID'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Created date'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Updated date'
+            }
+          }
+        },
+        Pagination: {
+          type: 'object',
+          properties: {
+            page: {
+              type: 'integer',
+              description: 'Current page number'
+            },
+            limit: {
+              type: 'integer',
+              description: 'Number of items per page'
+            },
+            total: {
+              type: 'integer',
+              description: 'Total number of items'
+            },
+            totalPages: {
+              type: 'integer',
+              description: 'Total number of pages'
+            },
+            hasNext: {
+              type: 'boolean',
+              description: 'Indicates if there is a next page'
+            },
+            hasPrev: {
+              type: 'boolean',
+              description: 'Indicates if there is a previous page'
+            }
+          }
+        },
         PaginationMeta: {
           type: 'object',
           properties: {
