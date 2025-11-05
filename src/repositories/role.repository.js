@@ -9,6 +9,7 @@ export class RoleRepository {
     return await prisma.role.findMany({
       select: {
         name: true,
+        fullName: true,
         description: true,
         rolePermissions: {
           select: {
@@ -24,6 +25,7 @@ export class RoleRepository {
       where: { name },
       select: {
         name: true,
+        fullName: true,
         description: true,
         rolePermissions: {
           select: {
@@ -60,6 +62,7 @@ export class RoleRepository {
               where: { name: newRole.name },
               select: {
                 name: true,
+                fullName: true,
                 description: true,
                 rolePermissions: {
                   select: {
@@ -76,6 +79,7 @@ export class RoleRepository {
           data: roleData,
           select: {
             name: true,
+            fullName: true,
             description: true,
             rolePermissions: {
               select: {
@@ -145,6 +149,7 @@ export class RoleRepository {
               where: { name },
               select: {
                 name: true,
+                fullName: true,
                 description: true,
                 rolePermissions: {
                   select: {
@@ -162,6 +167,7 @@ export class RoleRepository {
           data: roleData,
           select: {
             name: true,
+            fullName: true,
             description: true,
             rolePermissions: {
               select: {
@@ -188,7 +194,7 @@ export class RoleRepository {
       order = 'asc'
     } = queryOptions;
 
-    const searchableFields = ['name', 'description'];
+    const searchableFields = ['name', 'fullName', 'description'];
     const where = buildWhereClause({ search }, searchableFields);
     const { skip, take } = buildPagination(page, limit);
     const orderBy = buildSort(sortBy, order);
@@ -201,6 +207,7 @@ export class RoleRepository {
         orderBy,
         select: {
           name: true,
+          fullName: true,
           description: true,
           createdAt: true,
           updatedAt: true

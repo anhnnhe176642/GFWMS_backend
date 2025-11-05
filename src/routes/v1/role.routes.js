@@ -101,10 +101,14 @@ router.get('/',
  *                 type: string
  *                 description: Role name
  *                 example: MANAGER
+ *               fullName:
+ *                 type: string
+ *                 description: Role full name (unique)
+ *                 example: Quản lý kho
  *               description:
  *                 type: string
  *                 description: Role description
- *                 example: Quản lý
+ *                 example: Người quản lý kho hàng và bán hàng.
  *                 maxLength: 255
  *               permissions:
  *                 type: array
@@ -272,6 +276,11 @@ router.delete('/:name',
  *           schema:
  *             type: object
  *             properties:
+ *               fullName:
+ *                 type: string
+ *                 description: Role full name (unique)
+ *                 example: Quản trị viên
+ *                 maxLength: 15
  *               description:
  *                 type: string
  *                 description: Role description
@@ -308,7 +317,7 @@ router.delete('/:name',
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  *       409:
- *         description: Description already exists for another role
+ *         description: Full name already exists for another role or description already exists
  *         content:
  *           application/json:
  *             schema:
