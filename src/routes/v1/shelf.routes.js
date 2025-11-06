@@ -297,7 +297,8 @@ router.post('/',
  *     summary: Lấy thông tin kệ theo ID cùng với danh sách vải trên kệ
  *     description: |
  *       Lấy thông tin chi tiết của một kệ cụ thể theo ID của nó, bao gồm danh sách tất cả các loại vải 
- *       đang được lưu trữ trên kệ này cùng với số lượng của mỗi loại vải.
+ *       đang được lưu trữ trên kệ này cùng với số lượng và thông tin chi tiết của mỗi loại vải 
+ *       (bao gồm độ bóng, loại vải, màu sắc, và nhà cung cấp).
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -314,80 +315,62 @@ router.post('/',
  *         description: Lấy thông tin kệ và danh sách vải trên kệ thành công
  *         content:
  *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Lấy thông tin kệ thành công"
- *                 shelf:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                       example: 1
- *                     code:
- *                       type: string
- *                       example: "K001"
- *                     currentQuantity:
- *                       type: integer
- *                       example: 150
- *                     maxQuantity:
- *                       type: integer
- *                       example: 500
- *                     warehouseId:
- *                       type: integer
- *                       example: 1
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-11-06T10:30:00Z"
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-11-06T10:30:00Z"
+ *             examples:
+ *               success:
+ *                 summary: Thành công
+ *                 value:
+ *                   message: "Lấy thông tin kệ thành công"
+ *                   shelf:
+ *                     id: 1
+ *                     code: "K001"
+ *                     currentQuantity: 150
+ *                     maxQuantity: 500
+ *                     warehouseId: 1
+ *                     createdAt: "2025-11-06T10:30:00Z"
+ *                     updatedAt: "2025-11-06T10:30:00Z"
  *                     fabricShelf:
- *                       type: array
- *                       description: Danh sách các loại vải trên kệ
- *                       items:
- *                         type: object
- *                         properties:
- *                           fabricId:
- *                             type: integer
- *                             example: 12
- *                           quantity:
- *                             type: integer
- *                             description: Số lượng vải loại này trên kệ
- *                             example: 30
- *                           fabric:
- *                             type: object
- *                             description: Thông tin chi tiết của loại vải
- *                             properties:
- *                               id:
- *                                 type: integer
- *                                 example: 12
- *                               colorId:
- *                                 type: string
- *                                 example: "RED"
- *                               categoryId:
- *                                 type: integer
- *                                 example: 2
- *                               thickness:
- *                                 type: number
- *                                 format: float
- *                                 example: 0.5
- *                               length:
- *                                 type: number
- *                                 format: float
- *                                 example: 100
- *                               width:
- *                                 type: number
- *                                 format: float
- *                                 example: 150
- *                               weight:
- *                                 type: number
- *                                 format: float
- *                                 example: 2.5
+ *                       - fabricId: 12
+ *                         quantity: 30
+ *                         fabric:
+ *                           id: 12
+ *                           thickness: 0.5
+ *                           length: 100
+ *                           width: 1.5
+ *                           weight: 2.5
+ *                           sellingPrice: 250000
+ *                           gloss:
+ *                             id: 1
+ *                             description: "Bóng"
+ *                           category:
+ *                             id: 2
+ *                             name: "Cotton"
+ *                           color:
+ *                             id: "RED"
+ *                             name: "Đỏ"
+ *                           supplier:
+ *                             id: 5
+ *                             name: "Nhà cung cấp A"
+ *                       - fabricId: 15
+ *                         quantity: 50
+ *                         fabric:
+ *                           id: 15
+ *                           thickness: 0.6
+ *                           length: 120
+ *                           width: 1.8
+ *                           weight: 3.2
+ *                           sellingPrice: 300000
+ *                           gloss:
+ *                             id: 2
+ *                             description: "Mờ"
+ *                           category:
+ *                             id: 3
+ *                             name: "Polyester"
+ *                           color:
+ *                             id: "BLUE"
+ *                             name: "Xanh"
+ *                           supplier:
+ *                             id: 6
+ *                             name: "Nhà cung cấp B"
  *       400:
  *         description: |
  *           ID không hợp lệ.

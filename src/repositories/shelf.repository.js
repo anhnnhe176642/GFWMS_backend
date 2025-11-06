@@ -27,12 +27,34 @@ export class ShelfRepository {
             fabric: {
               select: {
                 id: true,
-                colorId: true,
-                categoryId: true,
                 thickness: true,
                 length: true,
                 width: true,
-                weight: true
+                weight: true,
+                gloss: {
+                  select: {
+                    id: true,
+                    description: true
+                  }
+                },
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                  }
+                },
+                color: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                },
+                supplier: {
+                  select: {
+                    id: true,
+                    name: true,
+                  }
+                }
               }
             }
           }
