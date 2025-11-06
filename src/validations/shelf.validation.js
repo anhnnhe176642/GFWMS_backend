@@ -8,6 +8,7 @@ export const shelfCodeSchema = Joi.string()
   .required()
   .empty('')
   .messages({
+    'string.base': 'Mã kệ phải là chuỗi',
     'string.min': 'Mã kệ phải có ít nhất 2 ký tự',
     'string.max': 'Mã kệ không được vượt quá 50 ký tự',
     'any.required': 'Mã kệ là bắt buộc',
@@ -50,9 +51,15 @@ export const createShelfSchema = Joi.object({
 
 export const updateShelfSchema = Joi.object({
   code: shelfCodeSchema.trim().required(),
-  currentQuantity: shelfQuantitySchema,
-  maxQuantity: shelfMaxQuantitySchema,
-  warehouseId: warehouseIdSchemaForShelf
+  currentQuantity: shelfQuantitySchema.required().messages({
+    'any.required': 'Số lượng hiện tại là bắt buộc'
+  }),
+  maxQuantity: shelfMaxQuantitySchema.required().messages({
+    'any.required': 'Sức chứa tối đa là bắt buộc'
+  }),
+  warehouseId: warehouseIdSchemaForShelf.required().messages({
+    'any.required': 'ID kho là bắt buộc'
+  })
 });
 
 // --- Query & ID Schemas ---
