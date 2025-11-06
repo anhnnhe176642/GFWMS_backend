@@ -263,7 +263,7 @@ async function main() {
   const shelvesToCreate = [];
   for (const warehouse of allWarehouses) {
     for (let i = 0; i < CONFIG.SHELVES_PER_WAREHOUSE; i++) {
-      const code = `${warehouse.name.substring(0, 3).toUpperCase()}-${faker.string.alphanumeric(4).toUpperCase()}-${Date.now()}-${i}`;
+      const code = `${warehouse.name.substring(0, 3).toUpperCase()}-SHF-${String(i + 1).padStart(4, '0')}`;
       
       if (!existingShelfCodes.has(code)) {
         shelvesToCreate.push({

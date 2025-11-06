@@ -18,7 +18,26 @@ export class ShelfRepository {
   async findById(id) {
     return await prisma.shelf.findUnique({
       where: { id: parseInt(id) },
-      select: this.#shelfSelectOptions
+      select: {
+        ...this.#shelfSelectOptions,
+        fabricShelf: {
+          select: {
+            fabricId: true,
+            quantity: true,
+            fabric: {
+              select: {
+                id: true,
+                colorId: true,
+                categoryId: true,
+                thickness: true,
+                length: true,
+                width: true,
+                weight: true
+              }
+            }
+          }
+        }
+      }
     });
   }
 

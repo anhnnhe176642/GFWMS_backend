@@ -907,6 +907,10 @@ const options = {
         description: 'Fabric management endpoints'
       },
       {
+        name: 'FabricShelf',
+        description: 'Fabric shelf management endpoints'
+      },
+      {
         name: 'FabricCategory',
         description: 'Fabric category management endpoints'
       },

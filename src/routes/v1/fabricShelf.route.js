@@ -16,7 +16,7 @@ const router = express.Router();
  *       Phân bổ số lượng vải thuộc **một đơn nhập cụ thể (ImportFabric)** vào các kệ trong kho.  
  *       - Chỉ những vải thuộc `importFabricId` này mới được phép phân bổ.  
  *       - Tổng số lượng phân bổ không được vượt quá số lượng của vải trong đơn nhập đó.
- *     tags: [Fabrics]
+ *     tags: [FabricShelf]
  *     security:
  *       - bearerAuth: []
  *     parameters:

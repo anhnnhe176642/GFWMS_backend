@@ -294,8 +294,10 @@ router.post('/',
  * @swagger
  * /shelves/{id}:
  *   get:
- *     summary: Lấy thông tin kệ theo ID
- *     description: Lấy thông tin chi tiết của một kệ cụ thể theo ID của nó.
+ *     summary: Lấy thông tin kệ theo ID cùng với danh sách vải trên kệ
+ *     description: |
+ *       Lấy thông tin chi tiết của một kệ cụ thể theo ID của nó, bao gồm danh sách tất cả các loại vải 
+ *       đang được lưu trữ trên kệ này cùng với số lượng của mỗi loại vải.
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -309,7 +311,7 @@ router.post('/',
  *         example: 1
  *     responses:
  *       200:
- *         description: Lấy thông tin kệ thành công
+ *         description: Lấy thông tin kệ và danh sách vải trên kệ thành công
  *         content:
  *           application/json:
  *             schema:
@@ -319,7 +321,73 @@ router.post('/',
  *                   type: string
  *                   example: "Lấy thông tin kệ thành công"
  *                 shelf:
- *                   $ref: '#/components/schemas/Shelf'
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     code:
+ *                       type: string
+ *                       example: "K001"
+ *                     currentQuantity:
+ *                       type: integer
+ *                       example: 150
+ *                     maxQuantity:
+ *                       type: integer
+ *                       example: 500
+ *                     warehouseId:
+ *                       type: integer
+ *                       example: 1
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-11-06T10:30:00Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-11-06T10:30:00Z"
+ *                     fabricShelf:
+ *                       type: array
+ *                       description: Danh sách các loại vải trên kệ
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                             example: 12
+ *                           quantity:
+ *                             type: integer
+ *                             description: Số lượng vải loại này trên kệ
+ *                             example: 30
+ *                           fabric:
+ *                             type: object
+ *                             description: Thông tin chi tiết của loại vải
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                                 example: 12
+ *                               colorId:
+ *                                 type: string
+ *                                 example: "RED"
+ *                               categoryId:
+ *                                 type: integer
+ *                                 example: 2
+ *                               thickness:
+ *                                 type: number
+ *                                 format: float
+ *                                 example: 0.5
+ *                               length:
+ *                                 type: number
+ *                                 format: float
+ *                                 example: 100
+ *                               width:
+ *                                 type: number
+ *                                 format: float
+ *                                 example: 150
+ *                               weight:
+ *                                 type: number
+ *                                 format: float
+ *                                 example: 2.5
  *       400:
  *         description: |
  *           ID không hợp lệ.
