@@ -1,5 +1,6 @@
 import { roleRepository } from '../repositories/role.repository.js';
 import { NotFoundError } from '../utils/errors.js';
+import { ConflictError } from '../utils/errors.js';
 
 export const getAllRoles = async () => {
   return await roleRepository.findAll();
@@ -23,10 +24,13 @@ export const deleteRole = async (name) => {
     throw new NotFoundError('Role không tồn tại');
   }
   
-  return await roleRepository.delete(name);
-};
+  const userCount = await roleRepository.countUsersWithRole(name);
+  if (userCount > 0) {
+    throw new ConflictError(`Không thể xóa role vì có ${userCount} user đang sử dụng`);
+  }
 
-export const updateRole = async (name, roleData) => {
+  return await roleRepository.delete(name);
+};export const updateRole = async (name, roleData) => {
   const existingRole = await roleRepository.findByName(name);
   if (!existingRole) {
     throw new NotFoundError('Role không tồn tại');

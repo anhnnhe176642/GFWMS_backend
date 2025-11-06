@@ -1,7 +1,7 @@
 model RolePermission {
   role         String    @db.VarChar(50)
   permissionId Int
-  roleRel      Role       @relation(fields: [role], references: [name])
+  roleRel      Role       @relation(fields: [role], references: [name], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id])
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

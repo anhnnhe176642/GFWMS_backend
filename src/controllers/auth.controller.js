@@ -136,3 +136,15 @@ export const setNewPassword = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getMe = async (req, res, next) => {
+  try {
+    const user = await authService.getCurrentUserWithPermissions(req.user.id);
+    res.json({
+      message: 'Lấy thông tin user thành công',
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
