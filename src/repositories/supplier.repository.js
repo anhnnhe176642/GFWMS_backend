@@ -39,7 +39,8 @@ export class SupplierRepository {
         select: this.#selectOptions
       }),
       {
-        name: 'Tên nhà cung cấp đã tồn tại'
+        name: 'Tên nhà cung cấp đã tồn tại',
+        phone: 'Số điện thoại đã tồn tại',
       }
     );
   }
@@ -53,7 +54,8 @@ export class SupplierRepository {
         select: this.#selectOptions
       }),
       {
-        name: 'Tên nhà cung cấp đã tồn tại'
+        name: 'Tên nhà cung cấp đã tồn tại',
+        phone: 'Số điện thoại đã tồn tại',
       }
     );
   }
