@@ -36,3 +36,12 @@ export const updateFabricColor = async (id, data) => {
 
   return await fabricColorRepository.updateById(id, data);
 };
+
+export const deleteFabricColor  = async (id) => {
+  const existing = await fabricColorRepository.findById(id);
+  if (!existing) {
+    throw new NotFoundError('Màu vải cần xóa không tồn tại trong hệ thống');
+  }
+
+  return await fabricColorRepository.deleteById(id);
+};

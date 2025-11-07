@@ -37,3 +37,11 @@ export const updateSupplier = async (id, data) => {
   return await supplierRepository.updateById(id, data);
 };
 
+export const deleteSupplier   = async (id) => {
+  const existing = await supplierRepository.findById(id);
+  if (!existing) {
+    throw new NotFoundError('Nhà cung cấp cần xóa không tồn tại trong hệ thống');
+  }
+
+  return await supplierRepository.deleteById(id);
+};

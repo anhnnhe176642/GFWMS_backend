@@ -70,3 +70,20 @@ export const updateFabricCategory = async (req, res, next) => {
     next(error);
   }
 };
+
+/**  Xóa FabricCategory */
+export const deleteFabricCategory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const result = await fabricCategoryService.deleteFabricCategory(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Xóa fabric category thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

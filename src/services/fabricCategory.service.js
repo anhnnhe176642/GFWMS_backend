@@ -44,3 +44,12 @@ export const updateFabricCategory = async (id, data) => {
   return await fabricCategoryRepository.updateById(id, data);
 };
 
+/** Xóa FabricCategory theo ID */
+export const deleteFabricCategory = async (id) => {
+  const existing = await fabricCategoryRepository.findById(id);
+  if (!existing) {
+    throw new NotFoundError('Loại vải cần xóa không tồn tại trong hệ thống');
+  }
+
+  return await fabricCategoryRepository.deleteById(id);
+};

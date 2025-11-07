@@ -60,6 +60,14 @@ export class SupplierRepository {
     );
   }
 
+  async deleteById(id) {
+    return withPrismaErrorHandling(() =>
+      prisma.supplier.delete({
+        where: { id: parseInt(id) }
+      })
+    );
+  }
+
 
   /**  Đếm tổng số Supplier */
   async count(where = {}) {

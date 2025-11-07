@@ -36,3 +36,12 @@ export const updateFabricGloss = async (id, data) => {
 
   return await fabricGlossRepository.updateById(id, data);
 };
+
+export const deleteFabricGloss  = async (id) => {
+  const existing = await fabricGlossRepository.findById(id);
+  if (!existing) {
+    throw new NotFoundError('Độ bóng vải cần xóa không tồn tại trong hệ thống');
+  }
+
+  return await fabricGlossRepository.deleteById(id);
+};

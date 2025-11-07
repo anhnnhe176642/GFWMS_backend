@@ -51,6 +51,13 @@ export class FabricGlossRepository {
     );
   }
 
+  async deleteById(id) {
+    return withPrismaErrorHandling(() =>
+      prisma.fabricGloss.delete({
+        where: { id: parseInt(id) }
+      })
+    );
+  }
 
   async count() {
     return await prisma.fabricGloss.count();
