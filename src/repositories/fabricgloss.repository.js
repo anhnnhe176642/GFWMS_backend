@@ -59,6 +59,11 @@ export class FabricGlossRepository {
     );
   }
 
+  async countFabricsWithGloss(glossId) {
+    return await prisma.fabric.count({
+      where: {glossId  } 
+    });
+  }
   async count() {
     return await prisma.fabricGloss.count();
   }

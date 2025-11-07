@@ -1,6 +1,6 @@
 import { NotFoundError } from '../utils/errors.js';
 import fabricCategoryRepository from '../repositories/fabricCategory.repository.js';
-
+import { ConflictError } from '../utils/errors.js';
 /**  Lấy tất cả FabricCategory với phân trang cơ bản */
 export const getAllFabricCategories = async (page, limit) => {
   return await fabricCategoryRepository.findWithPagination(page, limit);
@@ -46,9 +46,17 @@ export const updateFabricCategory = async (id, data) => {
 
 /** Xóa FabricCategory theo ID */
 export const deleteFabricCategory = async (id) => {
-  const existing = await fabricCategoryRepository.findById(id);
-  if (!existing) {
-    throw new NotFoundError('Loại vải cần xóa không tồn tại trong hệ thống');
+  const existingCategory = await fabricCategoryRepository.findById(id);
+  if (!existingCategory) {
+    throw new NotFoundError('Loại vải không tồn tại');
+  }
+
+  // Kiểm tra xem có Fabric nào thuộc category này không
+  const fabricCount = await fabricCategoryRepository.countFabricsInCategory(id);
+  if (fabricCount > 0) {
+    throw new ConflictError(
+      `Không thể xóa  ${existingCategory.name} vì đang có ${fabricCount} mẫu vải tham chiếu đến`
+    );
   }
 
   return await fabricCategoryRepository.deleteById(id);

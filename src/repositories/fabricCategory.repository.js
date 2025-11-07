@@ -59,13 +59,18 @@ class FabricCategoryRepository {
       }
     );
   }
-  async deleteById(id) {
-    return withPrismaErrorHandling(() =>
-      prisma.fabricCategory.delete({
-        where: { id: parseInt(id) }
-      })
-    );
+  async countFabricsInCategory(categoryId) {
+    return prisma.fabric.count({
+      where: { categoryId}
+    });
   }
+
+  async deleteById(id) {
+    return prisma.fabricCategory.delete({
+      where: { id }
+    });
+  }
+
   /**  Đếm tổng */
   async count(where = {}) {
     return await prisma.fabricCategory.count({ where });

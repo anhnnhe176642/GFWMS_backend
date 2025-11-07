@@ -60,12 +60,16 @@ export class SupplierRepository {
     );
   }
 
+  async countFabricsWithSupplier(supplierId) {
+    return await prisma.fabric.count({
+      where: { supplierId },
+    });
+  }
+
   async deleteById(id) {
-    return withPrismaErrorHandling(() =>
-      prisma.supplier.delete({
-        where: { id: parseInt(id) }
-      })
-    );
+    return await prisma.supplier.delete({
+      where: { id },
+    });
   }
 
 
