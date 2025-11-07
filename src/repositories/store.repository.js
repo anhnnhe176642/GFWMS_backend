@@ -102,6 +102,13 @@ export class StoreRepository {
       })
     );
   }
+
+  async countFabricsInStore(storeId) {
+    return prisma.fabricStore.count({
+      where: { storeId: parseInt(storeId) }
+    });
+  }
+
 }
 
 export const storeRepository = new StoreRepository();

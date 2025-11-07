@@ -39,7 +39,8 @@ export class SupplierRepository {
         select: this.#selectOptions
       }),
       {
-        name: 'Tên nhà cung cấp đã tồn tại'
+        name: 'Tên nhà cung cấp đã tồn tại',
+        phone: 'Số điện thoại đã tồn tại',
       }
     );
   }
@@ -53,9 +54,22 @@ export class SupplierRepository {
         select: this.#selectOptions
       }),
       {
-        name: 'Tên nhà cung cấp đã tồn tại'
+        name: 'Tên nhà cung cấp đã tồn tại',
+        phone: 'Số điện thoại đã tồn tại',
       }
     );
+  }
+
+  async countFabricsWithSupplier(supplierId) {
+    return await prisma.fabric.count({
+      where: { supplierId },
+    });
+  }
+
+  async deleteById(id) {
+    return await prisma.supplier.delete({
+      where: { id },
+    });
   }
 
 

@@ -53,6 +53,21 @@ async create(colorData) {
     );
   }
 
+  async deleteById(id) {
+    return withPrismaErrorHandling(() =>
+      prisma.fabricColor.delete({
+        where: { id}
+      })
+    );
+  }
+
+  async countFabricsWithColor(colorId) {
+  return await prisma.fabric.count({
+    where: { colorId } 
+  });
+}
+
+
   async count(where = {}) {
     return await prisma.fabricColor.count({ where });
   }

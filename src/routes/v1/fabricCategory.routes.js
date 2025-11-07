@@ -3,7 +3,8 @@ import {
   getAllFabricCategories,
   getFabricCategoryById,
   createFabricCategory,
-  updateFabricCategory
+  updateFabricCategory,
+  deleteFabricCategory
 } from '../../controllers/fabricCategory.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { requirePermission } from '../../middlewares/permission.middleware.js';
@@ -191,6 +192,49 @@ router.put(
   validate(fabricCategoryIdParamSchema, 'params'),
   validate(updateFabricCategorySchema, 'body'),
   updateFabricCategory
+);
+
+/**
+ * @swagger
+ * /fabric-category/{id}:
+ *   delete:
+ *     summary: Xóa loại vải
+ *     tags: [FabricCategory]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: FabricCategory ID
+ *     responses:
+ *       200:
+ *         description: Xóa loại vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Xóa loại vải thành công"
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Bad Request - Loại vải đang được sử dụng hoặc có ràng buộc dữ liệu
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.delete(
+  '/:id',
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
+  validate(fabricCategoryIdParamSchema, 'params'),
+  deleteFabricCategory
 );
 
 export default router;
