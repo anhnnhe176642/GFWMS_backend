@@ -1,5 +1,5 @@
 import { storeRepository } from '../repositories/store.repository.js';
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError,ConflictError  } from '../utils/errors.js';
 
 class StoreService {
   async getAllStoresAdvanced(queryOptions) {
@@ -31,7 +31,15 @@ class StoreService {
     if (!store) {
       throw new NotFoundError('Không tìm thấy cửa hàng');
     }
-    return storeRepository.deleteById(id);
+
+    const fabricCount = await storeRepository.countFabricsInStore(id);
+    if (fabricCount > 0) {
+      throw new ConflictError(
+        `Không thể xóa cửa hàng ${store.name} vì đang cửa hàng đang hoạt động`
+      );
+    }
+
+    return await storeRepository.deleteById(id);
   }
 }
 

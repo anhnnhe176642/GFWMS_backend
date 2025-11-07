@@ -75,4 +75,18 @@ export const updateSupplier = async (req, res, next) => {
   }
 };
 
+export const deleteSuppiler  = async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
+    const result = await supplierService.deleteSupplier(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Xóa nhà cung cấp thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -74,3 +74,19 @@ export const updateFabricColor = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteFabricColor  = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const result = await fabricColorService.deleteFabricColor(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Xóa màu vải thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

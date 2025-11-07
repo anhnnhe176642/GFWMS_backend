@@ -4,6 +4,7 @@ import {
   getSupplierById,
   createSupplier,
   updateSupplier,
+  deleteSuppiler
 } from '../../controllers/supplier.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { requirePermission } from '../../middlewares/permission.middleware.js';
@@ -243,4 +244,44 @@ router.put(
   updateSupplier
 );
 
+/**
+ * @swagger
+ * /supplier/{id}:
+ *   delete:
+ *     summary: Xóa nhà cung cấp theo id
+ *     tags: [Supplier]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Xóa nhà cung cấp thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Xóa nhà cung cấp thành công
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.delete(
+  '/:id',
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
+  validate(supplierIdParamSchema, 'params'),
+  deleteSuppiler
+);
 export default router;

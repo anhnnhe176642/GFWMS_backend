@@ -149,6 +149,16 @@ export class ShelfRepository {
       })
     );
   }
+
+  async countFabricsOnShelf(shelfId) {
+    const result = await prisma.fabricShelf.aggregate({
+      _sum: { quantity: true },
+      where: { shelfId: Number(shelfId) }
+    });
+
+    return result._sum.quantity || 0;
+  }
+
 }
 
 export const shelfRepository = new ShelfRepository();

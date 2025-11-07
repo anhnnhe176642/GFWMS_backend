@@ -1,5 +1,5 @@
 import { shelfRepository } from '../repositories/shelf.repository.js';
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError , ConflictError } from '../utils/errors.js';
 
 class ShelfService {
 
@@ -35,6 +35,14 @@ class ShelfService {
     if (!shelf) {
       throw new NotFoundError('Không tìm thấy kệ');
     }
+
+    const fabricCount = await shelfRepository.countFabricsOnShelf(id);
+    if (fabricCount > 0) {
+      throw new ConflictError(
+        `Không thể xóa kệ ${shelf.code} vì đang có ${fabricCount} mẫu vải ở trên kệ này`
+      );
+    }
+
     return await shelfRepository.deleteById(id);
   }
 }

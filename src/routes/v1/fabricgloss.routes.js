@@ -4,6 +4,7 @@ import {
   getFabricGlossById, 
   createFabricGloss, 
   updateFabricGloss, 
+  deleteFabricGloss
 } from '../../controllers/fabricgloss.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { requirePermission } from '../../middlewares/permission.middleware.js';
@@ -212,6 +213,44 @@ router.put(
   updateFabricGloss
 );
 
-
+/**
+ * @swagger
+ * /fabric-gloss/{id}:
+ *   delete:
+ *     summary: Xóa độ bóng vải
+ *     tags: [FabricGloss]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Xóa fabric gloss thành công
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.delete(
+  '/:id',
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  validate(fabricGlossIdParamSchema, 'params'),
+  deleteFabricGloss
+);
 
 export default router;
