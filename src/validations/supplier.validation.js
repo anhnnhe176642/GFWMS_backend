@@ -72,7 +72,7 @@ export const supplierIdParamSchema = Joi.object({
 });
 
 // ===== SCHEMA CHO QUERY =====
-const allowedSupplierSortFields = ['name', 'address', 'phone', 'createdAt', 'updatedAt'];
+const allowedSupplierSortFields = ['name', 'address', 'phone', 'isActive', 'createdAt', 'updatedAt'];
 
 export const supplierQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedSupplierSortFields),

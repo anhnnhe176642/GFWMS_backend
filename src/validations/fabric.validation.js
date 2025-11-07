@@ -133,6 +133,10 @@ export const paginationQuerySchema = Joi.object({
  */
 const allowedFabricSortFields = [
   'id',
+  'category.name',
+  'color.name',
+  'gloss.description',
+  'supplier.name',
   'createdAt',
   'updatedAt',
   'sellingPrice',

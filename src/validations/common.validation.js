@@ -208,11 +208,13 @@ export const searchSchema = Joi.string()
   });
 
 // Sort validation - support multiple fields (comma-separated)
+// Allow nested fields using dot notation (e.g., "category.name")
 export const sortBySchema = Joi.string()
-  .pattern(/^[a-zA-Z_]+(,[a-zA-Z_]+)*$/)
+  // allow letters, numbers, underscore and dot for nested relations; multiple fields separated by commas
+  .pattern(/^[a-zA-Z0-9_.]+(,[a-zA-Z0-9_.]+)*$/)
   .messages({
     'string.base': 'Sort by phải là string',
-    'string.pattern.base': 'Sort by phải là tên field hợp lệ hoặc các field cách nhau bởi dấu phẩy (vd: field1,field2)'
+    'string.pattern.base': 'Sort by phải là tên field hợp lệ (hỗ trợ nested với dấu ".") hoặc các field cách nhau bởi dấu phẩy (vd: field1,field2 hoặc category.name,createdAt)'
   });
 
 /**

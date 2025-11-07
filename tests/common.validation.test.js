@@ -299,7 +299,7 @@ describe("Common single value schemas", () => {
     const { error } = genderSchema.validate("UNKNOWN");
     expect(error).toBeDefined();
     expect(error.message).toContain(
-      "Giới tính phải là MALE, FEMALE hoặc OTHER"
+      "Giới tính phải là MALE hoặc FEMALE"
     );
   });
 
