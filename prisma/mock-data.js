@@ -106,7 +106,7 @@ async function main() {
   for (let i = 0; i < CONFIG.FABRIC_CATEGORIES; i++) {
     const name = i < categoryNames.length 
       ? categoryNames[i] 
-      : `${faker.commerce.productMaterial()} Fabric ${Date.now()}_${i}`;
+      : `${faker.commerce.productMaterial()} Fabric ${faker.string.alphanumeric(3)}`;
     
     if (!existingCategoryNames.has(name)) {
       categoriesToCreate.push({
@@ -135,10 +135,10 @@ async function main() {
   
   const colorsToCreate = [];
   for (let i = 0; i < CONFIG.FABRIC_COLORS; i++) {
-    const colorId = `CLR${Date.now()}${i}`.substring(0, 50);
+    const colorId = `CLR${faker.string.alphanumeric(3)}`;
     const name = i < colorNames.length 
       ? colorNames[i] 
-      : `${faker.color.human()} ${Date.now()}_${i}`;
+      : `${faker.color.human()} ${faker.string.alphanumeric(3)}`;
     
     if (!existingColorNames.has(name)) {
       colorsToCreate.push({ id: colorId, name });
@@ -164,7 +164,7 @@ async function main() {
   for (let i = 0; i < CONFIG.FABRIC_GLOSS; i++) {
     const description = i < glossDescriptions.length 
       ? glossDescriptions[i] 
-      : `Gloss Level ${Date.now()}_${i}`;
+      : `Gloss Level ${faker.string.alphanumeric(3)}`;
     
     if (!existingGlossDescs.has(description)) {
       glossesToCreate.push({ description });
@@ -214,7 +214,7 @@ async function main() {
   for (let i = 0; i < CONFIG.WAREHOUSES; i++) {
     const name = i < warehouseNames.length 
       ? warehouseNames[i] 
-      : `Warehouse ${faker.location.city()} ${Date.now()}_${i}`;
+      : `Warehouse ${faker.location.city()} ${faker.string.alphanumeric(3)}`;
     
     if (!existingWarehouseNames.has(name)) {
       warehousesToCreate.push({
@@ -242,7 +242,7 @@ async function main() {
   for (let i = 0; i < CONFIG.STORES; i++) {
     const name = i < storeNames.length 
       ? storeNames[i] 
-      : `Store ${faker.location.city()} ${Date.now()}_${i}`;
+      : `Store ${faker.location.city()} ${faker.string.alphanumeric(3)}`;
     
     storesToCreate.push({
       name,
