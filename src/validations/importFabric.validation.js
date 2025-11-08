@@ -5,6 +5,7 @@ import {
   dateToSchema, 
   createSortBySchema, 
   sortOrderSchema,
+  createMultiValueFilterSchema
 } from './common.validation.js';
 import { warehouseIdSchema } from './warehouse.validation.js';
 
@@ -90,14 +91,14 @@ export const createImportFabricSchema = Joi.object({
 
 const allowedImportFabricSortFields = ['id', 'importDate', 'importUser.fullname', 'totalPrice', 'status', 'createdAt'];
 
-const allowedImportFabricStatuses = ['PENDING', 'COMPLETED', 'CANCELLED'];
+const statusEnumSchema = Joi.string().valid('PENDING', 'COMPLETED', 'CANCELLED').messages({
+  'any.only': 'Status phải là một trong: PENDING, COMPLETED, CANCELLED'
+});
 
 export const importFabricQuerySchema = querySchema.keys({
   warehouseId: positiveIntegerSchema.optional(),
   importer: Joi.string().optional(),
-  status: Joi.string().valid(...allowedImportFabricStatuses).optional().messages({
-    'any.only': 'Status phải là một trong: PENDING, COMPLETED, CANCELLED'
-  }),
+  status: createMultiValueFilterSchema(statusEnumSchema, 'Status'),
   sortBy: createSortBySchema(allowedImportFabricSortFields),
   order: sortOrderSchema,
   importDateFrom: dateFromSchema,

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
 import { NotFoundError } from '../utils/errors.js';
-import {buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+import { buildPagination, buildSort, formatPaginatedResponse, buildWhereClause } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
 
@@ -82,23 +82,7 @@ class ImportFabricRepository {
       filters = {}
     } = queryOptions;
 
-    const where = {};
-
-    if (filters.warehouseId) {
-      where.warehouseId = parseInt(filters.warehouseId);
-    }
-
-    if (filters.importer) {
-      where.importer = filters.importer;
-    }
-
-    if (filters.status) {
-      where.status = filters.status;
-    }
-
-    if (filters.importDate) {
-      where.importDate = filters.importDate;
-    }
+    const where = buildWhereClause(filters);
 
     const { skip, take } = buildPagination(page, limit);
     const orderBy = buildSort(sortBy, order);
