@@ -14,10 +14,10 @@ import { warehouseIdSchema } from './warehouse.validation.js';
 
 //  Schema cho shelfId (kệ)
 export const shelfIdSchema = Joi.number().integer().positive().required().messages({
-  'number.base': 'ShelfId phải là số',
-  'number.integer': 'ShelfId phải là số nguyên',
-  'number.positive': 'ShelfId phải lớn hơn 0',
-  'any.required': 'ShelfId là bắt buộc'
+  'number.base': 'ID kệ phải là số',
+  'number.integer': 'ID kệ phải là số nguyên',
+  'number.positive': 'ID kệ phải lớn hơn 0',
+  'any.required': 'ID kệ là bắt buộc'
 });
 
 //  Schema cho fabricId (vải)
@@ -30,10 +30,10 @@ export const fabricIdSchema = Joi.number().integer().positive().required().messa
 
 //  Schema cho quantity (số lượng)
 export const quantitySchema = Joi.number().integer().positive().required().messages({
-  'number.base': 'Quantity phải là số',
-  'number.integer': 'Quantity phải là số nguyên',
-  'number.positive': 'Quantity phải lớn hơn 0',
-  'any.required': 'Quantity là bắt buộc'
+  'number.base': 'Số lượng phải là số',
+  'number.integer': 'Số lượng phải là số nguyên',
+  'number.positive': 'Số lượng phải lớn hơn 0',
+  'any.required': 'Số lượng là bắt buộc'
 });
 
 //
@@ -52,17 +52,20 @@ export const shelfAllocationItemSchema = Joi.object({
 
 //  Schema cho request body khi phân bổ vải
 export const allocateFabricSchema = Joi.object({
-      importFabricId: Joi.number().integer().required().messages({
-    'number.base': 'importFabricId phải là số',
-    'any.required': 'importFabricId là bắt buộc'
+  importFabricId: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID đơn nhập phải là số',
+    'number.integer': 'ID đơn nhập phải là số nguyên',
+    'number.positive': 'ID đơn nhập phải lớn hơn 0',
+    'any.required': 'ID đơn nhập là bắt buộc'
   }),
+
   shelves: Joi.array()
     .items(shelfAllocationItemSchema)
     .min(1)
     .required()
     .messages({
       'array.min': 'Phải có ít nhất 1 kệ để phân bổ vải',
-      'any.required': 'Danh sách kệ (shelves) là bắt buộc'
+      'any.required': 'Danh sách kệ là bắt buộc'
     })
 }).options({
   stripUnknown: true
