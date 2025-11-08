@@ -46,6 +46,12 @@ export class ConflictError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(message, field = null) {
+    super(message, 400, field);
+  }
+}
+
 export class InternalServerError extends AppError {
   constructor(message, field = null) {
     super(message, 500, field);
