@@ -1,8 +1,8 @@
 import express from 'express';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
-import { createImportFabric, getAllImportFabrics, getImportFabricById, getFabricSellingPrice  } from '../../controllers/importFabric.controller.js';
+import { createImportFabric, getAllImportFabrics, getImportFabricById, getFabricSellingPrice, updateImportFabricStatus  } from '../../controllers/importFabric.controller.js';
 import { validate } from '../../middlewares/validation.middleware.js';
-import { createImportFabricSchema,importFabricQuerySchema, importFabricIdSchema, getFabricSellingPriceSchema } from '../../validations/importFabric.validation.js';
+import { createImportFabricSchema, importFabricQuerySchema, importFabricIdSchema, getFabricSellingPriceSchema, updateImportFabricStatusSchema } from '../../validations/importFabric.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -416,6 +416,74 @@ router.get('/:id',
   requirePermission(PERMISSIONS.IMPORT_FABRICS.VIEW_DETAIL),
   validate(importFabricIdSchema, 'params'),
   getImportFabricById
+);
+
+/**
+ * @swagger
+ * /import-fabrics/{id}/status:
+ *   put:
+ *     summary: Cập nhật trạng thái phiếu nhập kho
+ *     tags: [Import Fabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID phiếu nhập
+ *         example: "18"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING, COMPLETED, CANCELLED]
+ *                 description: Trạng thái phiếu nhập (PENDING, COMPLETED, CANCELLED)
+ *                 example: "COMPLETED"
+ *     responses:
+ *       200:
+ *         description: Cập nhật trạng thái thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Cập nhật trạng thái phiếu nhập thành công"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 18
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, COMPLETED, CANCELLED]
+ *                       example: "COMPLETED"
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Không tìm thấy phiếu nhập
+ */
+router.put('/:id/status',
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.ALLOCATE_TO_SHELF),
+  validate(importFabricIdSchema, 'params'),
+  validate(updateImportFabricStatusSchema, 'body'),
+  updateImportFabricStatus
 );
 
 

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { buildPagination, buildSort, formatPaginatedResponse, buildWhereClause } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
@@ -56,6 +56,7 @@ class ImportFabricRepository {
         fabricId: true,
         quantity: true,
         price: true,
+        status: true,
         createdAt: true,
         updatedAt: true,
         fabric: {
@@ -186,6 +187,71 @@ class ImportFabricRepository {
       {
         warehouseId: 'Kho không tồn tại',
         importer: 'Người nhập không tồn tại'
+      }
+    );
+  }
+
+  // Cập nhật trạng thái phiếu nhập vải
+  async updateStatus(id, status) {
+    const importFabric = await prisma.importFabric.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!importFabric) {
+      throw new NotFoundError(`Không tìm thấy phiếu nhập với ID: ${id}`);
+    }
+
+    return await withPrismaErrorHandling(
+      () => prisma.importFabric.update({
+        where: { id: parseInt(id) },
+        data: { status },
+        select: this.#importFabricSelectOptions
+      }),
+      {
+        status: 'Trạng thái không hợp lệ'
+      }
+    );
+  }
+
+  // Kiểm tra xem tất cả items có hoàn thành (STORED) hay không
+  async #checkAllItemsStored(importFabricId) {
+    const pendingItems = await prisma.importFabricItem.findFirst({
+      where: {
+        importFabricId,
+        status: { not: 'STORED' }
+      }
+    });
+
+    return !pendingItems; // true nếu tất cả đã STORED, false nếu còn pending/cancelled
+  }
+
+  // Cập nhật trạng thái với kiểm tra items
+  async updateStatusWithValidation(id, status) {
+    const importFabric = await prisma.importFabric.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!importFabric) {
+      throw new NotFoundError(`Không tìm thấy phiếu nhập với ID: ${id}`);
+    }
+
+    // Nếu muốn cập nhật thành COMPLETED, kiểm tra tất cả items phải có status STORED
+    if (status === 'COMPLETED') {
+      const allItemsStored = await this.#checkAllItemsStored(parseInt(id));
+      
+      if (!allItemsStored) {
+        throw new ValidationError('Không thể hoàn thành phiếu nhập. Tất cả các item phải có trạng thái STORED');
+      }
+    }
+
+    return await withPrismaErrorHandling(
+      () => prisma.importFabric.update({
+        where: { id: parseInt(id) },
+        data: { status },
+        select: this.#importFabricSelectOptions
+      }),
+      {
+        status: 'Trạng thái không hợp lệ'
       }
     );
   }

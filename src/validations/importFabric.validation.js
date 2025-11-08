@@ -91,9 +91,11 @@ export const createImportFabricSchema = Joi.object({
 
 const allowedImportFabricSortFields = ['id', 'importDate', 'importUser.fullname', 'totalPrice', 'status', 'createdAt'];
 
-const statusEnumSchema = Joi.string().valid('PENDING', 'COMPLETED', 'CANCELLED').messages({
+const importFabricStatusEnum = Joi.string().valid('PENDING', 'COMPLETED', 'CANCELLED').messages({
   'any.only': 'Status phải là một trong: PENDING, COMPLETED, CANCELLED'
 });
+
+const statusEnumSchema = importFabricStatusEnum;
 
 export const importFabricQuerySchema = querySchema.keys({
   warehouseId: positiveIntegerSchema.optional(),
@@ -109,3 +111,12 @@ export const importFabricQuerySchema = querySchema.keys({
 
 
 export const importFabricIdSchema = warehouseIdSchema;
+
+export const updateImportFabricStatusSchema = Joi.object({
+  status: importFabricStatusEnum
+    .required()
+    .messages({
+      'any.required': 'Status là bắt buộc',
+      'string.empty': 'Status không được để trống'
+    })
+});
