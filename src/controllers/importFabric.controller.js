@@ -23,7 +23,7 @@ export const createImportFabric = async (req, res, next) => {
 export const getAllImportFabrics = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
-      filterFields: ['warehouseId', 'importer'],
+      filterFields: ['warehouseId', 'importer', 'status'],
       dateRangeConfig: { 
         fromField: 'importDateFrom', 
         toField: 'importDateTo', 

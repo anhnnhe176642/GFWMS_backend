@@ -223,6 +223,12 @@ router.post('/',
  *         description: Lọc theo người nhập (UUID)
  *         example: "72f8990d-125c-4805-b03c-8cbe3142be06"
  *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Lọc theo trạng thái
+ *         example: "PENDING"
+ *       - in: query
  *         name: importDateFrom
  *         schema:
  *           type: string
@@ -256,6 +262,10 @@ router.post('/',
  *                       importDate:
  *                         type: string
  *                         example: "2025-10-28T08:07:59.567Z"
+ *                       status:
+ *                         type: string
+ *                         enum: [PENDING, COMPLETED, CANCELLED]
+ *                         example: "PENDING"
  *                       totalPrice:
  *                         type: number
  *                         example: 9000000

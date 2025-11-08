@@ -88,11 +88,16 @@ export const createImportFabricSchema = Joi.object({
 });
 
 
-const allowedImportFabricSortFields = ['id', 'importDate', 'importUser.fullname', 'totalPrice', 'createdAt'];
+const allowedImportFabricSortFields = ['id', 'importDate', 'importUser.fullname', 'totalPrice', 'status', 'createdAt'];
+
+const allowedImportFabricStatuses = ['PENDING', 'COMPLETED', 'CANCELLED'];
 
 export const importFabricQuerySchema = querySchema.keys({
   warehouseId: positiveIntegerSchema.optional(),
   importer: Joi.string().optional(),
+  status: Joi.string().valid(...allowedImportFabricStatuses).optional().messages({
+    'any.only': 'Status phải là một trong: PENDING, COMPLETED, CANCELLED'
+  }),
   sortBy: createSortBySchema(allowedImportFabricSortFields),
   order: sortOrderSchema,
   importDateFrom: dateFromSchema,

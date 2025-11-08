@@ -12,6 +12,7 @@ class ImportFabricRepository {
     id: true,
     importDate: true,
     totalPrice: true,
+    status: true,
     warehouse: {
       select: {
         id: true,
@@ -33,6 +34,7 @@ class ImportFabricRepository {
     importer: true,
     importDate: true,
     totalPrice: true,
+    status: true,
     warehouse: {
       select: {
         id: true,
@@ -88,6 +90,10 @@ class ImportFabricRepository {
 
     if (filters.importer) {
       where.importer = filters.importer;
+    }
+
+    if (filters.status) {
+      where.status = filters.status;
     }
 
     if (filters.importDate) {
