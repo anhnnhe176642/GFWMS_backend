@@ -5,15 +5,15 @@ import {
   createSortBySchema, 
   sortOrderSchema 
 } from './common.validation.js';
-
+// cân nhắc sửa message
 const roleFullNameSchema = Joi.string().max(15).optional().messages({
   'string.max': 'Full Name không được vượt quá 15 ký tự'
 });
-
+// cân nhắc sửa message
 const roleDescriptionSchema = Joi.string().max(255).optional().messages({
   'string.max': 'Description không được vượt quá 255 ký tự'
 });
-
+// cân nhắc sửa message
 const rolePermissionsSchema = Joi.array().items(Joi.number().integer().positive()).optional().messages({
   'array.base': 'Permissions phải là một mảng',
   'number.base': 'Permission ID phải là số nguyên',

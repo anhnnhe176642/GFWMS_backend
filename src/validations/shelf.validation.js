@@ -66,7 +66,7 @@ export const updateShelfSchema = Joi.object({
 const allowedShelfSortFields = ['id', 'code', 'currentQuantity', 'maxQuantity', 'warehouseId', 'createdAt', 'updatedAt'];
 
 export const shelfQuerySchema = querySchema.keys({
-  warehouseId: createMultiValueFilterSchema(warehouseIdSchemaForShelf, 'Warehouse ID'),
+  warehouseId: createMultiValueFilterSchema(warehouseIdSchemaForShelf, 'ID kho'),
   sortBy: createSortBySchema(allowedShelfSortFields),
   order: sortOrderSchema,
   createdFrom: dateFromSchema,

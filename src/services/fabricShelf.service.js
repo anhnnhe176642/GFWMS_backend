@@ -57,7 +57,7 @@ class FabricShelfService {
 
     if (foundShelves.length !== shelfIds.length) {
       const missing = shelfIds.filter(id => !foundShelves.some(s => s.id === id));
-      throw new NotFoundError(`Không tìm thấy các kệ: ${missing.join(', ')}`);
+      throw new NotFoundError(`Không tìm thấy kệ có id là: ${missing.join(', ')}`);
     }
 
     //  Kiểm tra cùng kho
