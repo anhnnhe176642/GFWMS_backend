@@ -88,10 +88,10 @@ export const createImportFabricSchema = Joi.object({
 });
 
 
-const allowedImportFabricSortFields = ['id', 'importDate', 'totalPrice', 'createdAt'];
+const allowedImportFabricSortFields = ['id', 'importDate', 'importUser.fullname', 'totalPrice', 'createdAt'];
 
 export const importFabricQuerySchema = querySchema.keys({
-  warehouseId: warehouseIdSchema.optional(),
+  warehouseId: positiveIntegerSchema.optional(),
   importer: Joi.string().optional(),
   sortBy: createSortBySchema(allowedImportFabricSortFields),
   order: sortOrderSchema,
