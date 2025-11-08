@@ -128,6 +128,11 @@ class ImportFabricService {
   }
 
 
+  // Cập nhật trạng thái phiếu nhập vải
+  async updateStatus(id, status) {
+    return await importFabricRepository.updateStatusWithValidation(id, status);
+  }
+
   // lay gia ban cua vai dua tren thuoc tinh
   async getFabricSellingPrice(fabricAttributes) {
     const {

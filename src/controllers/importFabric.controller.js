@@ -23,7 +23,7 @@ export const createImportFabric = async (req, res, next) => {
 export const getAllImportFabrics = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
-      filterFields: ['warehouseId', 'importer'],
+      filterFields: ['warehouseId', 'importer', 'status'],
       dateRangeConfig: { 
         fromField: 'importDateFrom', 
         toField: 'importDateTo', 
@@ -58,6 +58,22 @@ export const getFabricSellingPrice = async (req, res, next) => {
   try {
     const result = await importFabricService.getFabricSellingPrice(req.query);
     res.json({
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateImportFabricStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const result = await importFabricService.updateStatus(id, status);
+
+    res.json({
+      message: 'Cập nhật trạng thái phiếu nhập thành công',
       data: result
     });
   } catch (error) {
