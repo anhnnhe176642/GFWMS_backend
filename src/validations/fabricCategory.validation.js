@@ -76,6 +76,7 @@ export const fabricCategoryIdParamSchema = Joi.object({
 // Allowed fields for sorting FabricCategory
 const allowedFabricCategorySortFields = [
   'name',
+  'description',
   'createdAt',
   'updatedAt',
   'sellingPricePerMeter',

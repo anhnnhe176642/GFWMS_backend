@@ -294,8 +294,11 @@ router.post('/',
  * @swagger
  * /shelves/{id}:
  *   get:
- *     summary: Lấy thông tin kệ theo ID
- *     description: Lấy thông tin chi tiết của một kệ cụ thể theo ID của nó.
+ *     summary: Lấy thông tin kệ theo ID cùng với danh sách vải trên kệ
+ *     description: |
+ *       Lấy thông tin chi tiết của một kệ cụ thể theo ID của nó, bao gồm danh sách tất cả các loại vải 
+ *       đang được lưu trữ trên kệ này cùng với số lượng và thông tin chi tiết của mỗi loại vải 
+ *       (bao gồm độ bóng, loại vải, màu sắc, và nhà cung cấp).
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -309,17 +312,65 @@ router.post('/',
  *         example: 1
  *     responses:
  *       200:
- *         description: Lấy thông tin kệ thành công
+ *         description: Lấy thông tin kệ và danh sách vải trên kệ thành công
  *         content:
  *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Lấy thông tin kệ thành công"
- *                 shelf:
- *                   $ref: '#/components/schemas/Shelf'
+ *             examples:
+ *               success:
+ *                 summary: Thành công
+ *                 value:
+ *                   message: "Lấy thông tin kệ thành công"
+ *                   shelf:
+ *                     id: 1
+ *                     code: "K001"
+ *                     currentQuantity: 150
+ *                     maxQuantity: 500
+ *                     warehouseId: 1
+ *                     createdAt: "2025-11-06T10:30:00Z"
+ *                     updatedAt: "2025-11-06T10:30:00Z"
+ *                     fabricShelf:
+ *                       - fabricId: 12
+ *                         quantity: 30
+ *                         fabric:
+ *                           id: 12
+ *                           thickness: 0.5
+ *                           length: 100
+ *                           width: 1.5
+ *                           weight: 2.5
+ *                           sellingPrice: 250000
+ *                           gloss:
+ *                             id: 1
+ *                             description: "Bóng"
+ *                           category:
+ *                             id: 2
+ *                             name: "Cotton"
+ *                           color:
+ *                             id: "RED"
+ *                             name: "Đỏ"
+ *                           supplier:
+ *                             id: 5
+ *                             name: "Nhà cung cấp A"
+ *                       - fabricId: 15
+ *                         quantity: 50
+ *                         fabric:
+ *                           id: 15
+ *                           thickness: 0.6
+ *                           length: 120
+ *                           width: 1.8
+ *                           weight: 3.2
+ *                           sellingPrice: 300000
+ *                           gloss:
+ *                             id: 2
+ *                             description: "Mờ"
+ *                           category:
+ *                             id: 3
+ *                             name: "Polyester"
+ *                           color:
+ *                             id: "BLUE"
+ *                             name: "Xanh"
+ *                           supplier:
+ *                             id: 6
+ *                             name: "Nhà cung cấp B"
  *       400:
  *         description: |
  *           ID không hợp lệ.
