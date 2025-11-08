@@ -37,7 +37,7 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Từ khóa tìm kiếm (hỗ trợ tìm theo màu, loại, độ bóng, hoặc nhà cung cấp)
+ *         description: Từ khóa tìm kiếm (tìm theo màu, loại, độ bóng, hoặc nhà cung cấp)
  *       - in: query
  *         name: glossId
  *         schema:
@@ -54,15 +54,36 @@ const router = express.Router();
  *           type: string
  *         description: Lọc theo ID màu vải (có thể truyền nhiều giá trị, cách nhau bằng dấu phẩy)
  *       - in: query
+ *         name: supplierId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID nhà cung cấp (có thể truyền nhiều giá trị, cách nhau bằng dấu phẩy)
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Lọc vải được tạo từ ngày này trở đi (định dạng YYYY-MM-DD)
+ *         example: "2025-01-01"
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Lọc vải được tạo cho đến ngày này (định dạng YYYY-MM-DD, phải >= createdFrom)
+ *         example: "2025-12-31"
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Trường để sắp xếp (id, createdAt, updatedAt, sellingPrice, quantityInStock, weight, length, width)
+ *         description: Trường để sắp xếp (id, category.name, color.name, gloss.description, supplier.name, createdAt, updatedAt, sellingPrice, quantityInStock, weight, length, width)
+ *         example: "sellingPrice"
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
  *         description: Thứ tự sắp xếp (asc hoặc desc)
+ *         example: "desc"
  *     responses:
  *       200:
  *         description: Lấy danh sách vải thành công
@@ -110,15 +131,12 @@ const router = express.Router();
  *                 total: 25
  *                 totalPages: 3
  *       400:
+ *         description: Lỗi validation - tham số không hợp lệ
  *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- *       409:
- *         $ref: '#/components/responses/ConflictError'
  */
 
 router.get(
@@ -142,16 +160,58 @@ router.get(
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
  *         description: ID của vải
+ *         example: 1
  *     responses:
  *       200:
  *         description: Lấy chi tiết thành công
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Fabric'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy chi tiết vải thành công
+ *                 data:
+ *                   $ref: '#/components/schemas/Fabric'
+ *             example:
+ *               message: Lấy chi tiết vải thành công
+ *               data:
+ *                 id: 1
+ *                 thickness: 0.25
+ *                 gloss:
+ *                   id: 1
+ *                   description: "Bóng"
+ *                 length: 50
+ *                 width: 1.5
+ *                 weight: 2.5
+ *                 sellingPrice: 150000
+ *                 quantityInStock: 100
+ *                 category:
+ *                   id: 2
+ *                   name: "Cotton"
+ *                 color:
+ *                   id: 3
+ *                   name: "Đỏ"
+ *                 supplier:
+ *                   id: 5
+ *                   name: "Nhà cung cấp A"
+ *                 createdAt: "2025-10-01T10:00:00.000Z"
+ *                 updatedAt: "2025-10-05T12:00:00.000Z"
+ *       400:
+ *         description: Lỗi validation - ID không hợp lệ
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
  *       404:
- *         description: Không tìm thấy vải
+ *         description: Vải không tìm thấy
+ *         $ref: '#/components/responses/NotFoundError'
  */
 
 router.get(
