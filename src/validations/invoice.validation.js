@@ -69,7 +69,7 @@ export const invoiceQuerySchema = querySchema.keys({
 
   createdFrom: dateFromSchema,
   createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({
-    'date.min': 'createdTo phải lớn hơn hoặc bằng createdFrom'
+    'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày tạo'
   })
 });
 
