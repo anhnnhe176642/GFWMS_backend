@@ -65,7 +65,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_CATEGORY_LIST),
   validate(fabricCategoryQuerySchema, 'query'),
   getAllFabricCategories
 );
@@ -93,7 +93,7 @@ router.get(
  */
 router.get(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_CATEGORY_DETAIL),
   validate(fabricCategoryIdParamSchema, 'params'),
   getFabricCategoryById
 );
@@ -137,7 +137,7 @@ router.get(
  */
 router.post(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
+  requirePermission(PERMISSIONS.FABRICS.CREATE_CATEGORY),
   validate(createFabricCategorySchema, 'body'),
   createFabricCategory
 );
@@ -188,7 +188,7 @@ router.post(
  */
 router.put(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
+  requirePermission(PERMISSIONS.FABRICS.UPDATE_CATEGORY),
   validate(fabricCategoryIdParamSchema, 'params'),
   validate(updateFabricCategorySchema, 'body'),
   updateFabricCategory
@@ -232,7 +232,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
+  requirePermission(PERMISSIONS.FABRICS.DELETE_CATEGORY),
   validate(fabricCategoryIdParamSchema, 'params'),
   deleteFabricCategory
 );

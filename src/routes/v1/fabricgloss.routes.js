@@ -65,7 +65,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_GLOSS_LIST),
   validate(fabricGlossQuerySchema, 'query'),
   getAllFabricGlosses
 );
@@ -107,7 +107,7 @@ router.get(
  */
 router.get(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_GLOSS_DETAIL),
   validate(fabricGlossIdParamSchema, 'params'),
   getFabricGlossById
 );
@@ -153,7 +153,7 @@ router.get(
  */
 router.post(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  requirePermission(PERMISSIONS.FABRICS.CREATE_GLOSS),
   validate(createFabricGlossSchema, 'body'),
   createFabricGloss
 );
@@ -207,7 +207,7 @@ router.post(
  */
 router.put(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  requirePermission(PERMISSIONS.FABRICS.UPDATE_GLOSS),
   validate(fabricGlossIdParamSchema, 'params'),
   validate(updateFabricGlossSchema, 'body'),
   updateFabricGloss
@@ -248,7 +248,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  requirePermission(PERMISSIONS.FABRICS.DELETE_GLOSS),
   validate(fabricGlossIdParamSchema, 'params'),
   deleteFabricGloss
 );

@@ -80,7 +80,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_COLOR_LIST),
   validate(fabricColorQuerySchema, 'query'),
   getAllFabricColors
 );
@@ -123,7 +123,7 @@ router.get(
  */
 router.get(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_COLOR_DETAIL),
   validate(fabricColorIdParamSchema, 'params'),
   getFabricColorById
 );
@@ -172,7 +172,7 @@ router.get(
  */
 router.post(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
+  requirePermission(PERMISSIONS.FABRICS.CREATE_COLOR),
   validate(createFabricColorSchema, 'body'),
   createFabricColor
 );
@@ -226,7 +226,7 @@ router.post(
  */
 router.put(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
+  requirePermission(PERMISSIONS.FABRICS.UPDATE_COLOR),
   validate(fabricColorIdParamSchema, 'params'),
   validate(updateFabricColorSchema, 'body'),
   updateFabricColor
@@ -271,7 +271,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
+  requirePermission(PERMISSIONS.FABRICS.DELETE_COLOR),
   validate(fabricColorIdParamSchema, 'params'),
   deleteFabricColor
 );
