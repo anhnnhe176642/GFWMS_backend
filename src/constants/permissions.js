@@ -22,11 +22,31 @@ export const PERMISSIONS = {
     CREATE:             { key: 'fabric:create',             description: 'Tạo vải mới' },
     UPDATE:             { key: 'fabric:update',             description: 'Cập nhật thông tin vải' },
     DELETE:             { key: 'fabric:delete',             description: 'Xóa vải' },
-    MANAGE_CATEGORIES:  { key: 'fabric:manage_categories',  description: 'Quản lý danh mục vải' },
-    MANAGE_COLORS:      { key: 'fabric:manage_colors',      description: 'Quản lý màu sắc vải' },
-    MANAGE_GLOSS:       { key: 'fabric:manage_gloss',       description: 'Quản lý độ bóng vải' },
-    MANAGE_SUPPLIER:    { key: 'fabric:manage_supplier',    description: 'Quản lý nhà cung cấp vải' },
-    ALLOCATE_TO_SHELF:  { key: 'fabric:allocate_to_shelf',  description: 'Thêm vải vào các kệ' }
+    ALLOCATE_TO_SHELF:  { key: 'fabric:allocate_to_shelf',  description: 'Thêm vải vào các kệ' },
+
+    VIEW_CATEGORY_LIST:       { key: 'fabric:view_category_list',       description: 'Xem danh sách loại vải' },
+    VIEW_CATEGORY_DETAIL:     { key: 'fabric:view_category_detail',     description: 'Xem chi tiết loại vải' },
+    CREATE_CATEGORY:          { key: 'fabric:create_category',          description: 'Tạo loại vải mới' },
+    UPDATE_CATEGORY:          { key: 'fabric:update_category',          description: 'Cập nhật thông tin loại vải' },
+    DELETE_CATEGORY:          { key: 'fabric:delete_category',          description: 'Xóa loại vải' },
+
+    VIEW_COLOR_LIST:          { key: 'fabric:view_color_list',          description: 'Xem danh sách màu vải' },
+    VIEW_COLOR_DETAIL:        { key: 'fabric:view_color_detail',        description: 'Xem chi tiết màu vải' },
+    CREATE_COLOR:             { key: 'fabric:create_color',             description: 'Tạo màu vải mới' },
+    UPDATE_COLOR:             { key: 'fabric:update_color',             description: 'Cập nhật thông tin màu vải' },
+    DELETE_COLOR:             { key: 'fabric:delete_color',             description: 'Xóa màu vải' },
+
+    VIEW_GLOSS_LIST:          { key: 'fabric:view_gloss_list',          description: 'Xem danh sách độ bóng vải' },
+    VIEW_GLOSS_DETAIL:        { key: 'fabric:view_gloss_detail',        description: 'Xem chi tiết độ bóng vải' },
+    CREATE_GLOSS:             { key: 'fabric:create_gloss',             description: 'Tạo độ bóng vải mới' },
+    UPDATE_GLOSS:             { key: 'fabric:update_gloss',             description: 'Cập nhật thông tin độ bóng vải' },
+    DELETE_GLOSS:             { key: 'fabric:delete_gloss',             description: 'Xóa độ bóng vải' },
+
+    VIEW_SUPPLIER_LIST:       { key: 'fabric:view_supplier_list',       description: 'Xem danh sách nhà cung cấp vải' },
+    VIEW_SUPPLIER_DETAIL:     { key: 'fabric:view_supplier_detail',     description: 'Xem chi tiết nhà cung cấp vải' },
+    CREATE_SUPPLIER:          { key: 'fabric:create_supplier',          description: 'Tạo nhà cung cấp vải mới' },
+    UPDATE_SUPPLIER:          { key: 'fabric:update_supplier',          description: 'Cập nhật thông tin nhà cung cấp vải' },
+    DELETE_SUPPLIER:          { key: 'fabric:delete_supplier',          description: 'Xóa nhà cung cấp vải' },
   },
 
   // Warehouse Management

@@ -77,7 +77,7 @@ router.use(authenticateToken);
 router.get(
   '/',
   authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_SUPPLIER_LIST),
   validate(supplierQuerySchema, 'query'),
   getAllSuppliers
 );
@@ -121,7 +121,7 @@ router.get(
 router.get(
   '/:id',
   authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
+  requirePermission(PERMISSIONS.FABRICS.VIEW_SUPPLIER_DETAIL),
   validate(supplierIdParamSchema, 'params'),
   getSupplierById
 );
@@ -174,7 +174,7 @@ router.get(
 router.post(
   '/',
   authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
+  requirePermission(PERMISSIONS.FABRICS.CREATE_SUPPLIER),
   validate(createSupplierSchema, 'body'),
   createSupplier
 );
@@ -238,7 +238,7 @@ router.post(
 router.put(
   '/:id',
   authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
+  requirePermission(PERMISSIONS.FABRICS.UPDATE_SUPPLIER),
   validate(supplierIdParamSchema, 'params'),
   validate(updateSupplierSchema, 'body'),
   updateSupplier
@@ -280,7 +280,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
+  requirePermission(PERMISSIONS.FABRICS.DELETE_SUPPLIER),
   validate(supplierIdParamSchema, 'params'),
   deleteSuppiler
 );
