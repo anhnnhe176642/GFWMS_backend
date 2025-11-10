@@ -80,7 +80,6 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.VIEW_COLOR_LIST),
   validate(fabricColorQuerySchema, 'query'),
   getAllFabricColors
 );

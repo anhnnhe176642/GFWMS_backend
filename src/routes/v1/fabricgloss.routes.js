@@ -65,7 +65,6 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.VIEW_GLOSS_LIST),
   validate(fabricGlossQuerySchema, 'query'),
   getAllFabricGlosses
 );

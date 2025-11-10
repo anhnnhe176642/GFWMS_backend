@@ -65,7 +65,6 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.VIEW_CATEGORY_LIST),
   validate(fabricCategoryQuerySchema, 'query'),
   getAllFabricCategories
 );
