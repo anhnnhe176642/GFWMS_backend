@@ -62,10 +62,10 @@ async create(colorData) {
   }
 
   async countFabricsWithColor(colorId) {
-  return await prisma.fabric.count({
-    where: { colorId } 
-  });
-}
+    return await prisma.fabric.count({
+      where: { colorId } 
+    });
+  }
 
 
   async count(where = {}) {

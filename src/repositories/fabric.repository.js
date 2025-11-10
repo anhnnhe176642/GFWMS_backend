@@ -83,6 +83,7 @@ export class FabricRepository {
     } = queryOptions;
 
     const searchableFields = [
+      'gloss.description',
       'category.name',
       'color.name',
       'supplier.name'
