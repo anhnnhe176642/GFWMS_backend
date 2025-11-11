@@ -2,12 +2,14 @@ import express from 'express';
 import {
   getAllExportFabrics,
   getExportFabricById,
+  createExportFabric
 } from '../../controllers/exportFabric.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import {
   exportFabricIdParamSchema,
-  exportFabricQuerySchema
+  exportFabricQuerySchema,
+  createExportFabricSchema
 } from '../../validations/exportFabric.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
@@ -148,6 +150,78 @@ router.get(
   requirePermission(PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL),
   validate(exportFabricIdParamSchema, 'params'),
   getExportFabricById
+);
+
+/**
+ * @swagger
+ * /export-fabrics:
+ *   post:
+ *     summary: Tạo phiếu xuất vải mới
+ *     tags: [ExportFabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - warehouseId
+ *               - storeId
+ *               - exportItems
+ *             properties:
+ *               warehouseId:
+ *                 type: integer
+ *                 description: ID kho xuất
+ *               storeId:
+ *                 type: integer
+ *                 description: ID cửa hàng nhận
+ *               note:
+ *                 type: string
+ *                 description: Ghi chú phiếu xuất
+ *               exportItems:
+ *                 type: array
+ *                 description: Danh sách các fabric xuất
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - fabricId
+ *                     - quantity
+ *                     - price
+ *                   properties:
+ *                     fabricId:
+ *                       type: integer
+ *                       description: ID của fabric
+ *                     quantity:
+ *                       type: integer
+ *                       description: Số lượng xuất
+ *     responses:
+ *       201:
+ *         description: Tạo phiếu xuất vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Tạo phiếu xuất vải thành công
+ *                 exportFabric:
+ *                   $ref: '#/components/schemas/ExportFabric'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.post(
+  '/',
+  authenticateToken,
+  requirePermission(PERMISSIONS.EXPORT_FABRICS.CREATE),
+  validate(createExportFabricSchema, 'body'),
+  createExportFabric
 );
 
 export default router;

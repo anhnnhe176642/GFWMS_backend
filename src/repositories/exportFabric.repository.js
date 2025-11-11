@@ -128,6 +128,30 @@ export class ExportFabricRepository {
 
     return formatPaginatedResponse(exportFabrics, total, page, limit);
   }
+
+  async create(data) {
+    const { warehouseId, storeId, note, createdById, exportItems } = data;
+
+    // Tạo phiếu xuất và nested exportItems cùng lúc
+    const newExport = await prisma.exportFabric.create({
+      data: {
+        warehouseId,
+        storeId,
+        note,
+        status: 'PENDING',
+        createdById,
+        exportItems: {
+          create: exportItems.map(item => ({
+            fabricId: item.fabricId,
+            quantity: item.quantity
+          }))
+        }
+      },
+      select: this.#exportFabricDetailSelect  
+    });
+
+    return newExport;
+  }
 }
 
 export const exportFabricRepository = new ExportFabricRepository();
