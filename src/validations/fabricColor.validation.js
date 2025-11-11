@@ -48,7 +48,7 @@ export const fabricColorIdParamSchema = Joi.object({
 });
 
 // Allowed fields for sorting FabricColor
-const allowedFabricColorSortFields = ['name', 'createdAt', 'updatedAt'];
+const allowedFabricColorSortFields = ['id','name', 'createdAt', 'updatedAt'];
 
 // Advanced query schema cho FabricColor với search, sort, pagination
 export const fabricColorQuerySchema = querySchema.keys({
