@@ -26,6 +26,14 @@ class ShelfService {
     if (!shelf) {
       throw new NotFoundError('Không tìm thấy kệ');
     }
+
+      // Nếu update maxQuantity, kiểm tra không nhỏ hơn currentQuantity
+    if (shelfData.maxQuantity !== undefined && shelfData.maxQuantity < shelf.currentQuantity) {
+      throw new ConflictError(
+        `Không thể giảm sức chứa tối đa của kệ xuống ${shelfData.maxQuantity} vì hiện tại kệ đang chứa ${shelf.currentQuantity} cuộn vải`
+      );
+    }
+
     return await shelfRepository.updateById(id, shelfData);
   }
 
