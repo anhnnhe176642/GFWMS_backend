@@ -64,6 +64,7 @@ const router = express.Router();
  */
 router.get(
   '/',
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
   validate(fabricGlossQuerySchema, 'query'),
   getAllFabricGlosses
 );
