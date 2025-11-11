@@ -15,7 +15,7 @@ export const nameSchema = Joi.string()
   
 // Schema validation cho tạo FabricColor
 export const createFabricColorSchema = Joi.object({
-  id: Joi.string().max(50).required().messages({
+  id: Joi.string().trim().max(50).required().messages({
     'string.base': 'ID phải là chuỗi',
     'string.max': 'ID không được vượt quá 50 ký tự',
     'any.required': 'ID là bắt buộc'
@@ -27,6 +27,7 @@ export const createFabricColorSchema = Joi.object({
 // Schema validation cho cập nhật FabricColor
 export const updateFabricColorSchema = Joi.object({
   name: Joi.string()
+    .trim()
     .max(100)
     .required()
     .messages({
@@ -40,7 +41,7 @@ export const updateFabricColorSchema = Joi.object({
 
 // Schema validation cho param id (String)
 export const fabricColorIdParamSchema = Joi.object({
-  id: Joi.string().max(50).required().messages({
+  id: Joi.string().trim().max(50).required().messages({
     'string.base': 'ID phải là chuỗi',
     'string.max': 'ID không được vượt quá 50 ký tự',
     'any.required': 'ID là bắt buộc'

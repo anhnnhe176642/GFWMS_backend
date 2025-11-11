@@ -7,6 +7,7 @@ export const shelfCodeSchema = Joi.string()
   .max(50)
   .required()
   .empty('')
+  .trim()
   .messages({
     'string.base': 'Mã kệ phải là chuỗi',
     'string.min': 'Mã kệ phải có ít nhất 2 ký tự',

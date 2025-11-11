@@ -17,6 +17,7 @@ export const storeNameSchema = Joi.string()
   .max(100)
   .required()
   .empty('')
+  .trim()
   .messages({
     'string.base': 'Tên cửa hàng phải là chuỗi',
     'string.min': 'Tên cửa hàng phải có ít nhất 2 ký tự',
@@ -30,6 +31,7 @@ export const storeNameSchema = Joi.string()
  */
 export const storeAddressSchema = addressSchema
   .min(5)
+  .trim()
   .required()
   .empty('')
   .messages({
@@ -101,6 +103,7 @@ isActive: createMultiValueFilterSchema(
  */
 export const storeIdSchema = Joi.object({
   id: Joi.string()
+    .trim()
     .required()
     .custom((value, helpers) => {
       if (value === '{id}' || value === '' || !value) {
