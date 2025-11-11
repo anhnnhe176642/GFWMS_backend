@@ -19,7 +19,6 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateToken);
 
 /**
  * @swagger
@@ -65,6 +64,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
   validate(fabricGlossQuerySchema, 'query'),
   getAllFabricGlosses
 );
@@ -106,7 +106,8 @@ router.get(
  */
 router.get(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.VIEW_GLOSS_DETAIL),
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
   validate(fabricGlossIdParamSchema, 'params'),
   getFabricGlossById
 );
@@ -152,7 +153,8 @@ router.get(
  */
 router.post(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.CREATE_GLOSS),
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
   validate(createFabricGlossSchema, 'body'),
   createFabricGloss
 );
@@ -206,7 +208,8 @@ router.post(
  */
 router.put(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.UPDATE_GLOSS),
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
   validate(fabricGlossIdParamSchema, 'params'),
   validate(updateFabricGlossSchema, 'body'),
   updateFabricGloss
@@ -247,7 +250,8 @@ router.put(
  */
 router.delete(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.DELETE_GLOSS),
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
   validate(fabricGlossIdParamSchema, 'params'),
   deleteFabricGloss
 );

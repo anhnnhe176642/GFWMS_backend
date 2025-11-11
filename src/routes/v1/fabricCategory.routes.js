@@ -19,7 +19,6 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateToken);
 
 /**
  * @swagger
@@ -65,6 +64,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryQuerySchema, 'query'),
   getAllFabricCategories
 );
@@ -92,7 +92,8 @@ router.get(
  */
 router.get(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.VIEW_CATEGORY_DETAIL),
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryIdParamSchema, 'params'),
   getFabricCategoryById
 );
@@ -136,7 +137,8 @@ router.get(
  */
 router.post(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.CREATE_CATEGORY),
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(createFabricCategorySchema, 'body'),
   createFabricCategory
 );
@@ -187,7 +189,8 @@ router.post(
  */
 router.put(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.UPDATE_CATEGORY),
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryIdParamSchema, 'params'),
   validate(updateFabricCategorySchema, 'body'),
   updateFabricCategory
@@ -231,7 +234,8 @@ router.put(
  */
 router.delete(
   '/:id',
-  requirePermission(PERMISSIONS.FABRICS.DELETE_CATEGORY),
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryIdParamSchema, 'params'),
   deleteFabricCategory
 );
