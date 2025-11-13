@@ -1,0 +1,165 @@
+// YOLO Dataset Management Models
+// For storing training images and their labels for continuous model improvement
+
+model YoloDataset {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // Dataset name/version (e.g., "v1.0", "2024-11-13")
+  description String?  @db.Text
+  status      DatasetStatus @default(ACTIVE)
+  
+  // Dataset statistics
+  totalImages Int      @default(0)
+  trainImages Int      @default(0)
+  valImages   Int      @default(0)
+  testImages  Int      @default(0)
+  
+  // Training info
+  lastTrainedAt DateTime?
+  modelVersion  String?  // Version of model trained on this dataset
+  
+  // Relations
+  images      YoloImage[]
+  trainRuns   YoloTrainRun[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("yolo_datasets")
+}
+
+model YoloImage {
+  id          Int      @id @default(autoincrement())
+  datasetId   Int
+  dataset     YoloDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  
+  // Image info
+  imagePath   String   // Relative path: datasets/images/train/img_001.jpg
+  imageUrl    String?  // Cloudinary URL (optional)
+  width       Int
+  height      Int
+  
+  // Dataset split
+  split       DatasetSplit @default(TRAIN) // train/val/test
+  
+  // Source tracking
+  sourceType  ImageSource @default(MANUAL) // MANUAL/DETECTION/IMPORT
+  uploadedBy  Int?     // User ID who uploaded
+  uploadedAt  DateTime @default(now())
+  
+  // Metadata
+  originalName String?
+  fileSize    Int?     // Size in bytes
+  
+  // Relations
+  labels      YoloLabel[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([datasetId, imagePath])
+  @@index([datasetId, split])
+  @@map("yolo_images")
+}
+
+model YoloLabel {
+  id          Int      @id @default(autoincrement())
+  imageId     Int
+  image       YoloImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  
+  // YOLO label format (normalized 0-1)
+  classId     Int      // Class index
+  className   String   // Class name for reference
+  centerX     Float    // Normalized center X (0-1)
+  centerY     Float    // Normalized center Y (0-1)
+  width       Float    // Normalized width (0-1)
+  height      Float    // Normalized height (0-1)
+  
+  // Additional info
+  confidence  Float?   // If from auto-detection
+  verified    Boolean  @default(false) // Manual verification flag
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([imageId])
+  @@map("yolo_labels")
+}
+
+model YoloTrainRun {
+  id          Int      @id @default(autoincrement())
+  datasetId   Int
+  dataset     YoloDataset @relation(fields: [datasetId], references: [id])
+  
+  // Training configuration
+  baseModel   String   @default("best.pt") // Model to train from
+  epochs      Int      @default(100)
+  batchSize   Int      @default(16)
+  imageSize   Int      @default(640)
+  
+  // Training results
+  status      TrainStatus @default(PENDING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  
+  // Results
+  modelPath   String?  // Path to trained model (e.g., runs/train/exp/weights/best.pt)
+  mapScore    Float?   // mAP score
+  precision   Float?
+  recall      Float?
+  
+  // Logs
+  logPath     String?  // Path to training logs
+  errorMsg    String?  @db.Text
+  
+  // Who triggered
+  triggeredBy Int?     // User ID
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([datasetId])
+  @@index([status])
+  @@map("yolo_train_runs")
+}
+
+model YoloClass {
+  id          Int      @id @default(autoincrement())
+  classId     Int      @unique // YOLO class index (0, 1, 2...)
+  className   String   @unique // Class name
+  description String?
+  color       String?  @default("#FF0000") // For visualization
+  
+  active      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("yolo_classes")
+}
+
+// Enums
+enum DatasetStatus {
+  ACTIVE
+  ARCHIVED
+  TRAINING
+}
+
+enum DatasetSplit {
+  TRAIN
+  VAL
+  TEST
+}
+
+enum ImageSource {
+  MANUAL      // Manually uploaded
+  DETECTION   // From detection API (saved for retraining)
+  IMPORT      // Bulk import
+}
+
+enum TrainStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}

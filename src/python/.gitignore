@@ -16,3 +16,5 @@ runs/
 # Temp files
 *.tmp
 .DS_Store
+datasets/
+source_dataset/
