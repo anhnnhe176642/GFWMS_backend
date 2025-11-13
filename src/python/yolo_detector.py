@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-YOLO Object Detection Script
+YOLO Object Detection Script with GPU Support
 Detects objects in an image and returns JSON with coordinates and counts
+Supports NVIDIA GPU acceleration with CUDA 13.0+
 """
 
 import sys
@@ -9,9 +10,10 @@ import json
 import os
 from ultralytics import YOLO
 import cv2
+import torch
 
 
-def detect_objects(image_path, model_path, conf_threshold=0.5):
+def detect_objects(image_path, model_path, conf_threshold=0.5, use_gpu=True):
     """
     Detect objects in image using YOLO model
     
@@ -19,13 +21,18 @@ def detect_objects(image_path, model_path, conf_threshold=0.5):
         image_path: Path to input image
         model_path: Path to YOLO model (.pt file)
         conf_threshold: Confidence threshold for detections
+        use_gpu: Whether to use GPU acceleration (default: True)
         
     Returns:
         dict: Detection results with coordinates and counts
     """
     try:
+        # Determine device (GPU or CPU)
+        device = 0 if (use_gpu and torch.cuda.is_available()) else 'cpu'
+        
         # Load YOLO model
         model = YOLO(model_path)
+        model.to(device)
         
         # Read image to get dimensions
         image = cv2.imread(image_path)
@@ -34,8 +41,8 @@ def detect_objects(image_path, model_path, conf_threshold=0.5):
         
         img_height, img_width = image.shape[:2]
         
-        # Run inference
-        results = model(image_path, conf=conf_threshold, verbose=False)
+        # Run inference with device parameter
+        results = model(image_path, conf=conf_threshold, verbose=False, device=device)
         
         # Process results
         detections = []
@@ -99,7 +106,10 @@ def detect_objects(image_path, model_path, conf_threshold=0.5):
             'model_info': {
                 'model_path': model_path,
                 'confidence_threshold': conf_threshold,
-                'classes': result.names if results else {}
+                'classes': result.names if results else {},
+                'device_used': 'GPU (CUDA)' if device == 0 else 'CPU',
+                'gpu_available': torch.cuda.is_available(),
+                'gpu_name': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A'
             }
         }
         
@@ -126,6 +136,7 @@ def main():
     image_path = sys.argv[1]
     model_path = sys.argv[2]
     conf_threshold = float(sys.argv[3]) if len(sys.argv) > 3 else 0.5
+    use_gpu = sys.argv[4].lower() != 'false' if len(sys.argv) > 4 else True
     
     # Validate inputs
     if not os.path.exists(image_path):
@@ -145,7 +156,7 @@ def main():
         sys.exit(1)
     
     # Run detection
-    result = detect_objects(image_path, model_path, conf_threshold)
+    result = detect_objects(image_path, model_path, conf_threshold, use_gpu)
     
     # Output JSON result
     print(json.dumps(result, ensure_ascii=False, indent=2))

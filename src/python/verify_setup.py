@@ -1,13 +1,20 @@
 """
-Quick verification script - Check if YOLO setup is ready
+Quick verification script - Check if YOLO setup is ready with GPU support
 Run: python verify_setup.py
+Supports NVIDIA GPU acceleration with CUDA 13.0+
 """
 
 import sys
 import os
 
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+
 print("=" * 60)
-print("YOLO Setup Verification")
+print("YOLO Setup Verification (GPU Support)")
 print("=" * 60)
 print()
 
@@ -26,7 +33,8 @@ required_packages = {
     'ultralytics': 'YOLO framework',
     'cv2': 'OpenCV (opencv-python)',
     'PIL': 'Pillow',
-    'numpy': 'NumPy'
+    'numpy': 'NumPy',
+    'torch': 'PyTorch (GPU support)'
 }
 
 missing_packages = []
@@ -40,9 +48,30 @@ for package, description in required_packages.items():
 
 print()
 
+# Check GPU/CUDA support
+print("✓ Checking GPU/CUDA support...")
+if HAS_TORCH:
+    cuda_available = torch.cuda.is_available()
+    if cuda_available:
+        print(f"  ✓ CUDA Available: YES")
+        print(f"  ✓ CUDA Version: {torch.version.cuda}")
+        print(f"  ✓ GPU Device: {torch.cuda.get_device_name(0)}")
+        print(f"  ✓ GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+    else:
+        print(f"  ⚠️  CUDA Available: NO (Will use CPU)")
+        print(f"     To enable GPU, install PyTorch with CUDA 13.0:")
+        print(f"     pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu130")
+else:
+    print(f"  ⚠️  PyTorch not installed (GPU support unavailable)")
+print()
+
 if missing_packages:
     print("❌ Missing packages detected!")
-    print("   Install with: pip install ultralytics opencv-python pillow numpy")
+    print("   Install all packages with:")
+    print("   pip install ultralytics opencv-python pillow numpy")
+    print("   ")
+    print("   For GPU support (CUDA 13.0):")
+    print("   pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu130")
     print()
 else:
     print("✓ All packages installed!")
@@ -77,12 +106,16 @@ if missing_packages:
     print("❌ SETUP INCOMPLETE")
     print("   Missing packages. Run:")
     print("   pip install ultralytics opencv-python pillow numpy")
+    print("   ")
+    print("   For GPU support (CUDA 13.0):")
+    print("   pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu130")
 elif not os.path.exists(model_path):
     print("⚠️  SETUP ALMOST READY")
     print("   Please copy your YOLO model (.pt) to:")
     print(f"   {model_path}")
 else:
-    print("✅ SETUP COMPLETE!")
+    gpu_status = "with GPU" if (HAS_TORCH and torch.cuda.is_available()) else "on CPU"
+    print(f"✅ SETUP COMPLETE! (Running {gpu_status})")
     print("   You can now:")
     print("   1. Start the server: pnpm run dev")
     print("   2. Test the API: curl http://localhost:3000/api/yolo/health")
