@@ -14,15 +14,7 @@ export const detectObjects = async (req, res, next) => {
     }
 
     // Lấy options từ request
-    const confidence = req.body.confidence 
-      ? parseFloat(req.body.confidence) 
-      : 0.5;
-
-    // Validate confidence
-    if (confidence < 0 || confidence > 1) {
-      throw new AppError('Confidence must be between 0 and 1', 400);
-    }
-
+    const confidence = req.body.confidence;
     // Run detection từ buffer
     const result = await yoloService.detectFromBuffer(
       req.file.buffer,
