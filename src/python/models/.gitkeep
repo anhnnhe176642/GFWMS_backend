@@ -1,0 +1,4 @@
+# Đặt file YOLO model (.pt) của bạn vào đây
+# Ví dụ: best.pt, yolov8n.pt, custom_model.pt
+best.pt # type: ignore
+# File này giữ folder này trong git

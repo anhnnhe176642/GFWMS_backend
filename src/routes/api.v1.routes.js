@@ -20,6 +20,7 @@ import shelfRouters from './v1/shelf.routes.js';
 import geminiRoutes from './v1/gemini.routes.js';
 import bannerRoutes from './v1/banner.routes.js';
 import bannerDiscount from './v1/bannerDiscount.routes.js';
+import yoloRoutes from './v1/yolo.routes.js';
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -41,4 +42,7 @@ router.use('/shelves', shelfRouters);
 router.use('/gemini', geminiRoutes);
 router.use('/banner', bannerRoutes);
 router.use('/banner-discount', bannerDiscount);
+
+// YOLO detection routes
+router.use('/yolo', yoloRoutes);
 export default router;
