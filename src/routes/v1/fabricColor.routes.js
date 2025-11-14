@@ -19,7 +19,6 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateToken);
 
 /**
  * @swagger
@@ -80,7 +79,6 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(fabricColorQuerySchema, 'query'),
   getAllFabricColors
 );
@@ -123,6 +121,7 @@ router.get(
  */
 router.get(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(fabricColorIdParamSchema, 'params'),
   getFabricColorById
@@ -172,6 +171,7 @@ router.get(
  */
 router.post(
   '/',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(createFabricColorSchema, 'body'),
   createFabricColor
@@ -226,6 +226,7 @@ router.post(
  */
 router.put(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(fabricColorIdParamSchema, 'params'),
   validate(updateFabricColorSchema, 'body'),
@@ -271,6 +272,7 @@ router.put(
  */
 router.delete(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(fabricColorIdParamSchema, 'params'),
   deleteFabricColor

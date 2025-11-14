@@ -42,3 +42,22 @@ export const getExportFabricById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const createExportFabric = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // ID của nhân viên đang đăng nhập
+    const exportData = req.body;
+
+    const createdExport = await exportFabricService.createExportFabric({
+      ...exportData,
+      createdById: userId
+    });
+
+    res.status(201).json({
+      message: 'Tạo phiếu xuất vải thành công',
+      exportFabric: createdExport
+    });
+  } catch (error) {
+    next(error);
+  }
+};
