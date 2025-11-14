@@ -18,6 +18,7 @@ import storeRouters from './v1/store.routes.js';
 import fabricShelfRouters from './v1/fabricShelf.route.js';
 import shelfRouters from './v1/shelf.routes.js';
 import geminiRoutes from './v1/gemini.routes.js';
+import yoloRoutes from './v1/yolo.routes.js';
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -37,4 +38,7 @@ router.use('/stores', storeRouters);
 router.use('/fabric-shelf', fabricShelfRouters);
 router.use('/shelves', shelfRouters);
 router.use('/gemini', geminiRoutes);
+
+// YOLO detection routes
+router.use('/yolo', yoloRoutes);
 export default router;
