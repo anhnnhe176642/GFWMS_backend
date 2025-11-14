@@ -18,6 +18,8 @@ import storeRouters from './v1/store.routes.js';
 import fabricShelfRouters from './v1/fabricShelf.route.js';
 import shelfRouters from './v1/shelf.routes.js';
 import geminiRoutes from './v1/gemini.routes.js';
+import bannerRoutes from './v1/banner.routes.js';
+import bannerDiscount from './v1/bannerDiscount.routes.js';
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -37,4 +39,6 @@ router.use('/stores', storeRouters);
 router.use('/fabric-shelf', fabricShelfRouters);
 router.use('/shelves', shelfRouters);
 router.use('/gemini', geminiRoutes);
+router.use('/banner', bannerRoutes);
+router.use('/banner-discount', bannerDiscount);
 export default router;
