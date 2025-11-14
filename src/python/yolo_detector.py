@@ -8,9 +8,13 @@ Supports NVIDIA GPU acceleration with CUDA 13.0+
 import sys
 import json
 import os
+import warnings
 from ultralytics import YOLO
 import cv2
 import torch
+
+# Suppress warnings
+warnings.filterwarnings('ignore')
 
 
 def detect_objects(image_path, model_path, conf_threshold=0.5, use_gpu=True):

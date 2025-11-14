@@ -130,7 +130,18 @@ class YOLOService {
         }
 
         try {
-          const result = JSON.parse(stdout.trim());
+          // Filter out warnings and non-JSON output from stdout
+          const lines = stdout.trim().split('\n');
+          let jsonStr = '';
+          
+          for (const line of lines) {
+            // Skip warning lines and other non-JSON output
+            if (line.startsWith('{') || line.startsWith('[') || (jsonStr && line.trim())) {
+              jsonStr += line;
+            }
+          }
+
+          const result = JSON.parse(jsonStr);
 
           if (!result.success) {
             return reject(new AppError(`Detection error: ${result.error}`, 500));
