@@ -4,6 +4,7 @@ import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { AppError } from '../utils/errors.js';
+import yoloModelRepository from '../repositories/yoloModel.repository.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -81,6 +82,7 @@ class YOLOService {
    * @returns {Promise<Object>} - Detection results
    */
   async detectObjects(imagePath, options = {}) {
+
     const { confidence = 0.5, modelPath = null } = options;
     
     const modelToUse = modelPath || this.defaultModelPath;
@@ -156,6 +158,25 @@ class YOLOService {
   }
 
   /**
+   * Get active model from database or use default
+   * @returns {Promise<string>} - Path to active model
+   */
+  async getActiveModelPath() {
+    try {
+      const activeModel = await yoloModelRepository.getActiveModel();
+      if (activeModel && activeModel.filePath) {
+        const modelExists = await this.verifyModelExists(activeModel.filePath);
+        if (modelExists) {
+          return activeModel.filePath;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to get active model from DB, using default:', error.message);
+    }
+    return this.defaultModelPath;
+  }
+
+  /**
    * Detect objects from image buffer (from multer upload)
    * @param {Buffer} imageBuffer - Image buffer
    * @param {string} originalName - Original filename
@@ -169,11 +190,33 @@ class YOLOService {
       // Save buffer to temp file
       tempFilePath = await this.saveTemporaryFile(imageBuffer, originalName);
 
+      // Get model path (from options or active from DB)
+      const modelPath = options.modelPath || await this.getActiveModelPath();
+
       // Run detection
-      const result = await this.detectObjects(tempFilePath, options);
+      const start = process.hrtime.bigint();
+      const result = await this.detectObjects(tempFilePath, { ...options, modelPath });
+      const end = process.hrtime.bigint();
+      const detectionTime = Number(end - start) / 1e6; // milliseconds
 
       // Clean up temp file
       await this.deleteTemporaryFile(tempFilePath);
+
+      // Log detection if modelRepository is available
+      try {
+        const activeModel = await yoloModelRepository.getActiveModel();
+        if (activeModel) {
+          await yoloModelRepository.logDetection({
+            modelId: activeModel.id,
+            imagePath: originalName,
+            totalObjects: result.total_objects,
+            confidence: options.confidence || 0.5,
+            detectionTime: detectionTime
+          });
+        }
+      } catch (logError) {
+        console.warn('Failed to log detection:', logError.message);
+      }
 
       return result;
     } catch (error) {

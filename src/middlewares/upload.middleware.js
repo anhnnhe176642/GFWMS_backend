@@ -22,12 +22,29 @@ const createImageFileFilter = (fieldName = 'file') => {
 };
 
 /**
+ * Create file filter for YOLO model (.pt files)
+ * @param {string} fieldName - Name of the field (for error messages)
+ * @returns {Function} File filter function
+ */
+const createModelFileFilter = (fieldName = 'file') => {
+  return (req, file, cb) => {
+    // Accept .pt files - they may have various mime types
+    if (file.originalname.endsWith('.pt') || file.mimetype === 'application/octet-stream') {
+      cb(null, true);
+    } else {
+      cb(new ValidationError('Chỉ chấp nhận file model (.pt)', fieldName), false);
+    }
+  };
+};
+
+/**
  * Create multer upload middleware with custom options
  * @param {Object} options - Upload options
  * @param {string} options.fieldName - Name of the field (default: 'file')
  * @param {number} options.maxSize - Max file size in MB (default: 5)
  * @param {boolean} options.multiple - Allow multiple files (default: false)
  * @param {number} options.maxCount - Max number of files if multiple (default: 10)
+ * @param {string} options.fileType - Type of file: 'image' or 'model' (default: 'image')
  * @returns {Function} Multer middleware
  */
 export const createUploadMiddleware = (options = {}) => {
@@ -35,12 +52,18 @@ export const createUploadMiddleware = (options = {}) => {
     fieldName = 'file',
     maxSize = 5,
     multiple = false,
-    maxCount = 10
+    maxCount = 10,
+    fileType = 'image'
   } = options;
+
+  // Select appropriate file filter based on fileType
+  const fileFilter = fileType === 'model' 
+    ? createModelFileFilter(fieldName)
+    : createImageFileFilter(fieldName);
 
   const upload = multer({
     storage: storage,
-    fileFilter: createImageFileFilter(fieldName),
+    fileFilter: fileFilter,
     limits: {
       fileSize: maxSize * 1024 * 1024 // Convert MB to bytes
     }

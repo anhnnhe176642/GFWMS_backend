@@ -1,7 +1,7 @@
 import express from 'express';
 import { getAllUsers, createUser, getUserById, updateUserStatus, updateUserRole, deleteUser } from '../../controllers/user.controller.js';
 import { authenticateToken, requirePermission, requireOwnershipOrPermission } from '../../middlewares/auth.middleware.js';
-import { validate, validateMultiple } from '../../middlewares/validation.middleware.js';
+import { validate } from '../../middlewares/validation.middleware.js';
 import { createUserSchema, updateUserStatusSchema, updateUserRoleSchema, uuidParamSchema, userQuerySchema } from '../../validations/user.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
@@ -334,7 +334,7 @@ router.get('/:id',
  */
 router.patch('/:id/status', 
   requirePermission(PERMISSIONS.USERS.CHANGE_STATUS),
-  validateMultiple([
+  validate([
     { schema: uuidParamSchema, source: 'params' },
     { schema: updateUserStatusSchema, source: 'body' }
   ]), 
@@ -394,7 +394,7 @@ router.patch('/:id/status',
  */
 router.patch('/:id/role', 
   requirePermission(PERMISSIONS.USERS.MANAGE_ROLES),
-  validateMultiple([
+  validate([
     { schema: uuidParamSchema, source: 'params' },
     { schema: updateUserRoleSchema, source: 'body' }
   ]), 

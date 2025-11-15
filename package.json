@@ -5,6 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "init": "pnpm i && pnpm run prisma:all && pnpm run seed && pnpm run mock",
+    "reset": "pnpm run prisma:reset && pnpm run seed && pnpm run mock",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "vitest --reporter=verbose",
@@ -15,6 +16,7 @@
     "prisma:gen": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma",
     "prisma:migrate": "pnpm run prisma:merge && npx prisma migrate dev --schema=prisma/schema.merged.prisma",
     "prisma:all": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma && npx prisma db push --schema=prisma/schema.merged.prisma && pnpm run prisma:cleanup",
+    "prisma:reset": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma && npx prisma db push --schema=prisma/schema.merged.prisma --force-reset && pnpm run prisma:cleanup",
     "prisma:cleanup": "node -e \"try{require('fs').unlinkSync('prisma/schema.merged.prisma')}catch(e){}\""
   },
   "keywords": [],
