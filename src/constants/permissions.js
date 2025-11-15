@@ -88,7 +88,6 @@ export const PERMISSIONS = {
     VIEW_DETAIL:  { key: 'exportFabric:view_detail',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
   },
 
-    // Warehouse Management
   STORES: {
     VIEW_LIST:    { key: 'store:view_list',    description: 'Xem danh sách cửa hàng' },
     VIEW_DETAIL:  { key: 'store:view_detail',  description: 'Xem chi tiết cửa hàng' },
@@ -119,6 +118,22 @@ export const PERMISSIONS = {
     VIEW_DATASET:   { key: 'yolo:view_dataset',   description: 'Xem dataset YOLO' },
     MANAGE_DATASET: { key: 'yolo:manage_dataset', description: 'Quản lý dataset YOLO (tạo, cập nhật, xóa, thêm ảnh)' },
     EXPORT_DATASET: { key: 'yolo:export_dataset', description: 'Xuất dataset YOLO dưới dạng ZIP' }
+  },
+
+  BANNER: {
+    VIEW_LIST:    { key: 'banner:view_list',    description: 'Xem danh sách banner' },
+    VIEW_DETAIL:  { key: 'banner:view_detail',  description: 'Xem chi tiết banner' },
+    CREATE:       { key: 'banner:create',       description: 'Tạo banner mới' },
+    UPDATE:       { key: 'banner:update',       description: 'Cập nhật thông tin banner' },
+    DELETE:       { key: 'banner:delete',       description: 'Xóa banner (soft delete)' },
+  },
+
+  BANNER_DISCOUNT: {
+    VIEW_LIST:    { key: 'banner_discount:view_list',    description: 'Xem danh sách banner_discount' },
+    VIEW_DETAIL:  { key: 'banner_discount:view_detail',  description: 'Xem chi tiết banner_discount' },
+    CREATE:       { key: 'banner_discount:create',       description: 'Tạo banner_discount mới' },
+    UPDATE:       { key: 'banner_discount:update',       description: 'Cập nhật thông tin banner_discount' },
+    DELETE:       { key: 'banner_discount:delete',       description: 'Xóa banner_discount (soft delete)' },
   },
 };
 
