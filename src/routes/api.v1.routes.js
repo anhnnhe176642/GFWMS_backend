@@ -18,6 +18,8 @@ import storeRouters from './v1/store.routes.js';
 import fabricShelfRouters from './v1/fabricShelf.route.js';
 import shelfRouters from './v1/shelf.routes.js';
 import geminiRoutes from './v1/gemini.routes.js';
+import bannerRoutes from './v1/banner.routes.js';
+import bannerDiscount from './v1/bannerDiscount.routes.js';
 import yoloRoutes from './v1/yolo.routes.js';
 const router = express.Router();
 
@@ -38,6 +40,8 @@ router.use('/stores', storeRouters);
 router.use('/fabric-shelf', fabricShelfRouters);
 router.use('/shelves', shelfRouters);
 router.use('/gemini', geminiRoutes);
+router.use('/banner', bannerRoutes);
+router.use('/banner-discount', bannerDiscount);
 
 // YOLO detection routes
 router.use('/yolo', yoloRoutes);
