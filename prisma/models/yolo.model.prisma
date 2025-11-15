@@ -19,13 +19,14 @@ model YoloModel {
 }
 
 model YoloDetectionLog {
-  id            String   @id @default(cuid())
-  modelId       Int
-  model         YoloModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
-  imagePath     String
-  totalObjects  Int
-  confidence    Float
-  detectedAt    DateTime @default(now())
+  id              String   @id @default(cuid())
+  modelId         Int
+  model           YoloModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  imagePath       String
+  totalObjects    Int
+  confidence      Float
+  detectionTime   Float?   @default(0) // Detection time in milliseconds
+  detectedAt      DateTime @default(now())
   
   @@index([modelId])
   @@index([detectedAt])
