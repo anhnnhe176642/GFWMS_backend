@@ -1,6 +1,7 @@
 import express from 'express';
 import * as yoloController from '../../controllers/yolo.controller.js';
 import * as yoloModelController from '../../controllers/yoloModel.controller.js';
+import yoloDatasetRoutes from './yoloDataset.routes.js';
 import { createUploadMiddleware, createUploadErrorHandler } from '../../middlewares/upload.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { detectSchema } from '../../validations/yolo.validation.js';
@@ -623,5 +624,10 @@ router.get(
   validate(modelIdParamSchema, 'params'),
   yoloModelController.getModelStats
 );
+
+// ============================================
+// DATASET MANAGEMENT ROUTES
+// ============================================
+router.use('/datasets', yoloDatasetRoutes);
 
 export default router;

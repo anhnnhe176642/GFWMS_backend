@@ -114,7 +114,11 @@ export const PERMISSIONS = {
     UPDATE_MODEL: { key: 'yolo:update_model',  description: 'Cập nhật thông tin model YOLO' },
     DELETE_MODEL: { key: 'yolo:delete_model',  description: 'Xóa model YOLO' },
     VIEW_LOGS:    { key: 'yolo:view_logs',     description: 'Xem logs phát hiện của model' },
-    VIEW_STATS:   { key: 'yolo:view_stats',    description: 'Xem thống kê model YOLO' }
+    VIEW_STATS:   { key: 'yolo:view_stats',    description: 'Xem thống kê model YOLO' },
+    // Dataset Management
+    VIEW_DATASET:   { key: 'yolo:view_dataset',   description: 'Xem dataset YOLO' },
+    MANAGE_DATASET: { key: 'yolo:manage_dataset', description: 'Quản lý dataset YOLO (tạo, cập nhật, xóa, thêm ảnh)' },
+    EXPORT_DATASET: { key: 'yolo:export_dataset', description: 'Xuất dataset YOLO dưới dạng ZIP' }
   },
 };
 
@@ -191,7 +195,12 @@ export const ROLE_PERMISSIONS = {
       PERMISSIONS.YOLO.VIEW_MODELS.key,
       PERMISSIONS.YOLO.VIEW_MODEL.key,
       PERMISSIONS.YOLO.VIEW_LOGS.key,
-      PERMISSIONS.YOLO.VIEW_STATS.key
+      PERMISSIONS.YOLO.VIEW_STATS.key,
+      
+      // YOLO dataset management
+      PERMISSIONS.YOLO.VIEW_DATASET.key,
+      PERMISSIONS.YOLO.MANAGE_DATASET.key,
+      PERMISSIONS.YOLO.EXPORT_DATASET.key
     ]
   }
 };

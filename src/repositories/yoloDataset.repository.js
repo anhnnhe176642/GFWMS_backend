@@ -1,0 +1,298 @@
+import { PrismaClient } from '@prisma/client';
+import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+
+const prisma = new PrismaClient();
+
+class YoloDatasetRepository {
+  #datasetSelectOptions = {
+    id: true,
+    name: true,
+    description: true,
+    totalImages: true,
+    totalLabels: true,
+    classes: true,
+    datasetPath: true,
+    status: true,
+    version: true,
+    createdAt: true,
+    updatedAt: true
+  };
+
+  #imageSelectOptions = {
+    id: true,
+    datasetId: true,
+    filename: true,
+    imagePath: true,
+    width: true,
+    height: true,
+    format: true,
+    objectCount: true,
+    classes: true,
+    annotations: true,
+    uploadedBy: true,
+    notes: true,
+    createdAt: true,
+    updatedAt: true
+  };
+
+  /**
+   * Create new dataset
+   */
+  async createDataset(data) {
+    return prisma.yoloDataset.create({
+      data,
+      select: this.#datasetSelectOptions
+    });
+  }
+
+  /**
+   * Find dataset by ID
+   */
+  async findDatasetById(id) {
+    return prisma.yoloDataset.findUnique({
+      where: { id },
+      select: {
+        ...this.#datasetSelectOptions,
+        _count: {
+          select: { images: true }
+        }
+      }
+    });
+  }
+
+  /**
+   * Find dataset by name
+   */
+  async findDatasetByName(name) {
+    return prisma.yoloDataset.findUnique({
+      where: { name },
+      select: this.#datasetSelectOptions
+    });
+  }
+
+  /**
+   * Get all datasets with advanced query
+   */
+  async findDatasetsWithAdvancedQuery(queryOptions = {}) {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'createdAt',
+      order = 'desc',
+      filters = {}
+    } = queryOptions;
+
+    // Build where clause
+    const searchableFields = ['name', 'description'];
+    const where = buildWhereClause({ search, ...filters }, searchableFields);
+
+    // Build pagination and sort
+    const { skip, take } = buildPagination(page, limit);
+    const orderBy = buildSort(sortBy, order);
+
+    // Execute queries
+    const [data, total] = await Promise.all([
+      prisma.yoloDataset.findMany({
+        where,
+        skip,
+        take,
+        select: {
+          ...this.#datasetSelectOptions,
+          _count: {
+            select: { images: true }
+          }
+        },
+        orderBy
+      }),
+      prisma.yoloDataset.count({ where })
+    ]);
+
+    return formatPaginatedResponse(data, total, page, take);
+  }
+
+  /**
+   * Update dataset
+   */
+  async updateDataset(id, data) {
+    return prisma.yoloDataset.update({
+      where: { id },
+      data,
+      select: this.#datasetSelectOptions
+    });
+  }
+
+  /**
+   * Delete dataset (cascade will delete all images)
+   */
+  async deleteDataset(id) {
+    return prisma.yoloDataset.delete({
+      where: { id },
+      select: this.#datasetSelectOptions
+    });
+  }
+
+  /**
+   * Add image to dataset
+   */
+  async addImage(data) {
+    return prisma.yoloDatasetImage.create({
+      data,
+      select: this.#imageSelectOptions
+    });
+  }
+
+  /**
+   * Find image by ID
+   */
+  async findImageById(id) {
+    return prisma.yoloDatasetImage.findUnique({
+      where: { id },
+      select: this.#imageSelectOptions
+    });
+  }
+
+  /**
+   * Get images in a dataset with pagination
+   */
+  async getDatasetImages(datasetId, queryOptions = {}) {
+    const {
+      page = 1,
+      limit = 20,
+      search = '',
+      sortBy = 'createdAt',
+      order = 'desc'
+    } = queryOptions;
+
+    const where = {
+      datasetId,
+      ...(search && {
+        OR: [
+          { filename: { contains: search, mode: 'insensitive' } },
+          { notes: { contains: search, mode: 'insensitive' } }
+        ]
+      })
+    };
+
+    const { skip, take } = buildPagination(page, limit);
+    const orderBy = buildSort(sortBy, order);
+
+    const [data, total] = await Promise.all([
+      prisma.yoloDatasetImage.findMany({
+        where,
+        skip,
+        take,
+        select: this.#imageSelectOptions,
+        orderBy
+      }),
+      prisma.yoloDatasetImage.count({ where })
+    ]);
+
+    return formatPaginatedResponse(data, total, page, take);
+  }
+
+  /**
+   * Update image
+   */
+  async updateImage(id, data) {
+    return prisma.yoloDatasetImage.update({
+      where: { id },
+      data,
+      select: this.#imageSelectOptions
+    });
+  }
+
+  /**
+   * Delete image
+   */
+  async deleteImage(id) {
+    return prisma.yoloDatasetImage.delete({
+      where: { id },
+      select: this.#imageSelectOptions
+    });
+  }
+
+  /**
+   * Delete multiple images by dataset ID
+   */
+  async deleteImagesByDataset(datasetId) {
+    return prisma.yoloDatasetImage.deleteMany({
+      where: { datasetId }
+    });
+  }
+
+  /**
+   * Get dataset statistics
+   */
+  async getDatasetStats(datasetId) {
+    const [dataset, imageCount, totalObjects] = await Promise.all([
+      prisma.yoloDataset.findUnique({
+        where: { id: datasetId },
+        select: {
+          classes: true,
+          totalImages: true,
+          totalLabels: true
+        }
+      }),
+      prisma.yoloDatasetImage.count({
+        where: { datasetId }
+      }),
+      prisma.yoloDatasetImage.aggregate({
+        where: { datasetId },
+        _sum: { objectCount: true }
+      })
+    ]);
+
+    return {
+      ...dataset,
+      actualImageCount: imageCount,
+      totalObjects: totalObjects._sum.objectCount || 0
+    };
+  }
+
+  /**
+   * Check if image filename exists in dataset
+   */
+  async imageExists(datasetId, filename) {
+    const image = await prisma.yoloDatasetImage.findUnique({
+      where: {
+        datasetId_filename: {
+          datasetId,
+          filename
+        }
+      }
+    });
+    return !!image;
+  }
+
+  /**
+   * Update dataset counters
+   */
+  async updateDatasetCounters(datasetId) {
+    const stats = await this.getDatasetStats(datasetId);
+    
+    // Get unique classes from all images
+    const images = await prisma.yoloDatasetImage.findMany({
+      where: { datasetId },
+      select: { classes: true }
+    });
+    
+    const allClasses = new Set();
+    images.forEach(img => {
+      const imgClasses = Array.isArray(img.classes) ? img.classes : [];
+      imgClasses.forEach(cls => allClasses.add(cls));
+    });
+
+    return prisma.yoloDataset.update({
+      where: { id: datasetId },
+      data: {
+        totalImages: stats.actualImageCount,
+        totalLabels: stats.totalObjects,
+        classes: Array.from(allClasses)
+      },
+      select: this.#datasetSelectOptions
+    });
+  }
+}
+
+export default new YoloDatasetRepository();
