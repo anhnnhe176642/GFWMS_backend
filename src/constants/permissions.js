@@ -103,6 +103,19 @@ export const PERMISSIONS = {
     UPDATE:       { key: 'shelf:update',       description: 'Cập nhật thông tin kệ' },
     DELETE:       { key: 'shelf:delete',       description: 'Xóa kệ (soft delete)' },
   },
+
+  // YOLO Detection & Model Management
+  YOLO: {
+    DETECT:       { key: 'yolo:detect',        description: 'Phát hiện đối tượng trong hình ảnh' },
+    VIEW_MODELS:  { key: 'yolo:view_models',   description: 'Xem danh sách các model YOLO' },
+    VIEW_MODEL:   { key: 'yolo:view_model',    description: 'Xem chi tiết model YOLO' },
+    UPLOAD_MODEL: { key: 'yolo:upload_model',  description: 'Tải lên model YOLO mới' },
+    ACTIVATE_MODEL: { key: 'yolo:activate_model', description: 'Kích hoạt model YOLO' },
+    UPDATE_MODEL: { key: 'yolo:update_model',  description: 'Cập nhật thông tin model YOLO' },
+    DELETE_MODEL: { key: 'yolo:delete_model',  description: 'Xóa model YOLO' },
+    VIEW_LOGS:    { key: 'yolo:view_logs',     description: 'Xem logs phát hiện của model' },
+    VIEW_STATS:   { key: 'yolo:view_stats',    description: 'Xem thống kê model YOLO' }
+  },
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)
@@ -171,7 +184,14 @@ export const ROLE_PERMISSIONS = {
       PERMISSIONS.CREDITS.UPDATE.key,
       PERMISSIONS.CREDITS.APPROVE.key,
       PERMISSIONS.CREDITS.REJECT.key,
-      PERMISSIONS.CREDITS.VIEW_OWN.key
+      PERMISSIONS.CREDITS.VIEW_OWN.key,
+      
+      // YOLO detection - view only
+      PERMISSIONS.YOLO.DETECT.key,
+      PERMISSIONS.YOLO.VIEW_MODELS.key,
+      PERMISSIONS.YOLO.VIEW_MODEL.key,
+      PERMISSIONS.YOLO.VIEW_LOGS.key,
+      PERMISSIONS.YOLO.VIEW_STATS.key
     ]
   }
 };

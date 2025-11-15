@@ -10,7 +10,8 @@ import {
   modelIdParamSchema,
   paginationSchema
 } from '../../validations/yoloModel.validation.js';
-import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
 
@@ -196,6 +197,8 @@ router.get('/model-info', yoloController.getModelInfo);
  */
 router.post(
   '/detect',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.DETECT),
   uploadYoloImage,
   handleYoloUploadError,
   validate(detectSchema, 'body'),
@@ -293,6 +296,7 @@ router.post(
 router.get(
   '/models',
   authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.VIEW_MODELS),
   validate(getModelsSchema, 'query'),
   yoloModelController.getAllModels
 );
@@ -365,6 +369,7 @@ router.get('/models/active', yoloModelController.getActiveModel);
 router.post(
   '/models/upload',
   authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.UPLOAD_MODEL),
   uploadYoloModel,
   handleModelUploadError,
   validate(uploadYoloModelSchema, 'fields'),
@@ -394,6 +399,7 @@ router.post(
 router.get(
   '/models/:modelId',
   authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.VIEW_MODEL),
   validate(modelIdParamSchema, 'params'),
   yoloModelController.getModelById
 );
@@ -421,6 +427,7 @@ router.get(
 router.put(
   '/models/:modelId/activate',
   authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.ACTIVATE_MODEL),
   validate(modelIdParamSchema, 'params'),
   yoloModelController.setActiveModel
 );
@@ -463,6 +470,7 @@ router.put(
 router.patch(
   '/models/:modelId',
   authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.UPDATE_MODEL),
   validate(modelIdParamSchema, 'params'),
   yoloModelController.updateModel
 );
@@ -490,6 +498,7 @@ router.patch(
 router.delete(
   '/models/:modelId',
   authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.DELETE_MODEL),
   validate(modelIdParamSchema, 'params'),
   yoloModelController.deleteModel
 );
@@ -581,6 +590,7 @@ router.delete(
 router.get(
   '/models/:modelId/logs',
   authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.VIEW_LOGS),
   validate([
     { schema: modelIdParamSchema, source: 'params' },
     { schema: paginationSchema, source: 'query' }
@@ -609,6 +619,7 @@ router.get(
 router.get(
   '/models/:modelId/stats',
   authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.VIEW_STATS),
   validate(modelIdParamSchema, 'params'),
   yoloModelController.getModelStats
 );
