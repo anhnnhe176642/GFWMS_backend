@@ -15,10 +15,11 @@ export function nearestNeighborSortFromCenter(points, tolerancePercentage = 0.5)
 
   let currentRow = [sorted[0]];
   let rowIndex = 1;
+  let sumY = sorted[0].y; 
   
   for (let i = 1; i < sorted.length; i++) {
-    // Tính trung bình y của hàng hiện tại để so sánh chính xác hơn
-    const avgY = currentRow.reduce((sum, p) => sum + p.y, 0) / currentRow.length;
+    // Tính trung bình y của hàng hiện tại
+    const avgY = sumY / currentRow.length;
     const yDiff = Math.abs(sorted[i].y - avgY);
     // Dung sai = chiều cao detection × phần trăm dung sai
     const rowTolerance = (currentRow[0].height || 50) * tolerancePercentage;
@@ -26,12 +27,14 @@ export function nearestNeighborSortFromCenter(points, tolerancePercentage = 0.5)
     if (yDiff <= rowTolerance) {
       // Thêm vào hàng hiện tại
       currentRow.push(sorted[i]);
+      sumY += sorted[i].y; // Cập nhật tổng y
     } else {
       // Tạo hàng mới: sắp xếp hàng hiện tại từ trái sang phải (theo x)
       currentRow.sort((a, b) => a.x - b.x);
       rows.push(...currentRow.map(p => ({ ...p, row: rowIndex })));
       rowIndex++;
       currentRow = [sorted[i]];
+      sumY = sorted[i].y; // Reset tổng y cho hàng mới
     }
   }
   
