@@ -98,7 +98,7 @@ router.get('/model-info', yoloController.getModelInfo);
  * @swagger
  * /yolo/detect:
  *   post:
- *     summary: Detect and count objects in an image
+ *     summary: Detect and count objects in an image (with row sorting based on detection slope)
  *     tags: [YOLO]
  *     requestBody:
  *       required: true
@@ -122,7 +122,7 @@ router.get('/model-info', yoloController.getModelInfo);
  *                 description: Confidence threshold for detections (0-1)
  *     responses:
  *       200:
- *         description: Detection results with object counts and coordinates
+ *         description: Detection results with object counts, coordinates, and row assignment
  *         content:
  *           application/json:
  *             schema:
@@ -153,44 +153,68 @@ router.get('/model-info', yoloController.getModelInfo);
  *                         properties:
  *                           class_id:
  *                             type: integer
+ *                             example: 0
  *                           class_name:
  *                             type: string
+ *                             example: "person"
  *                           confidence:
  *                             type: number
+ *                             example: 0.95
  *                           bbox:
  *                             type: object
+ *                             description: Bounding box coordinates
  *                             properties:
  *                               x1:
  *                                 type: number
+ *                                 example: 100.5
  *                               y1:
  *                                 type: number
+ *                                 example: 50.3
  *                               x2:
  *                                 type: number
+ *                                 example: 200.8
  *                               y2:
  *                                 type: number
+ *                                 example: 300.2
  *                           center:
  *                             type: object
+ *                             description: Center point of detection
  *                             properties:
  *                               x:
  *                                 type: number
+ *                                 example: 150.65
  *                               y:
  *                                 type: number
+ *                                 example: 175.25
  *                           dimensions:
  *                             type: object
+ *                             description: Width and height of detection
  *                             properties:
  *                               width:
  *                                 type: number
+ *                                 example: 100.3
  *                               height:
  *                                 type: number
+ *                                 example: 249.9
+ *                           row:
+ *                             type: integer
+ *                             description: Row index (row number of detection based on slope analysis). Objects on the same row are grouped together based on their Y-coordinate with tolerance calculated from detection height.
+ *                             example: 1
  *                     image_info:
  *                       type: object
+ *                       description: Information about the analyzed image
  *                       properties:
  *                         width:
  *                           type: integer
+ *                           example: 640
  *                         height:
  *                           type: integer
+ *                           example: 480
+ *                         path:
+ *                           type: string
  *                     model_info:
  *                       type: object
+ *                       description: Information about the YOLO model used
  *       400:
  *         description: Bad request - no image or invalid parameters
  *       500:
