@@ -13,7 +13,8 @@ const getDataFromRequest = (req, source) => {
     body: req.body,
     params: req.params,
     query: req.query,
-    headers: req.headers
+    headers: req.headers,
+    fields: req.body // multipart/form-data fields
   };
   return sourceMap[source] || req.body;
 };
@@ -24,6 +25,7 @@ const getDataFromRequest = (req, source) => {
 const setDataToRequest = (req, source, value) => {
   switch (source) {
     case 'body':
+    case 'fields':
       req.body = value;
       break;
     case 'params':
@@ -56,46 +58,40 @@ const formatValidationErrors = (error, sourcePrefix = '') => {
 
 /**
  * Middleware validation sử dụng Joi
+ * Hỗ trợ validate multiple sources trong một lần gọi
+ * 
+ * @example
+ * // Single source
+ * validate(schema, 'body')
+ * validate(schema, 'query')
+ * validate(schema, 'params')
+ * 
+ * // Multiple sources
+ * validate([
+ *   { schema: bodySchema, source: 'body' },
+ *   { schema: paramsSchema, source: 'params' }
+ * ])
  */
-export const validate = (schema, source = 'body') => {
-  return (req, res, next) => {
-    const dataToValidate = getDataFromRequest(req, source);
-
-    // Thực hiện validation
-    const { error, value } = schema.validate(dataToValidate, VALIDATION_OPTIONS);
-
-    if (error) {
-      const errorDetails = formatValidationErrors(error);
-      return res.status(400).json({
-        message: 'Dữ liệu không hợp lệ',
-        errors: errorDetails
-      });
-    }
-
-    // Cập nhật request với dữ liệu đã được validate và làm sạch
-    setDataToRequest(req, source, value);
-    next();
-  };
-};
-
-/**
- * Middleware validation cho multiple sources
- */
-export const validateMultiple = (validations) => {
+export const validate = (schemaOrArray, source = 'body') => {
   return (req, res, next) => {
     const errors = [];
+    
+    // Kiểm tra nếu là array hay single schema
+    const validations = Array.isArray(schemaOrArray)
+      ? schemaOrArray
+      : [{ schema: schemaOrArray, source }];
 
     // Validate từng source
-    for (const { schema, source } of validations) {
-      const dataToValidate = getDataFromRequest(req, source);
+    for (const { schema, source: currentSource } of validations) {
+      const dataToValidate = getDataFromRequest(req, currentSource);
       const { error, value } = schema.validate(dataToValidate, VALIDATION_OPTIONS);
 
       if (error) {
-        const errorDetails = formatValidationErrors(error, source);
+        const errorDetails = formatValidationErrors(error, currentSource);
         errors.push(...errorDetails);
       } else {
         // Cập nhật dữ liệu đã validate
-        setDataToRequest(req, source, value);
+        setDataToRequest(req, currentSource, value);
       }
     }
 

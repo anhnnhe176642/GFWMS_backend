@@ -10,6 +10,7 @@ ENV/
 
 # YOLO
 runs/
+models/
 !models/.gitkeep
 
 # Temp files
