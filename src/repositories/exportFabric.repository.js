@@ -152,6 +152,25 @@ export class ExportFabricRepository {
 
     return newExport;
   }
+
+  async updateStatus(id, status, approvedById, itemShelfSelections = []) {
+    const updatedExport = await prisma.exportFabric.update({
+      where: { id },
+      data: {
+        status,
+        receivedById: approvedById,
+        exportItems: {
+          updateMany: itemShelfSelections.map(item => ({
+            where: { exportFabricId: id, fabricId: item.fabricId },
+            data: {}
+          }))
+        }
+      },
+      select: this.#exportFabricDetailSelect
+    });
+
+    return updatedExport;
+  }
 }
 
 export const exportFabricRepository = new ExportFabricRepository();
