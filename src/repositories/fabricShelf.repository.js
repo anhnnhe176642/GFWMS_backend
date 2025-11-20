@@ -79,16 +79,22 @@ async findByFabricIdInWarehouse(fabricId, warehouseId) {
     },
     select: {
       shelfId: true,
-      quantity: true, // số lượng vải của fabric này trên kệ
+      quantity: true,
       shelf: {
         select: {
-          code: true
+          id: true,
+          code: true,
+          createdAt: true   
         }
       }
     },
-    orderBy: { quantity: 'desc' }
+    orderBy: [
+      { shelf: { createdAt: 'asc' }}, 
+      { quantity: 'desc' }           
+    ]
   });
 }
+
 
 
   /**
