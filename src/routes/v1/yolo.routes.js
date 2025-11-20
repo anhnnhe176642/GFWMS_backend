@@ -16,10 +16,10 @@ import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
 
-// Create upload middleware for YOLO detection (single image, 10MB max)
+// Create upload middleware for YOLO detection (single image, 50MB max)
 const uploadYoloImage = createUploadMiddleware({
   fieldName: 'image',
-  maxSize: 10,
+  maxSize: 50,
   multiple: false
 });
 
@@ -31,7 +31,7 @@ const uploadYoloModel = createUploadMiddleware({
   fileType: 'model'
 });
 
-const handleYoloUploadError = createUploadErrorHandler('image', 10);
+const handleYoloUploadError = createUploadErrorHandler('image', 50);
 const handleModelUploadError = createUploadErrorHandler('model', 100);
 
 /**

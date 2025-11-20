@@ -86,6 +86,7 @@ export const createUploadErrorHandler = (fieldName = 'file', maxSize = 5) => {
   return (error, req, res, next) => {
     if (error instanceof multer.MulterError) {
       if (error.code === 'LIMIT_FILE_SIZE') {
+        console.log(`[UPLOAD DEBUG] File size exceeded. Max: ${maxSize}MB, Error:`, error.limit, error.field, error);
         return next(new ValidationError(`Kích thước file không được vượt quá ${maxSize}MB`, fieldName));
       }
       if (error.code === 'LIMIT_FILE_COUNT') {
