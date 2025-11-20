@@ -100,6 +100,8 @@ router.get('/model-info', yoloController.getModelInfo);
  *   post:
  *     summary: Detect and count objects in an image (with row sorting based on detection slope)
  *     tags: [YOLO]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
