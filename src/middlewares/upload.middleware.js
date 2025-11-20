@@ -22,12 +22,29 @@ const createImageFileFilter = (fieldName = 'file') => {
 };
 
 /**
+ * Create file filter for YOLO model (.pt files)
+ * @param {string} fieldName - Name of the field (for error messages)
+ * @returns {Function} File filter function
+ */
+const createModelFileFilter = (fieldName = 'file') => {
+  return (req, file, cb) => {
+    // Accept .pt files - they may have various mime types
+    if (file.originalname.endsWith('.pt') || file.mimetype === 'application/octet-stream') {
+      cb(null, true);
+    } else {
+      cb(new ValidationError('Chỉ chấp nhận file model (.pt)', fieldName), false);
+    }
+  };
+};
+
+/**
  * Create multer upload middleware with custom options
  * @param {Object} options - Upload options
  * @param {string} options.fieldName - Name of the field (default: 'file')
  * @param {number} options.maxSize - Max file size in MB (default: 5)
  * @param {boolean} options.multiple - Allow multiple files (default: false)
  * @param {number} options.maxCount - Max number of files if multiple (default: 10)
+ * @param {string} options.fileType - Type of file: 'image' or 'model' (default: 'image')
  * @returns {Function} Multer middleware
  */
 export const createUploadMiddleware = (options = {}) => {
@@ -35,12 +52,18 @@ export const createUploadMiddleware = (options = {}) => {
     fieldName = 'file',
     maxSize = 5,
     multiple = false,
-    maxCount = 10
+    maxCount = 10,
+    fileType = 'image'
   } = options;
+
+  // Select appropriate file filter based on fileType
+  const fileFilter = fileType === 'model' 
+    ? createModelFileFilter(fieldName)
+    : createImageFileFilter(fieldName);
 
   const upload = multer({
     storage: storage,
-    fileFilter: createImageFileFilter(fieldName),
+    fileFilter: fileFilter,
     limits: {
       fileSize: maxSize * 1024 * 1024 // Convert MB to bytes
     }
@@ -109,3 +132,111 @@ export const handleDocumentUploadError = createUploadErrorHandler('document', 10
 
 // Legacy export for backward compatibility
 export const handleUploadError = handleAvatarUploadError;
+
+/**
+ * Parse multipart form data with nested arrays
+ * Converts flat form fields like:
+ *   detections[0].class_id = 0
+ *   detections[0].class_name = "defect"
+ *   detections[0].bbox.x1 = 100
+ * Into nested structure:
+ *   { detections: [{ class_id: 0, class_name: "defect", bbox: { x1: 100 } }] }
+ */
+export const parseMultipartFormData = (req, res, next) => {
+  if (!req.body) {
+    return next();
+  }
+
+  const parsed = {};
+
+  // Process each field in request body
+  for (const [key, value] of Object.entries(req.body)) {
+    // Skip file fields
+    if (typeof value === 'object' && value && !Array.isArray(value) && !value.buffer) {
+      // Already an object, keep it
+      parsed[key] = value;
+      continue;
+    }
+
+    // Parse array notation: arr[0].field = value
+    const arrayMatch = key.match(/^(\w+)\[(\d+)\]\.(.+)$/);
+    if (arrayMatch) {
+      const [, arrayName, index, fieldPath] = arrayMatch;
+      const idx = parseInt(index);
+
+      if (!parsed[arrayName]) {
+        parsed[arrayName] = [];
+      }
+
+      if (!parsed[arrayName][idx]) {
+        parsed[arrayName][idx] = {};
+      }
+
+      // Set nested property
+      setNestedProperty(parsed[arrayName][idx], fieldPath, value);
+    } else {
+      parsed[key] = value;
+    }
+  }
+
+  req.body = parsed;
+  next();
+};
+
+/**
+ * Helper to set nested property
+ * setNestedProperty(obj, 'bbox.x1', 100)
+ * Results in: obj = { bbox: { x1: 100 } }
+ */
+function setNestedProperty(obj, path, value) {
+  const parts = path.split('.');
+  let current = obj;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!current[part]) {
+      current[part] = {};
+    }
+    current = current[part];
+  }
+
+  // Convert string numbers to actual numbers where appropriate
+  const finalPart = parts[parts.length - 1];
+  if (!isNaN(value) && value !== '') {
+    current[finalPart] = parseFloat(value);
+  } else if (value === 'true') {
+    current[finalPart] = true;
+  } else if (value === 'false') {
+    current[finalPart] = false;
+  } else {
+    current[finalPart] = value;
+  }
+}
+
+/**
+ * Parse JSON fields from multipart/form-data
+ * Converts JSON string fields to objects
+ * Useful for handling complex data in multipart requests
+ */
+export const parseJsonFields = (req, res, next) => {
+  if (!req.body) {
+    return next();
+  }
+
+  // List of field names that should be parsed as JSON
+  const jsonFieldNames = ['detections', 'image_info', 'annotations', 'classes', 'data'];
+
+  for (const fieldName of jsonFieldNames) {
+    if (fieldName in req.body && typeof req.body[fieldName] === 'string') {
+      try {
+        req.body[fieldName] = JSON.parse(req.body[fieldName]);
+      } catch (error) {
+        // If JSON parse fails, keep the string value
+        // Validation middleware will catch the error
+        console.error(`Error parsing JSON field "${fieldName}":`, error);
+      }
+    }
+  }
+
+  next();
+};
