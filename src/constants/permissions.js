@@ -89,7 +89,6 @@ export const PERMISSIONS = {
     VIEW_DETAIL_WAREHOUSE:  { key: 'exportFabric:view_detail',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
     CREATE:                 { key: 'exportFabric:create',       description: 'Tạo đơn yêu cầu xuất kho mới' },
     CHANGE_STATUS:            { key: 'exportFabric:change_status',      description: 'Thay đổi trạng thái đơn' },
-
   },
 
   STORES: {

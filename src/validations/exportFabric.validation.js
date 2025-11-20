@@ -47,7 +47,7 @@ const exportStatusSchema = Joi.string()
   .default('PENDING')
   .trim()
   .messages({
-    'any.only': 'Trạng thái chỉ được là: PENDING, APPROVED hoặc REJECTED'
+    'any.only': 'Chỉ được là PENDING, APPROVED hoặc REJECTED'
   });
 
 /**
@@ -74,7 +74,7 @@ export const paginationQuerySchema = Joi.object({
  * QUERY (FILTER + SORT)
  * ============================
  */
-const allowedExportFabricSortFields = ['id', 'createdAt', 'updatedAt', 'status'];
+const allowedExportFabricSortFields = ['id', 'createdAt', 'updatedAt', 'status','warehouseId','storeId'];
 
 export const exportFabricQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedExportFabricSortFields),

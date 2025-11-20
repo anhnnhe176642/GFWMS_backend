@@ -30,12 +30,12 @@ const router = express.Router();
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Số trang cần lấy
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Số lượng mục trên mỗi trang
  *       - in: query
  *         name: search
@@ -342,7 +342,7 @@ router.post(
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID của phiếu xuất vải
  *     requestBody:
  *       required: true

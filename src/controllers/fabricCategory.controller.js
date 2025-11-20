@@ -16,7 +16,7 @@ export const getAllFabricCategories = async (req, res, next) => {
     const result = await fabricCategoryService.getAllFabricCategoriesAdvanced(queryParams);
 
     res.json({
-      message: 'Lấy danh sách fabric category thành công',
+      message: 'Lấy danh sách loại vải thành công',
       ...result
     });
   } catch (error) {
@@ -31,11 +31,11 @@ export const getFabricCategoryById = async (req, res, next) => {
     const fabricCategory = await fabricCategoryService.getFabricCategoryById(id);
 
     if (!fabricCategory) {
-      return res.status(404).json({ message: 'Không tìm thấy fabric category' });
+      return res.status(404).json({ message: 'Không tìm thấy loại vải' });
     }
 
     res.json({
-      message: 'Lấy thông tin fabric category thành công',
+      message: 'Lấy thông tin loại vải thành công',
       data: fabricCategory
     });
   } catch (error) {
@@ -48,7 +48,7 @@ export const createFabricCategory = async (req, res, next) => {
     const fabricCategory = await fabricCategoryService.createFabricCategory(req.body);
 
     res.status(201).json({
-      message: 'Tạo fabric category thành công',
+      message: 'Tạo loại vải thành công',
       data: fabricCategory
     });
   } catch (error) {
@@ -63,7 +63,7 @@ export const updateFabricCategory = async (req, res, next) => {
     const updatedFabricCategory = await fabricCategoryService.updateFabricCategory(id, req.body);
 
     res.json({
-      message: 'Cập nhật fabric category thành công',
+      message: 'Cập nhật loại vải thành công',
       data: updatedFabricCategory
     });
   } catch (error) {
@@ -80,7 +80,7 @@ export const deleteFabricCategory = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Xóa fabric category thành công',
+      message: 'Xóa loại vải thành công',
       data: result
     });
   } catch (error) {
