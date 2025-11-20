@@ -7,7 +7,7 @@ import {
   updateExportFabricStatus
 } from '../../controllers/exportFabric.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
-import { validate, validateMultiple } from '../../middlewares/validation.middleware.js';
+import { validate } from '../../middlewares/validation.middleware.js';
 import {
   exportFabricIdParamSchema,
   exportFabricQuerySchema,
@@ -396,7 +396,7 @@ router.patch(
   '/:id/status',
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.CHANGE_STATUS),
-  validateMultiple([
+  validate([
     { schema: exportFabricIdParamSchema, source: 'params' },
     { schema: approveExportFabricSchema, source: 'body' }
   ]),

@@ -78,24 +78,24 @@ export const createExportFabric = async (exportData) => {
     const fabric = await fabricRepository.findById(item.fabricId);
 
     if (!fabric) {
-      throw new NotFoundError(`Vải có ID ${item.fabricId} không tồn tại trong kho`);
+      throw new NotFoundError(`Loại vải bạn chọn (ID: ${item.fabricId}) hiện không có trong kho.`);
     }
 
     if (item.quantity > fabric.quantityInStock) {
       throw new ConflictError(
-        `Số lượng cuộn cần xuất (${item.quantity}) vượt quá số lượng hiện có trong kho (${fabric.quantityInStock})`
+        `Số lượng cần xuất (${item.quantity}) lớn hơn số lượng còn trong kho (${fabric.quantityInStock}).`
       );
     }
   }
 
   const warehouse = await warehouseRepository.findById(warehouseId);
   if (!warehouse) {
-    throw new NotFoundError(`Kho với ID ${warehouseId} không tồn tại`);
+    throw new NotFoundError(`Kho (ID ${warehouseId}) không tồn tại hoặc đã bị xoá.`);
   }
 
   const store = await storeRepository.findById(storeId);
   if (!store) {
-    throw new NotFoundError(`Cửa hàng với ID ${storeId} không tồn tại`);
+    throw new NotFoundError(`Cửa hàng (ID ${storeId}) không tồn tại hoặc đã bị xoá.`);
   }
 
   return await exportFabricRepository.create(exportData);
@@ -112,11 +112,11 @@ export const approveExportFabric = async ({
 
   if (!exportFabric) throw new NotFoundError('Phiếu xuất vải không tồn tại');
   if (exportFabric.status !== 'PENDING')
-    throw new ConflictError('Phiếu xuất này đã được duyệt hoặc từ chối trước đó');
+    throw new ConflictError('Phiếu xuất này đã được xử lý trước đó và không thể duyệt lại.');
 
   if (status === 'APPROVED') {
   if (!itemShelfSelections || itemShelfSelections.length === 0) {
-    throw new ConflictError('Cần chọn kệ và số lượng tương ứng khi duyệt');
+    throw new ConflictError('Bạn cần chọn kệ và số lượng lấy từ kệ để duyệt phiếu.');
   }
 
   // Map quantityToTake sang quantity
@@ -129,9 +129,7 @@ export const approveExportFabric = async ({
   // Validate cơ bản
   for (const sel of selections) {
     if (!sel.fabricId || !sel.shelfId || !sel.quantity || sel.quantity <= 0) {
-      throw new ConflictError(
-        'Dữ liệu không hợp lệ: cần ID vải, ID kệ và số lượng > 0'
-      );
+      throw new ConflictError('Vui lòng chọn đúng loại vải, kệ và số lượng cần lấy (phải lớn hơn 0).');
     }
   }
 
@@ -148,7 +146,7 @@ export const approveExportFabric = async ({
 
     if (totalSelected !== item.quantity) {
       throw new ConflictError(
-        `Tổng số lượng chọn từ kệ cho vải ID ${item.fabricId} phải bằng ${item.quantity} (hiện tại ${totalSelected})`
+        `Tổng số lượng lấy từ kệ cho loại vải (ID: ${item.fabricId}) phải đúng bằng ${item.quantity}.`
       );
     }
   }
@@ -159,10 +157,15 @@ export const approveExportFabric = async ({
       sel.shelfId,
       sel.fabricId
     );
-    if (!shelfItem) throw new ConflictError(`Kệ ID ${sel.shelfId} không có vải ${sel.fabricId}`);
+    if (!shelfItem) 
+      throw new ConflictError(
+        `Kệ bạn chọn (ID: ${sel.shelfId}) không chứa loại vải (ID: ${sel.fabricId}).`
+    );
+
     if (shelfItem.quantity < sel.quantity) {
       throw new ConflictError(
-        `Kệ ${shelfItem.shelf.code} không đủ số lượng vải ${sel.fabricId} (cần ${sel.quantity}, còn ${shelfItem.quantity})`
+        `Kệ ${shelfItem.shelf.code} không đủ số lượng vải cần lấy. 
+        Cần: ${sel.quantity}, Còn: ${shelfItem.quantity}.`
       );
     }
 

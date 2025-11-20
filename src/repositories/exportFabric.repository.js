@@ -17,39 +17,36 @@ export class ExportFabricRepository {
 
   //  Select chi tiết (get detail)
   #exportFabricDetailSelect = {
-    id: true,
-    warehouseId: true,
-    warehouse: { select: { id: true, name: true } },
-    storeId: true,
-    store: { select: { id: true, name: true } },
-    status: true,
-    note: true,
-    createdAt: true,
-    updatedAt: true,
-    createdById: true,
-    createdBy: { select: { id: true, username: true, email: true } },
-    receivedById: true,
-    receivedBy: { select: { id: true, username: true, email: true } },
-    exportItems: {
-      select: {
-        exportFabricId: true,
-        fabricId: true,
-        quantity: true,
-        price: true,
-        createdAt: true,
-        updatedAt: true,
-        fabric: {
-          select: {
-            id: true,
-            colorId: true,
-            categoryId: true,
-            sellingPrice: true,
-            supplierId: true
-          }
+  id: true,
+  warehouseId: true,
+  warehouse: { select: { name: true } }, 
+  store: { select: { name: true } }, 
+  status: true,
+  note: true,
+  createdAt: true,
+  updatedAt: true,
+  createdById: true,
+  createdBy: { select: { username: true, email: true } }, 
+  receivedById: true,
+  receivedBy: { select: { username: true, email: true } }, 
+
+  exportItems: {
+    select: {
+      fabricId: true,
+      quantity: true,
+      price: true,      
+      fabric: {
+        select: {
+          id: true,
+          colorId: true,
+          categoryId: true,
+          sellingPrice: true,
+          supplierId: true
         }
       }
     }
-  };
+  }
+};
 
   /**  Lấy tất cả (ít trường, không chi tiết exportItems) */
   async findAll() {
