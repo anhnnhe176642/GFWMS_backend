@@ -5,7 +5,9 @@ import {
   limitSchema,
   searchSchema,
   createSortBySchema,
-  sortOrderSchema
+  sortOrderSchema,
+  dateFromSchema,
+  dateToSchema
 } from './common.validation.js';
 
 // Create dataset validation
@@ -131,8 +133,12 @@ export const getDatasetsSchema = Joi.object({
     Joi.string().valid('ACTIVE', 'ARCHIVED'),
     'Trạng thái'
   ),
-  sortBy: createSortBySchema(['name', 'createdAt', 'totalImages', 'status']).optional(),
-  order: sortOrderSchema.optional()
+  sortBy: createSortBySchema(['name', 'createdAt','description', 'totalImages', 'totalLabels', 'status']).optional(),
+  order: sortOrderSchema.optional(),
+  createdFrom: dateFromSchema,
+  createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({
+    'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu'
+  })
 });
 
 // Get dataset images query validation

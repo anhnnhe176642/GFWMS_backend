@@ -16,7 +16,6 @@ model YoloDataset {
   
   // Status and versioning
   status        YoloDatasetStatus @default(ACTIVE)
-  version       String?
   
   // Relations
   images        YoloDatasetImage[]

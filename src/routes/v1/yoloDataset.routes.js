@@ -84,7 +84,7 @@ router.post(
  * @swagger
  * /yolo/datasets:
  *   get:
- *     summary: Get all datasets with pagination
+ *     summary: Get all datasets with pagination, filtering, and sorting
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -94,37 +94,107 @@ router.post(
  *         schema:
  *           type: integer
  *           default: 1
+ *         description: Page number (starts from 1)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
+ *         description: Search by dataset name or description
  *       - in: query
  *         name: status
- *         description: Filter by status (support multiple values separated by comma)
  *         schema:
  *           type: string
- *         example: "ACTIVE,ARCHIVED"
+ *         description: Filter by status (support multiple values separated by comma). Example ACTIVE,ARCHIVED
  *       - in: query
  *         name: sortBy
- *         description: Sort by field (support multiple fields separated by comma)
  *         schema:
  *           type: string
- *           
- *         example: name, createdAt, totalImages, status
+ *           default: createdAt
+ *         description: Sort by field (name, createdAt, description, totalImages, totalLabels, status)
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
  *           default: desc
- *           example: asc,desc
+ *         description: Sort order (asc or desc)
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter datasets created from this date (ISO 8601 format, inclusive)
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter datasets created until this date (ISO 8601 format, inclusive)
  *     responses:
  *       200:
- *         description: List of datasets
+ *         description: Successfully retrieved list of datasets
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       totalImages:
+ *                         type: integer
+ *                       totalLabels:
+ *                         type: integer
+ *                       classes:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNext:
+ *                       type: boolean
+ *                     hasPrev:
+ *                       type: boolean
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
  */
 router.get(
   '/',

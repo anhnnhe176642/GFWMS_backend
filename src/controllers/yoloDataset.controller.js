@@ -34,7 +34,11 @@ export const getAllDatasets = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
       filterFields: ['status'],
-      sortableFields: ['name', 'createdAt', 'totalImages', 'status']
+      dateRangeConfig: {
+        fromField: 'createdFrom',
+        toField: 'createdTo',
+        targetField: 'createdAt'
+      }
     });
 
     const result = await yoloDatasetService.getAllDatasets(queryParams);
