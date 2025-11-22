@@ -13,7 +13,6 @@ class YoloDatasetRepository {
     classes: true,
     datasetPath: true,
     status: true,
-    version: true,
     createdAt: true,
     updatedAt: true
   };

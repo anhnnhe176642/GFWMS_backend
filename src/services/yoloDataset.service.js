@@ -49,7 +49,6 @@ class YoloDatasetService {
     const datasetData = {
       name: data.name,
       description: data.description || null,
-      version: data.version || '1.0',
       datasetPath,
       classes: data.classes || [],
       status: 'ACTIVE'
@@ -338,7 +337,6 @@ class YoloDatasetService {
         dataset: {
           name: dataset.name,
           description: dataset.description || '',
-          version: dataset.version || '1.0',
           totalImages: images.data.length,
           classes: classNames,
           createdAt: dataset.createdAt,
@@ -346,7 +344,6 @@ class YoloDatasetService {
         },
         info: {
           year: new Date().getFullYear(),
-          version: dataset.version || '1.0',
           description: 'YOLO format dataset exported from GFWMS',
           contributor: 'GFWMS Backend'
         },

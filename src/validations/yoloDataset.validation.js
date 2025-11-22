@@ -1,4 +1,12 @@
 import Joi from 'joi';
+import {
+  createMultiValueFilterSchema,
+  pageSchema,
+  limitSchema,
+  searchSchema,
+  createSortBySchema,
+  sortOrderSchema
+} from './common.validation.js';
 
 // Create dataset validation
 export const createDatasetSchema = Joi.object({
@@ -9,12 +17,12 @@ export const createDatasetSchema = Joi.object({
     .required()
     .pattern(/^[a-zA-Z0-9_-]+$/)
     .messages({
-      'string.base': 'Dataset name must be a string',
-      'string.empty': 'Dataset name is required',
-      'string.min': 'Dataset name must be at least 1 character',
-      'string.max': 'Dataset name must not exceed 100 characters',
-      'string.pattern.base': 'Dataset name can only contain letters, numbers, hyphens, and underscores',
-      'any.required': 'Dataset name is required'
+      'string.base': 'Tên dataset phải là một chuỗi',
+      'string.empty': 'Tên dataset là bắt buộc',
+      'string.min': 'Tên dataset phải có ít nhất 1 ký tự',
+      'string.max': 'Tên dataset không được vượt quá 100 ký tự',
+      'string.pattern.base': 'Tên dataset chỉ có thể chứa các chữ cái, số, dấu gạch ngang và dấu gạch dưới',
+      'any.required': 'Tên dataset là bắt buộc'
     }),
   description: Joi.string()
     .trim()
@@ -22,20 +30,13 @@ export const createDatasetSchema = Joi.object({
     .optional()
     .allow('')
     .messages({
-      'string.max': 'Description must not exceed 500 characters'
-    }),
-  version: Joi.string()
-    .trim()
-    .max(20)
-    .optional()
-    .messages({
-      'string.max': 'Version must not exceed 20 characters'
+      'string.max': 'Mô tả không được vượt quá 500 ký tự'
     }),
   classes: Joi.array()
     .items(Joi.string().trim())
     .optional()
     .messages({
-      'array.base': 'Classes must be an array of strings'
+      'array.base': 'Các lớp phải là một mảng chuỗi'
     })
 });
 
@@ -48,22 +49,18 @@ export const updateDatasetSchema = Joi.object({
     .optional()
     .pattern(/^[a-zA-Z0-9_-]+$/)
     .messages({
-      'string.pattern.base': 'Dataset name can only contain letters, numbers, hyphens, and underscores'
+      'string.pattern.base': 'Tên dataset chỉ có thể chứa các chữ cái, số, dấu gạch ngang và dấu gạch dưới'
     }),
   description: Joi.string()
     .trim()
     .max(500)
     .optional()
     .allow(''),
-  version: Joi.string()
-    .trim()
-    .max(20)
-    .optional(),
   status: Joi.string()
-    .valid('ACTIVE', 'ARCHIVED', 'PROCESSING')
+    .valid('ACTIVE', 'ARCHIVED')
     .optional()
     .messages({
-      'any.only': 'Status must be one of: ACTIVE, ARCHIVED, PROCESSING'
+      'any.only': 'Trạng thái phải là một trong: ACTIVE hoặc ARCHIVED'
     })
 });
 
@@ -94,7 +91,7 @@ export const addLabeledImageSchema = Joi.object({
     )
     .required()
     .messages({
-      'any.required': 'Detections array is required'
+      'any.required': 'Mảng phát hiện là bắt buộc'
     }),
   notes: Joi.string()
     .trim()
@@ -127,59 +124,24 @@ export const updateImageSchema = Joi.object({
 
 // Get datasets query validation
 export const getDatasetsSchema = Joi.object({
-  page: Joi.number()
-    .integer()
-    .min(1)
-    .optional()
-    .default(1),
-  limit: Joi.number()
-    .integer()
-    .min(1)
-    .max(100)
-    .optional()
-    .default(10),
-  search: Joi.string()
-    .trim()
-    .optional()
-    .allow(''),
-  status: Joi.string()
-    .valid('ACTIVE', 'ARCHIVED', 'PROCESSING')
-    .optional(),
-  sortBy: Joi.string()
-    .valid('name', 'createdAt', 'totalImages', 'status')
-    .optional()
-    .default('createdAt'),
-  order: Joi.string()
-    .valid('asc', 'desc')
-    .optional()
-    .default('desc')
+  page: pageSchema,
+  limit: limitSchema,
+  search: searchSchema.optional(),
+  status: createMultiValueFilterSchema(
+    Joi.string().valid('ACTIVE', 'ARCHIVED'),
+    'Trạng thái'
+  ),
+  sortBy: createSortBySchema(['name', 'createdAt', 'totalImages', 'status']).optional(),
+  order: sortOrderSchema.optional()
 });
 
 // Get dataset images query validation
 export const getDatasetImagesSchema = Joi.object({
-  page: Joi.number()
-    .integer()
-    .min(1)
-    .optional()
-    .default(1),
-  limit: Joi.number()
-    .integer()
-    .min(1)
-    .max(100)
-    .optional()
-    .default(20),
-  search: Joi.string()
-    .trim()
-    .optional()
-    .allow(''),
-  sortBy: Joi.string()
-    .valid('filename', 'createdAt', 'objectCount')
-    .optional()
-    .default('createdAt'),
-  order: Joi.string()
-    .valid('asc', 'desc')
-    .optional()
-    .default('desc')
+  page: pageSchema,
+  limit: limitSchema,
+  search: searchSchema.optional(),
+  sortBy: createSortBySchema(['filename', 'createdAt', 'objectCount']).optional(),
+  order: sortOrderSchema.optional()
 });
 
 // Dataset ID param validation
@@ -187,7 +149,7 @@ export const datasetIdParamSchema = Joi.object({
   datasetId: Joi.string()
     .required()
     .messages({
-      'any.required': 'Dataset ID is required'
+      'any.required': 'ID Dataset là bắt buộc'
     })
 });
 
@@ -196,6 +158,6 @@ export const imageIdParamSchema = Joi.object({
   imageId: Joi.string()
     .required()
     .messages({
-      'any.required': 'Image ID is required'
+      'any.required': 'ID Hình ảnh là bắt buộc'
     })
 });

@@ -58,9 +58,6 @@ const handleImageUploadError = createUploadErrorHandler('image', 10);
  *               description:
  *                 type: string
  *                 description: Dataset description
- *               version:
- *                 type: string
- *                 example: "1.0"
  *               classes:
  *                 type: array
  *                 items:
@@ -108,21 +105,23 @@ router.post(
  *           type: string
  *       - in: query
  *         name: status
+ *         description: Filter by status (support multiple values separated by comma)
  *         schema:
  *           type: string
- *           enum: [ACTIVE, ARCHIVED, PROCESSING]
+ *         example: "ACTIVE,ARCHIVED"
  *       - in: query
  *         name: sortBy
+ *         description: Sort by field (support multiple fields separated by comma)
  *         schema:
  *           type: string
- *           enum: [name, createdAt, totalImages, status]
- *           default: createdAt
+ *           
+ *         example: name, createdAt, totalImages, status
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *           enum: [asc, desc]
  *           default: desc
+ *           example: asc,desc
  *     responses:
  *       200:
  *         description: List of datasets
@@ -187,11 +186,9 @@ router.get(
  *                 type: string
  *               description:
  *                 type: string
- *               version:
- *                 type: string
  *               status:
  *                 type: string
- *                 enum: [ACTIVE, ARCHIVED, PROCESSING]
+ *                 enum: [ACTIVE, ARCHIVED]
  *     responses:
  *       200:
  *         description: Dataset updated
@@ -320,9 +317,11 @@ router.post(
  *           type: string
  *       - in: query
  *         name: sortBy
+ *         description: Sort by field (support multiple fields separated by comma)
  *         schema:
  *           type: string
  *           enum: [filename, createdAt, objectCount]
+ *         example: "createdAt,filename"
  *       - in: query
  *         name: order
  *         schema:
