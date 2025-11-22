@@ -140,7 +140,7 @@ class YoloDatasetService {
 
   /**
    * Add labeled image to dataset
-   * Expects detection results in same format as YOLO detect endpoint
+   * Expects detection results in same format as YOLO detect endpoint (optional)
    */
   async addLabeledImage(datasetId, imageFile, detectionData, userId) {
     await this.getDatasetById(datasetId); // Verify dataset exists
@@ -168,13 +168,14 @@ class YoloDatasetService {
         this.datasetsBasePath
       );
 
-      // Extract unique class names from detections
-      const classNames = [...new Set(
-        detectionData.detections.map(d => d.class_name || 'unknown')
-      )];
+      // Handle detections - they are now optional
+      const detections = detectionData?.detections || [];
+      const classNames = detections.length > 0 
+        ? [...new Set(detections.map(d => d.class_name || 'unknown'))]
+        : [];
 
       // Prepare annotations data (pixel format - store as-is from detection)
-      const annotations = detectionData.detections.map(d => ({
+      const annotations = detections.map(d => ({
         class_id: d.class_id || 0,
         class_name: d.class_name || 'unknown',
         x1: Math.round(d.bbox.x1),
@@ -192,11 +193,12 @@ class YoloDatasetService {
         width: dimensions.width,
         height: dimensions.height,
         format: ext.replace('.', ''),
-        objectCount: detectionData.detections.length,
+        objectCount: detections.length,
         classes: classNames,  // ← Store class NAMES not IDs
         annotations,  // ← Stored in DB as pixel format
+        status: 'PENDING',  // Default status
         uploadedBy: userId || null,
-        notes: detectionData.notes || null
+        notes: detectionData?.notes || null
       };
 
       const savedImage = await withPrismaErrorHandling(

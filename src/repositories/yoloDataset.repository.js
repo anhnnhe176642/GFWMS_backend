@@ -28,6 +28,7 @@ class YoloDatasetRepository {
     objectCount: true,
     classes: true,
     annotations: true,
+    status: true,
     uploadedBy: true,
     notes: true,
     createdAt: true,

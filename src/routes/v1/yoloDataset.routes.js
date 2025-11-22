@@ -326,7 +326,6 @@ router.delete(
  *             type: object
  *             required:
  *               - image
- *               - detections
  *             properties:
  *               image:
  *                 type: string
@@ -334,14 +333,39 @@ router.delete(
  *                 description: Image file (dimensions extracted automatically)
  *               detections:
  *                 type: string
- *                 description: JSON string of detection results (from YOLO detect endpoint)
+ *                 description: Optional JSON string of detection results (from YOLO detect endpoint)
  *                 example: '[{"class_id":0,"class_name":"defect","confidence":0.95,"bbox":{"x1":100,"y1":100,"x2":200,"y2":200}}]'
  *               notes:
  *                 type: string
  *                 description: Optional notes about this image
  *     responses:
  *       201:
- *         description: Image added to dataset
+ *         description: Image added to dataset with PENDING status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     datasetId:
+ *                       type: string
+ *                     filename:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *                       description: Image processing status (default PENDING)
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
  *       400:
  *         description: Validation error
  */
@@ -499,7 +523,7 @@ router.get(
  * @swagger
  * /yolo/datasets/images/{imageId}:
  *   patch:
- *     summary: Update image annotations or notes
+ *     summary: Update image annotations, notes, or status
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -517,6 +541,12 @@ router.get(
  *             properties:
  *               notes:
  *                 type: string
+ *                 description: Notes about the image
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *                 description: Image processing status
+ *                 example: COMPLETED
  *               annotations:
  *                 type: array
  *                 items:
@@ -524,13 +554,17 @@ router.get(
  *                   properties:
  *                     class_id:
  *                       type: integer
- *                     x_center:
+ *                     class_name:
+ *                       type: string
+ *                     confidence:
  *                       type: number
- *                     y_center:
+ *                     x1:
  *                       type: number
- *                     width:
+ *                     y1:
  *                       type: number
- *                     height:
+ *                     x2:
+ *                       type: number
+ *                     y2:
  *                       type: number
  *     responses:
  *       200:

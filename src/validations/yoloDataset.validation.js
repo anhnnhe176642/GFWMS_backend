@@ -91,7 +91,8 @@ export const addLabeledImageSchema = Joi.object({
         }).optional()
       })
     )
-    .required()
+    .optional()
+    .allow(null, '')
     .messages({
       'any.required': 'Mảng phát hiện là bắt buộc'
     }),
@@ -109,6 +110,12 @@ export const updateImageSchema = Joi.object({
     .max(500)
     .optional()
     .allow(''),
+  status: Joi.string()
+    .valid('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
+    .optional()
+    .messages({
+      'any.only': 'Trạng thái phải là một trong: PENDING, PROCESSING, COMPLETED hoặc FAILED'
+    }),
   annotations: Joi.array()
     .items(
       Joi.object({

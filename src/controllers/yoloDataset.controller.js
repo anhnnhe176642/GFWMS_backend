@@ -122,7 +122,7 @@ export const addLabeledImage = async (req, res, next) => {
       });
     }
 
-    // Parse detection data from body
+    // Parse detection data from body (optional)
     // detections already parsed by parseMultipartJson middleware
     const detectionData = {
       detections: req.body.detections || [],
