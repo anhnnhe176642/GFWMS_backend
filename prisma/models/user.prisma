@@ -23,6 +23,7 @@ model User {
   assignedWarehouses WarehouseManage[] @relation("AssignedBy")
   importFabrics      ImportFabric[]    @relation("Importer")
   orders     Order[]
+  createdOrders       Order[]             @relation("OrderCreatedByStaff")
   userNotifications UserNotification[]
   notifications  Notification[]
   emailVerificationPins EmailVerificationPin[]

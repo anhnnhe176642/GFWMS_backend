@@ -512,12 +512,14 @@ async function main() {
       if (!orderItemKeys.has(key)) {
         const quantity = faker.number.int({ min: 1, max: 20 });
         const price = faker.number.float({ min: 50000, max: 1000000, multipleOf: 1000 });
+        const saleUnit = faker.helpers.arrayElement(['ROLL', 'METER']);
         const itemTotal = quantity * price;
         
         orderItemsToCreate.push({
           orderId: order.id,
           fabricId: fabric.id,
           quantity,
+          saleUnit,
           price,
         });
         orderItemKeys.add(key);

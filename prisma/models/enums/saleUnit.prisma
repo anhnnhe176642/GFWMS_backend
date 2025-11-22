@@ -1,0 +1,4 @@
+enum SaleUnit {
+  ROLL    
+  METER   
+}

@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import apiV1Routes from './routes/api.v1.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
+import { startCancelExpiredOrdersJob } from './jobs/cancel-expired-orders.job.js';
 
 dotenv.config();
 
@@ -33,5 +34,9 @@ app.use(notFound);
 
 // Error handler
 app.use(errorHandler);
+
+if (process.env.NODE_ENV !== 'test') {
+  startCancelExpiredOrdersJob();
+}
 
 export default app;

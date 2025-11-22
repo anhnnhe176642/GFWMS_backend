@@ -3,6 +3,7 @@ model OrderItem {
     orderId   Int
     fabricId  Int
     quantity  Int      @default(1)
+    saleUnit  SaleUnit 
     price     Float    
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
