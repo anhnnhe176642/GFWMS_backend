@@ -606,7 +606,7 @@ def create_gui():
             value='',
             placeholder='https://your-domain.com/api/v1/yolo/download/TOKEN',
             description='URL:',
-            layout=widgets.Layout(width='45%')
+            layout=widgets.Layout(width='40%')
         )
         
         epochs_input = widgets.IntSlider(
@@ -635,7 +635,8 @@ def create_gui():
             value='',
             placeholder='Tự động nếu để trống',
             description='Tên mô hình:',
-            layout=widgets.Layout(width='40%')
+            style={'description_width': '100px'},
+            layout=widgets.Layout(width='60%')
         )
         
         description_input = widgets.Textarea(
@@ -643,14 +644,16 @@ def create_gui():
             placeholder='Mô tả tùy chọn',
             description='Mô tả:',
             rows=3,
-            layout=widgets.Layout(width='40%')
+            style={'description_width': '100px'},
+            layout=widgets.Layout(width='60%')
         )
         
         version_input = widgets.Text(
             value='1.0',
             placeholder='1.0',
             description='Phiên bản:',
-            layout=widgets.Layout(width='20%')
+            style={'description_width': '100px'},
+            layout=widgets.Layout(width='60%')
         )
         
         verbose_toggle = widgets.ToggleButton(
