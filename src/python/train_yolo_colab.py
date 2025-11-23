@@ -19,26 +19,78 @@ import requests
 from pathlib import Path
 
 
+def print_header(text):
+    """Print beautiful header"""
+    print("\n" + "="*70)
+    print(text.center(70))
+    print("="*70)
+
+
 def print_step(step_num, title):
     """Print step header"""
-    print("\n" + "="*70)
-    print(f"STEP {step_num}: {title}")
-    print("="*70)
+    print("\n" + "─"*70)
+    print(f"  STEP {step_num}: {title}")
+    print("─"*70)
+
+
+def print_success(text):
+    """Print success message"""
+    print(f"  ✓ {text}")
+
+
+def print_error(text):
+    """Print error message"""
+    print(f"  ✗ {text}")
+
+
+def print_warning(text):
+    """Print warning message"""
+    print(f"  ⚠ {text}")
+
+
+def print_info(text):
+    """Print info message"""
+    print(f"  ℹ {text}")
+
+
+def check_gpu():
+    """Check if GPU is available"""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            device_count = torch.cuda.device_count()
+            device_name = torch.cuda.get_device_name(0)
+            print_success(f"GPU detected: {device_name} (Count: {device_count})")
+            return True
+        else:
+            print_error("No GPU detected!")
+            print("\n" + "!"*70)
+            print("  GPU REQUIRED - Please enable GPU in Colab:")
+            print("  1. Click 'Runtime' menu")
+            print("  2. Select 'Change runtime type'")
+            print("  3. Choose 'T4' or higher GPU")
+            print("  4. Click 'Save'")
+            print("  5. Re-run this cell")
+            print("!"*70 + "\n")
+            return False
+    except Exception as e:
+        print_error(f"Error checking GPU: {e}")
+        return False
 
 
 def download_dataset(url, dest_path="/content/data.zip"):
     """Download dataset from URL"""
     print_step(2, "TAI DATASET")
-    print(f"Dang tai tu: {url}")
+    print_info(f"Downloading from: {url}")
     
     try:
         import urllib.request
         urllib.request.urlretrieve(url, dest_path)
         file_size = os.path.getsize(dest_path) / (1024**2)
-        print(f"Tai xong! ({file_size:.2f} MB)")
+        print_success(f"Downloaded! ({file_size:.2f} MB)")
         return True, None
     except Exception as e:
-        print(f"Loi tai: {e}")
+        print_error(f"Download failed: {e}")
         return False, None
 
 
@@ -77,16 +129,16 @@ def extract_api_url_from_download_url(download_url):
 def extract_dataset(zip_path="/content/data.zip", extract_path="/content/custom_data"):
     """Extract dataset"""
     print_step(3, "GIAI NEN DATASET")
-    print(f"Dang giai nen toi {extract_path}...")
+    print_info(f"Extracting to {extract_path}...")
     
     try:
         os.makedirs(extract_path, exist_ok=True)
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_path)
-        print("Giai nen xong!")
+        print_success("Extracted successfully!")
         return True
     except Exception as e:
-        print(f"Loi giai nen: {e}")
+        print_error(f"Extraction failed: {e}")
         return False
 
 
@@ -96,7 +148,7 @@ def extract_dataset_name_from_notes(extract_path="/content/custom_data"):
         notes_path = os.path.join(extract_path, 'notes.json')
         
         if not os.path.exists(notes_path):
-            print("Canh bao: Khong tim thay notes.json")
+            print_warning("notes.json not found")
             return None
         
         with open(notes_path, 'r', encoding='utf-8') as f:
@@ -108,7 +160,7 @@ def extract_dataset_name_from_notes(extract_path="/content/custom_data"):
         
         return None
     except Exception as e:
-        print(f"Canh bao: Loi doc notes.json: {e}")
+        print_warning(f"Error reading notes.json: {e}")
         return None
 
 
@@ -122,24 +174,22 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
         old_val = os.path.join(data_path, 'validation')
         if os.path.exists(old_train):
             shutil.rmtree(old_train)
-            print("Xoa thu muc train cu")
+            print_info("Removed old train folder")
         if os.path.exists(old_val):
             shutil.rmtree(old_val)
-            print("Xoa thu muc validation cu")
+            print_info("Removed old validation folder")
         
         # Find images directory (could be 'images' or nested in subdirectories)
         images_path = None
         labels_path = None
         
-        print("Dang tim thu muc images va labels...")
+        print_info("Finding images and labels directories...")
         
         # First, find the root images/labels (not in train/validation subdirs)
         if os.path.exists(os.path.join(data_path, 'images')):
             images_path = os.path.join(data_path, 'images')
-            print(f"   Tim thay images: {images_path}")
         if os.path.exists(os.path.join(data_path, 'labels')):
             labels_path = os.path.join(data_path, 'labels')
-            print(f"   Tim thay labels: {labels_path}")
         
         # If not found in root, search subdirectories
         if not images_path or not labels_path:
@@ -149,13 +199,10 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
                     continue
                 if 'images' in dirs and not images_path:
                     images_path = os.path.join(root, 'images')
-                    print(f"   Tim thay images: {images_path}")
                 if 'labels' in dirs and not labels_path:
                     labels_path = os.path.join(root, 'labels')
-                    print(f"   Tim thay labels: {labels_path}")
         
         if not images_path or not labels_path:
-            print(f"Su dung thu muc goc (images/labels khong tim thay trong subdirs)")
             images_path = os.path.join(data_path, 'images')
             labels_path = os.path.join(data_path, 'labels')
         
@@ -168,7 +215,7 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
         # Get all images
         if os.path.exists(images_path):
             image_files = [f for f in os.listdir(images_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
-            print(f"Tim thay {len(image_files)} anh")
+            print_success(f"Found {len(image_files)} images")
             
             # Split files
             import random
@@ -178,7 +225,7 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
             train_files = image_files[:split_idx]
             val_files = image_files[split_idx:]
             
-            print(f"Chia tach: {len(train_files)} train, {len(val_files)} validation")
+            print_info(f"Splitting: {len(train_files)} train, {len(val_files)} validation")
             
             # Copy training images and labels
             for img_file in train_files:
@@ -206,14 +253,14 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
                     dst_label = os.path.join(data_path, 'validation', 'labels', label_file)
                     shutil.copy2(src_label, dst_label)
             
-            print("Chia tach du lieu xong!")
+            print_success("Data split completed!")
             return True
         else:
-            print(f"Loi: Anh khong tim thay tai {images_path}")
+            print_error(f"Images not found at {images_path}")
             return False
             
     except Exception as e:
-        print(f"Loi chia tach du lieu: {e}")
+        print_error(f"Data split failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -222,7 +269,7 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
 def install_libraries():
     """Install required libraries"""
     print_step(5, "CAI DAT THU VIEN")
-    print("Dang cai dat ultralytics...")
+    print_info("Installing ultralytics...")
     
     try:
         result = subprocess.run(
@@ -230,13 +277,13 @@ def install_libraries():
             timeout=300
         )
         if result.returncode == 0:
-            print("Cai dat xong!")
+            print_success("Libraries installed!")
             return True
         else:
-            print(f"Canh bao: Cai dat xong voi return code: {result.returncode}")
+            print_warning(f"Installation completed with return code: {result.returncode}")
             return True
     except Exception as e:
-        print(f"Loi cai dat: {e}")
+        print_error(f"Installation failed: {e}")
         return False
 
 
@@ -248,17 +295,17 @@ def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt",
     
     try:
         if not os.path.exists(classes_txt_path):
-            print(f"Loi: Khong tim thay classes.txt tai {classes_txt_path}")
+            print_error(f"classes.txt not found at {classes_txt_path}")
             return False
         
         with open(classes_txt_path, 'r') as f:
             classes = [line.strip() for line in f.readlines() if line.strip()]
         
         if not classes:
-            print("Loi: Khong co class nao trong classes.txt")
+            print_error("No classes found in classes.txt")
             return False
         
-        print(f"Tim thay {len(classes)} classes: {', '.join(classes)}")
+        print_success(f"Found {len(classes)} classes: {', '.join(classes)}")
         
         data = {
             'path': base_path,
@@ -271,13 +318,15 @@ def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt",
         with open(yaml_output, 'w') as f:
             yaml.dump(data, f, sort_keys=False)
         
-        print(f"\nTao file data.yaml:")
+        print("\n  data.yaml content:")
         with open(yaml_output, 'r') as f:
-            print(f.read())
+            for line in f.read().split('\n'):
+                if line:
+                    print(f"    {line}")
         
         return True
     except Exception as e:
-        print(f"Loi: Khong the tao data.yaml: {e}")
+        print_error(f"Failed to create data.yaml: {e}")
         return False
 
 
@@ -352,35 +401,30 @@ def verify_data_paths(yaml_path="/content/data.yaml"):
 def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
     """Train YOLO model"""
     print_step(7, "TRAINING YOLO MODEL")
-    print(f"Bat dau training YOLO11s ({epochs} epochs, {imgsz}x{imgsz})...")
-    print("Dieu le: Dieu nay co the mat 30min - nhieu gio tuy vao GPU va kich thuoc dataset\n")
-    print("Output training:\n")
+    print_info(f"Starting YOLO11s training ({epochs} epochs, {imgsz}x{imgsz})...")
+    print_warning("Note: Training may take 30min - several hours depending on GPU and dataset size\n")
     
     try:
         from ultralytics import YOLO
-        print("Module YOLO loaded\n")
+        print_success("YOLO module loaded\n")
         
         # Verify data.yaml
         if not os.path.exists(yaml_path):
-            print(f"Loi: Khong tim thay data.yaml tai {yaml_path}")
-            return False
-        
-        # Verify data paths
-        if not verify_data_paths(yaml_path):
-            print("Loi: Kiem tra duong dan du lieu that bai")
+            print_error(f"data.yaml not found at {yaml_path}")
             return False
         
         # Load model
-        print("\nDang load model...")
+        print_info("Loading model...")
         try:
             model = YOLO('yolo11s.pt')
-            print("Model YOLO loaded")
+            print_success("Model loaded successfully")
         except Exception as e:
-            print(f"Loi: Khong the load model: {e}")
+            print_error(f"Failed to load model: {e}")
             return False
         
         # Train model
-        print("Bat dau qua trinh training...\n")
+        print_info("Starting training process...\n")
+        print("─"*70)
         try:
             results = model.train(
                 data=yaml_path,
@@ -391,24 +435,42 @@ def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
                 verbose=True,
                 exist_ok=True
             )
-            print("\nTraining xong!\n")
+            print("─"*70)
+            print_success("Training completed!\n")
             return True
             
+        except ValueError as e:
+            if "Invalid CUDA" in str(e) or "device" in str(e).lower():
+                print_error("GPU not available!")
+                print("\n" + "!"*70)
+                print("  GPU REQUIRED - Please enable GPU in Colab:")
+                print("  1. Click 'Runtime' menu")
+                print("  2. Select 'Change runtime type'")
+                print("  3. Choose 'T4' GPU or higher (A100 preferred)")
+                print("  4. Click 'Save'")
+                print("  5. Re-run this cell")
+                print("!"*70 + "\n")
+                return False
+            else:
+                print_error(f"Training error: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
+        
         except Exception as train_error:
-            print(f"\nLoi training:")
-            print(f"Kieu loi: {type(train_error).__name__}")
-            print(f"Chi tiet: {str(train_error)}")
-            print(f"\nFull traceback:")
+            print_error(f"Training failed:")
+            print(f"  Error type: {type(train_error).__name__}")
+            print(f"  Details: {str(train_error)}")
             import traceback
             traceback.print_exc()
             return False
         
     except ImportError as e:
-        print(f"Loi import: {e}")
-        print("Vui long cai dat ultralytics: pip install ultralytics")
+        print_error(f"Import error: {e}")
+        print_info("Please install ultralytics: pip install ultralytics")
         return False
     except Exception as e:
-        print(f"Loi: {e}")
+        print_error(f"Unexpected error: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -444,32 +506,30 @@ def download_model():
         model_source = find_model()
         
         if not model_source:
-            print("Loi: Khong tim thay model da training!")
+            print_error("No trained model found!")
             if os.path.exists('/content/runs'):
-                print("Noi dung /content/runs:")
+                print("\n  Contents of /content/runs:")
                 for root, dirs, files in os.walk('/content/runs'):
                     level = root.replace('/content/runs', '').count(os.sep)
-                    indent = '   ' * level
+                    indent = '    ' * level
                     print(f"{indent}{os.path.basename(root)}/")
                     for file in files:
                         size = os.path.getsize(os.path.join(root, file)) / (1024*1024)
-                        print(f"{indent}   {file} ({size:.2f} MB)")
+                        print(f"{indent}  {file} ({size:.2f} MB)")
             return False
         
         file_size_mb = os.path.getsize(model_source) / (1024 * 1024)
-        print(f"Tim thay model: {model_source}")
-        print(f"   Dung luong: {file_size_mb:.2f} MB")
+        print_success(f"Model found: {model_source}")
+        print_info(f"Size: {file_size_mb:.2f} MB")
         
         model_destination = '/content/best_model.pt'
         shutil.copy2(model_source, model_destination)
-        print(f"\nModel da sao chep toi: {model_destination}")
-        print(f"\nDuong dan sao tai: /content/best_model.pt")
-        print(f"Duong dan ket qua: {os.path.dirname(model_source)}")
+        print_success(f"Model copied to: {model_destination}")
         
         return True
         
     except Exception as e:
-        print(f"Loi: {e}")
+        print_error(f"Failed to download model: {e}")
         return False
 
 
@@ -480,18 +540,18 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
     
     try:
         if not os.path.exists(model_path):
-            print(f"Loi: File model khong ton tai: {model_path}")
+            print_error(f"Model file not found: {model_path}")
             return False
         
         file_size_mb = os.path.getsize(model_path) / (1024 * 1024)
-        print(f"Model file: {model_path}")
-        print(f"Dung luong: {file_size_mb:.2f} MB")
-        print(f"API URL: {api_url}")
-        print(f"Token: {token[:20]}...")
+        print_info(f"Model file: {model_path}")
+        print_info(f"Size: {file_size_mb:.2f} MB")
+        print_info(f"API URL: {api_url}")
+        print_info(f"Token: {token[:20]}...")
         
         # Construct upload endpoint
-        upload_url = f"{api_url}/v1/yolo/models/upload-with-token/{token}"
-        print(f"\nDang tai len {upload_url}...")
+        upload_url = f"{api_url}/yolo/models/upload-with-token/{token}"
+        print_info(f"\nUploading to {upload_url}...")
         
         # Prepare files and data
         with open(model_path, 'rb') as f:
@@ -519,33 +579,33 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
         
         # Check response
         if response.status_code == 201:
-            print(f"\n✓ Upload thanh cong! (Status: {response.status_code})")
+            print_success(f"Upload successful! (Status: {response.status_code})")
             try:
                 json_response = response.json()
                 if 'data' in json_response:
                     model_info = json_response['data']
-                    print(f"\nThong tin model:")
+                    print("\n  Model information:")
                     for key, value in model_info.items():
-                        print(f"   {key}: {value}")
+                        print(f"    {key}: {value}")
                 else:
-                    print(f"\nResponse: {json.dumps(json_response, indent=2, ensure_ascii=False)}")
+                    print(f"\n  Response: {json.dumps(json_response, indent=2, ensure_ascii=False)}")
             except:
-                print(f"Response: {response.text}")
+                print(f"  Response: {response.text}")
             return True
         else:
-            print(f"\n✗ Upload that bai! (Status: {response.status_code})")
-            print(f"Response: {response.text}")
+            print_error(f"Upload failed! (Status: {response.status_code})")
+            print(f"  Response: {response.text}")
             return False
         
     except requests.exceptions.Timeout:
-        print("Loi: Timeout - Upload mat qua nhieu thoi gian")
+        print_error("Timeout - Upload took too long")
         return False
     except requests.exceptions.ConnectionError:
-        print("Loi: Khong the ket noi toi server")
-        print("Hay kiem tra URL va ket noi internet")
+        print_error("Failed to connect to server")
+        print_info("Please check URL and internet connection")
         return False
     except Exception as e:
-        print(f"Loi upload: {e}")
+        print_error(f"Upload failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -554,29 +614,32 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
 def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None, 
          model_name=None, description=None, accuracy=None):
     """Main pipeline"""
-    print("\n" + "="*70)
-    print("QUA TRINH TRAINING YOLO MODEL")
-    print("="*70)
+    print_header("YOLO MODEL TRAINING PIPELINE")
     
     # Setup
     os.makedirs('/content', exist_ok=True)
     os.makedirs('/content/custom_data', exist_ok=True)
     
+    # Check GPU availability
+    print_step(1, "CHECK GPU")
+    if not check_gpu():
+        return False
+    
     # Extract token and API URL from dataset URL
     token = extract_token_from_url(dataset_url)
     if token:
-        print(f"\n✓ Trich xuat token tu URL thanh cong")
-        print(f"   Token: {token[:30]}...")
+        print_success("Token extracted from URL")
+        print_info(f"Token: {token[:30]}...")
     else:
-        print("\n⚠ Khong the trich xuat token tu URL")
-        print("  Upload model se bi bo qua")
+        print_warning("Could not extract token from URL")
+        print_info("Model upload will be skipped")
     
     # Auto-extract API URL if not provided
     if not api_url:
         api_url = extract_api_url_from_download_url(dataset_url)
         if api_url:
-            print(f"\n✓ Trich xuat API URL tu download URL thanh cong")
-            print(f"   API URL: {api_url}")
+            print_success("API URL extracted from download URL")
+            print_info(f"API URL: {api_url}")
     
     # Step 2: Download
     if not download_dataset(dataset_url):
@@ -591,8 +654,8 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
         dataset_name = extract_dataset_name_from_notes()
         if dataset_name:
             model_name = f"{dataset_name}_trained_{get_timestamp()}"
-            print(f"\n✓ Lay ten model tu notes.json thanh cong")
-            print(f"   Model name: {model_name}")
+            print_success("Model name extracted from notes.json")
+            print_info(f"Model name: {model_name}")
     
     # Step 5: Split
     if not split_data(train_pct=train_pct):
@@ -624,19 +687,17 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
             version="1.0",
             accuracy=accuracy
         ):
-            print("\nCanh bao: Upload model that bai, nhung training da hoan tat")
-            print("Ban co the tai model manually sau")
+            print_warning("Model upload failed, but training was successful")
+            print_info("You can upload the model manually later")
     else:
         if not token:
-            print("\nThong tin: Khong the trich xuat token tu URL dataset")
-            print("De tai model len server, URL dataset phai co dang: https://domain.com/api/v1/yolo/download/TOKEN")
+            print_info("Could not extract token from dataset URL")
+            print_info("Required format: https://domain.com/api/v1/yolo/download/TOKEN")
         if not api_url:
-            print("\nThong tin: Khong the trich xuat API URL tu dataset URL")
-            print("De tai model len server, vui long cung cap --api-url")
+            print_info("Could not extract API URL from dataset URL")
+            print_info("To upload model, please provide --api-url argument")
     
-    print("\n" + "="*70)
-    print("QUA TRINH TRAINING HOAN TAT!")
-    print("="*70)
+    print_header("TRAINING PIPELINE COMPLETED!")
     return True
 
 
@@ -648,24 +709,20 @@ def get_timestamp():
 
 def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
     """Create interactive UI for Jupyter/Colab notebook"""
-    print("\n" + "="*70)
-    print("YOLO Model Training - Google Colab")
-    print("="*70 + "\n")
+    print_header("YOLO Model Training - Google Colab")
     
     try:
-        dataset_url = input("Nhap URL dataset download: ").strip()
+        dataset_url = input("\n  Enter dataset download URL: ").strip()
         
         if not dataset_url:
-            print("Loi: Vui long nhap URL dataset")
+            print_error("Dataset URL is required")
             return False
         
         if not dataset_url.startswith(('http://', 'https://')):
-            print("Loi: URL phai bat dau bang http:// hoac https://")
+            print_error("URL must start with http:// or https://")
             return False
         
-        print("\n" + "="*70)
-        print("Bat dau qua trinh training...")
-        print("="*70 + "\n")
+        print_header("Starting training process...")
         
         success = main(
             dataset_url=dataset_url, 
@@ -679,10 +736,10 @@ def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=
         return success
         
     except KeyboardInterrupt:
-        print("\nTraining da huy")
+        print_warning("Training cancelled")
         return False
     except Exception as e:
-        print(f"Loi: {e}")
+        print_error(f"Error: {e}")
         import traceback
         traceback.print_exc()
         return False
