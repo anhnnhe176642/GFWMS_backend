@@ -164,7 +164,7 @@ export const getDatasetImagesSchema = Joi.object({
     Joi.string().valid('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'),
     'Trạng thái'
   ),
-  sortBy: createSortBySchema(['filename', 'createdAt', 'status', 'objectCount', 'uploadedByUser.fullname']).optional(),
+  sortBy: createSortBySchema(['filename', 'createdAt', 'status', 'objectCount', 'notes', 'uploadedByUser.fullname']).optional(),
   order: sortOrderSchema.optional(),
   createdFrom: dateFromSchema,
   createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({

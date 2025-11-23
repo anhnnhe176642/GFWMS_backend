@@ -48,6 +48,7 @@ class YoloDatasetRepository {
     imagePath: true,
     objectCount: true,
     status: true,
+    notes: true,
     uploadedByUser: {
       select: {
         id: true,

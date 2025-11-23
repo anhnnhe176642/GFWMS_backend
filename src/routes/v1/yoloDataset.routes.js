@@ -470,7 +470,7 @@ router.post(
  *         description: Sort by field (support multiple fields separated by comma). Support nested sort by uploadedByUser.fullname
  *         schema:
  *           type: string
- *           enum: [filename, createdAt, status, objectCount, uploadedByUser.fullname]
+ *           enum: [filename, createdAt, status, objectCount, notes, uploadedByUser.fullname]
  *         example: "createdAt,uploadedByUser.fullname"
  *       - in: query
  *         name: order
@@ -516,6 +516,9 @@ router.post(
  *                         enum: [PENDING, PROCESSING, COMPLETED, FAILED]
  *                       objectCount:
  *                         type: integer
+ *                       notes:
+ *                         type: string
+ *                         description: Notes about the image
  *                       uploadedByUser:
  *                         type: object
  *                         properties:
