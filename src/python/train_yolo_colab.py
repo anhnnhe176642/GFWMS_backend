@@ -726,14 +726,10 @@ def create_gui():
         display(widgets.HBox([submit_button, verbose_toggle]))
         display(output)
         
-        return True
-        
     except ImportError:
         print_warning("ipywidgets không có sẵn")
-        return False
     except Exception as e:
         print_error(f"Lỗi tạo GUI: {e}")
-        return False
 
 
 def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
