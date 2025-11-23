@@ -27,6 +27,14 @@ YELLOW = '\033[93m'
 BLUE = '\033[94m'
 RESET = '\033[0m'
 
+# Global verbose flag
+VERBOSE = True
+
+def set_verbose(verbose):
+    """Bật/tắt chế độ hiển thị chi tiết"""
+    global VERBOSE
+    VERBOSE = verbose
+
 def print_header(text):
     print("\n" + "="*70)
     print(text.center(70))
@@ -47,7 +55,13 @@ def print_warning(text):
     print(f"  {YELLOW}⚠ {text}{RESET}")
 
 def print_info(text):
-    print(f"  {BLUE}ℹ {text}{RESET}")
+    if VERBOSE:
+        print(f"  {BLUE}ℹ {text}{RESET}")
+
+def print_verbose(text):
+    """Chỉ hiển thị nếu VERBOSE bật"""
+    if VERBOSE:
+        print(f"  {text}")
 
 
 # ============================================================================
@@ -642,13 +656,29 @@ def create_gui():
             description='Độ chính xác:'
         )
         
+        verbose_toggle = widgets.ToggleButton(
+            value=True,
+            description='Chi tiết',
+            button_style='info',
+            tooltip='Bật/tắt hiển thị chi tiết'
+        )
+        
         submit_button = widgets.Button(
             description='Bắt đầu huấn luyện',
-            button_style='info',
+            button_style='success',
             tooltip='Nhấp để bắt đầu huấn luyện'
         )
         
         output = widgets.Output()
+        
+        def on_verbose_toggle(change):
+            set_verbose(change['new'])
+            if change['new']:
+                print_success("Chế độ chi tiết: BẬT")
+            else:
+                print_success("Chế độ chi tiết: TẮT")
+        
+        verbose_toggle.observe(on_verbose_toggle, names='value')
         
         def on_submit_clicked(b):
             with output:
@@ -691,7 +721,7 @@ def create_gui():
         display(widgets.HBox([train_pct_input, accuracy_input]))
         display(model_name_input)
         display(description_input)
-        display(submit_button)
+        display(widgets.HBox([submit_button, verbose_toggle]))
         display(output)
         
         return True
@@ -769,9 +799,17 @@ if __name__ == "__main__":
     parser.add_argument('--model-name', default=None, help='Tên mô hình để tải')
     parser.add_argument('--description', default=None, help='Mô tả mô hình')
     parser.add_argument('--accuracy', type=float, default=None, help='Độ chính xác mô hình (0-100)')
+    parser.add_argument('--verbose', action='store_true', default=True, help='Hiển thị chi tiết (mặc định: bật)')
+    parser.add_argument('--quiet', action='store_true', help='Chế độ yên tĩnh, chỉ hiển thị kết quả chính')
     parser.add_argument('--ui', action='store_true', help='Khởi chạy chế độ GUI tương tác')
     
     args = parser.parse_args()
+    
+    # Thiết lập chế độ verbose
+    if args.quiet:
+        set_verbose(False)
+    else:
+        set_verbose(True)
     
     # Chế độ UI - chạy giao diện tương tác với các tham số tùy chọn làm mặc định
     if args.ui:
