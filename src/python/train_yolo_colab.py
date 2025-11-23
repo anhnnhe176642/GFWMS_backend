@@ -441,7 +441,7 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
         print_info(f"URL API: {api_url}")
         print_info(f"Token: {token[:20]}...")
         
-        upload_url = f"{api_url}/yolo/models/upload-with-token/{token}"
+        upload_url = f"{api_url}/v1/yolo/models/upload-with-token/{token}"
         print_info(f"\nĐang tải lên tới {upload_url}...")
         
         with open(model_path, 'rb') as f:
