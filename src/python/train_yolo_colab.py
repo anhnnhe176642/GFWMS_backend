@@ -342,7 +342,7 @@ def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
                 imgsz=imgsz,
                 patience=20,
                 device=0,
-                verbose=True,
+                verbose=VERBOSE,
                 exist_ok=True
             )
             print("─"*70)
@@ -664,7 +664,7 @@ def create_gui():
         )
         
         submit_button = widgets.Button(
-            description='🚀 Bắt đầu huấn luyện',
+            description='Bắt đầu huấn luyện',
             button_style='success',
             tooltip='Nhấp để bắt đầu huấn luyện'
         )
