@@ -602,11 +602,33 @@ def create_gui():
         from IPython.display import display
         
         # Trường nhập liệu
+        url_label = widgets.HTML("<b>URL:</b>")
         url_input = widgets.Text(
             value='',
             placeholder='https://your-domain.com/api/v1/yolo/download/TOKEN',
-            description='URL:',
-            layout=widgets.Layout(width='65%')
+            layout=widgets.Layout(width='100%')
+        )
+        
+        model_name_label = widgets.HTML("<b>Tên mô hình:</b>")
+        model_name_input = widgets.Text(
+            value='',
+            placeholder='Tự động nếu để trống',
+            layout=widgets.Layout(width='100%')
+        )
+        
+        description_label = widgets.HTML("<b>Mô tả:</b>")
+        description_input = widgets.Textarea(
+            value='',
+            placeholder='Mô tả tùy chọn',
+            rows=3,
+            layout=widgets.Layout(width='100%')
+        )
+        
+        version_label = widgets.HTML("<b>Phiên bản:</b>")
+        version_input = widgets.Text(
+            value='1.0',
+            placeholder='1.0',
+            layout=widgets.Layout(width='100%')
         )
         
         epochs_input = widgets.IntSlider(
@@ -629,31 +651,6 @@ def create_gui():
             max=0.95,
             step=0.05,
             description='Train %:'
-        )
-        
-        model_name_input = widgets.Text(
-            value='',
-            placeholder='Tự động nếu để trống',
-            description='Tên mô hình:',
-            style={'description_width': '100px'},
-            layout=widgets.Layout(width='60%')
-        )
-        
-        description_input = widgets.Textarea(
-            value='',
-            placeholder='Mô tả tùy chọn',
-            description='Mô tả:',
-            rows=3,
-            style={'description_width': '100px'},
-            layout=widgets.Layout(width='60%')
-        )
-        
-        version_input = widgets.Text(
-            value='1.0',
-            placeholder='1.0',
-            description='Phiên bản:',
-            style={'description_width': '100px'},
-            layout=widgets.Layout(width='40%')
         )
         
         verbose_toggle = widgets.ToggleButton(
@@ -717,14 +714,23 @@ def create_gui():
         
         submit_button.on_click(on_submit_clicked)
         
-        # Display UI
-        display(widgets.VBox([
+        # Display UI với container có độ dài cố định
+        form_container = widgets.VBox([
+            url_label,
             url_input,
-            widgets.HBox([epochs_input, imgsz_dropdown]),
-            widgets.HBox([train_pct_input, version_input]),
+            model_name_label,
             model_name_input,
+            description_label,
             description_input,
+            version_label,
+            version_input,
+            widgets.HBox([epochs_input, imgsz_dropdown]),
+            widgets.HBox([train_pct_input]),
             widgets.HBox([submit_button, verbose_toggle]),
+        ], layout=widgets.Layout(width='500px', border='1px solid #ccc', padding='20px'))
+        
+        display(widgets.VBox([
+            form_container,
             output
         ]))
         
