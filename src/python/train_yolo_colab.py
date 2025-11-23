@@ -90,6 +90,28 @@ def extract_dataset(zip_path="/content/data.zip", extract_path="/content/custom_
         return False
 
 
+def extract_dataset_name_from_notes(extract_path="/content/custom_data"):
+    """Extract dataset name from notes.json"""
+    try:
+        notes_path = os.path.join(extract_path, 'notes.json')
+        
+        if not os.path.exists(notes_path):
+            print("Canh bao: Khong tim thay notes.json")
+            return None
+        
+        with open(notes_path, 'r', encoding='utf-8') as f:
+            notes_data = json.load(f)
+        
+        dataset_name = notes_data.get('dataset', {}).get('name')
+        if dataset_name:
+            return dataset_name
+        
+        return None
+    except Exception as e:
+        print(f"Canh bao: Loi doc notes.json: {e}")
+        return None
+
+
 def split_data(data_path="/content/custom_data", train_pct=0.9):
     """Split data into train/validation"""
     print_step(4, "CHIA DU LIEU TRAIN/VALIDATION")
@@ -564,27 +586,35 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
     if not extract_dataset():
         return False
     
-    # Step 4: Split
+    # Step 4: Extract dataset name from notes.json if model_name not provided
+    if not model_name:
+        dataset_name = extract_dataset_name_from_notes()
+        if dataset_name:
+            model_name = f"{dataset_name}_trained_{get_timestamp()}"
+            print(f"\n✓ Lay ten model tu notes.json thanh cong")
+            print(f"   Model name: {model_name}")
+    
+    # Step 5: Split
     if not split_data(train_pct=train_pct):
         return False
     
-    # Step 5: Install
+    # Step 6: Install
     if not install_libraries():
         return False
     
-    # Step 6: Create config
+    # Step 7: Create config
     if not create_data_yaml():
         return False
     
-    # Step 7: Train
+    # Step 8: Train
     if not train_model(epochs=epochs, imgsz=imgsz):
         return False
     
-    # Step 8: Download
+    # Step 9: Download
     if not download_model():
         return False
     
-    # Step 9: Upload to server (optional)
+    # Step 10: Upload to server (optional)
     if api_url and token:
         if not upload_model_to_server(
             api_url=api_url,
@@ -608,6 +638,12 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
     print("QUA TRINH TRAINING HOAN TAT!")
     print("="*70)
     return True
+
+
+def get_timestamp():
+    """Get current timestamp in format YYYYMMDD_HHMMSS"""
+    from datetime import datetime
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 def create_ui():
