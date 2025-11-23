@@ -650,7 +650,7 @@ def create_gui():
             value='1.0',
             placeholder='1.0',
             description='Phiên bản:',
-            layout=widgets.Layout(width='25%')
+            layout=widgets.Layout(width='20%')
         )
         
         verbose_toggle = widgets.ToggleButton(
