@@ -414,6 +414,7 @@ router.post(
  *       Public endpoint to upload a YOLO model using an export token.
  *       No authentication required - the token contains necessary user information.
  *       Token must be created by POST /datasets/{datasetId}/export-token endpoint.
+ *       Full URL: /api/v1/yolo/models/upload-with-token/{token}
  *     tags: [YOLO]
  *     parameters:
  *       - in: path
@@ -727,6 +728,7 @@ router.get(
  *       Public endpoint to download a dataset using an export token created by POST /datasets/{datasetId}/export-token.
  *       No authentication required - the token contains all necessary information.
  *       Downloads the dataset as "data.zip" with fixed filename.
+ *       Full URL: /api/v1/yolo/download/{token}
  *     tags: [YOLO Dataset]
  *     parameters:
  *       - in: path
