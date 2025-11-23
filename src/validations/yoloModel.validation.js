@@ -42,15 +42,6 @@ export const modelVersionSchema = Joi.string()
     'string.max': 'Phiên bản không được vượt quá 50 ký tự'
   });
 
-export const accuracySchema = Joi.number()
-  .min(0)
-  .max(100)
-  .optional()
-  .messages({
-    'number.min': 'Độ chính xác phải ít nhất 0',
-    'number.max': 'Độ chính xác không được vượt quá 100'
-  });
-
 export const confidenceSchema = Joi.number()
   .min(0)
   .max(1)
@@ -77,8 +68,7 @@ export const modelIdParamSchema = Joi.object({
 export const uploadYoloModelSchema = Joi.object({
   name: modelNameSchema,
   description: modelDescriptionSchema,
-  version: modelVersionSchema,
-  accuracy: accuracySchema
+  version: modelVersionSchema
 });
 
 export const selectYoloModelSchema = Joi.object({
@@ -120,6 +110,5 @@ export const tokenParamSchema = Joi.object({
 export const uploadModelWithTokenSchema = Joi.object({
   name: modelNameSchema,
   description: modelDescriptionSchema,
-  version: modelVersionSchema,
-  accuracy: accuracySchema
+  version: modelVersionSchema
 });

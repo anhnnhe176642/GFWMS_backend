@@ -441,7 +441,7 @@ def download_model():
 
 
 def upload_model_to_server(api_url, token, model_path="/content/best_model.pt", 
-                          model_name=None, description=None, version="1.0", accuracy=None):
+                          model_name=None, description=None, version="1.0"):
     print_step(9, "TẢI MÔ HÌNH LÊN SERVER")
     
     try:
@@ -470,8 +470,6 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
                 data['description'] = description
             if version:
                 data['version'] = version
-            if accuracy:
-                data['accuracy'] = accuracy
             
             response = requests.post(
                 upload_url,
@@ -519,7 +517,7 @@ def get_timestamp():
 
 
 def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None, 
-         model_name=None, description=None, accuracy=None):
+         model_name=None, description=None, version="1.0"):
     print_header("QUY TRÌNH HUẤN LUYỆN MÔ HÌNH YOLO")
     
     os.makedirs('/content', exist_ok=True)
@@ -577,8 +575,7 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
             token=token,
             model_name=model_name,
             description=description,
-            version="1.0",
-            accuracy=accuracy
+            version=version
         ):
             print_warning("Tải mô hình thất bại, nhưng huấn luyện thành công")
             print_info("Bạn có thể tải mô hình theo cách thủ công sau này")
@@ -649,11 +646,11 @@ def create_gui():
             layout=widgets.Layout(width='100%')
         )
         
-        accuracy_input = widgets.FloatText(
-            value=0,
-            min=0,
-            max=100,
-            description='Độ chính xác:'
+        version_input = widgets.Text(
+            value='1.0',
+            placeholder='1.0',
+            description='Phiên bản:',
+            layout=widgets.Layout(width='100%')
         )
         
         verbose_toggle = widgets.ToggleButton(
@@ -702,7 +699,7 @@ def create_gui():
                         train_pct=train_pct_input.value,
                         model_name=model_name_input.value or None,
                         description=description_input.value or None,
-                        accuracy=accuracy_input.value if accuracy_input.value > 0 else None
+                        version=version_input.value or "1.0"
                     )
                     
                     if success:
@@ -720,7 +717,7 @@ def create_gui():
         # Display UI
         display(url_input)
         display(widgets.HBox([epochs_input, imgsz_dropdown]))
-        display(widgets.HBox([train_pct_input, accuracy_input]))
+        display(widgets.HBox([train_pct_input, version_input]))
         display(model_name_input)
         display(description_input)
         display(widgets.HBox([submit_button, verbose_toggle]))
@@ -732,7 +729,7 @@ def create_gui():
         print_error(f"Lỗi tạo GUI: {e}")
 
 
-def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
+def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, version="1.0"):
     """Tạo giao diện dựa trên bảng điều khiển (dự phòng)"""
     print_header("Huấn luyện Mô hình YOLO")
     
@@ -756,7 +753,7 @@ def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
             train_pct=train_pct,
             model_name=model_name,
             description=description,
-            accuracy=accuracy
+            version=version
         )
         return success
         
@@ -770,7 +767,7 @@ def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         return False
 
 
-def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
+def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, version="1.0"):
     """Tạo giao diện tương tác (GUI cho Colab, bảng điều khiển dự phòng cho CLI)"""
     try:
         # Kiểm tra xem có chạy trong Jupyter/Colab không
@@ -778,7 +775,7 @@ def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=
         return create_gui()
     except (NameError, AttributeError):
         # Chạy từ CLI, sử dụng giao diện bảng điều khiển
-        return create_console_ui(epochs, imgsz, train_pct, model_name, description, accuracy)
+        return create_console_ui(epochs, imgsz, train_pct, model_name, description, version)
 
 
 # ============================================================================
@@ -796,7 +793,7 @@ if __name__ == "__main__":
     parser.add_argument('--api-url', default=None, help='URL cơ sở API để tải mô hình')
     parser.add_argument('--model-name', default=None, help='Tên mô hình để tải')
     parser.add_argument('--description', default=None, help='Mô tả mô hình')
-    parser.add_argument('--accuracy', type=float, default=None, help='Độ chính xác mô hình (0-100)')
+    parser.add_argument('--version', default='1.0', help='Phiên bản mô hình (mặc định: 1.0)')
     parser.add_argument('--verbose', action='store_true', help='Hiển thị chi tiết (mặc định: chế độ yên tĩnh)')
     parser.add_argument('--ui', action='store_true', help='Khởi chạy chế độ GUI tương tác')
     
@@ -813,7 +810,7 @@ if __name__ == "__main__":
             train_pct=args.train_pct,
             model_name=args.model_name,
             description=args.description,
-            accuracy=args.accuracy
+            version=args.version
         )
     # Chế độ CLI - sử dụng --url được cung cấp và chạy với các tham số
     elif args.url:
@@ -825,7 +822,7 @@ if __name__ == "__main__":
             api_url=args.api_url,
             model_name=args.model_name,
             description=args.description,
-            accuracy=args.accuracy
+            version=args.version
         )
         sys.exit(0 if success else 1)
     else:

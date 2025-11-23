@@ -384,9 +384,6 @@ router.get('/models/active', yoloModelController.getActiveModel);
  *               version:
  *                 type: string
  *                 description: Model version (optional)
- *               accuracy:
- *                 type: number
- *                 description: Model accuracy (optional, 0-100)
  *     responses:
  *       201:
  *         description: Model uploaded successfully
@@ -445,9 +442,6 @@ router.post(
  *               version:
  *                 type: string
  *                 description: Model version (optional)
- *               accuracy:
- *                 type: number
- *                 description: Model accuracy (optional, 0-100)
  *     responses:
  *       201:
  *         description: Model uploaded successfully
@@ -547,8 +541,6 @@ router.put(
  *                 type: string
  *               version:
  *                 type: string
- *               accuracy:
- *                 type: number
  *               status:
  *                 type: string
  *                 enum: [ACTIVE, DEPRECATED, TESTING]

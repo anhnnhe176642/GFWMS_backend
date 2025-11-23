@@ -14,7 +14,7 @@ export const uploadModel = async (req, res, next) => {
       throw new AppError('Không có file được cung cấp', 400);
     }
 
-    let { name, description, version, accuracy } = req.body;
+    let { name, description, version } = req.body;
 
     // Generate default name if not provided
     if (!name) {
@@ -24,7 +24,7 @@ export const uploadModel = async (req, res, next) => {
 
     const model = await yoloModelService.uploadModel(
       req.file,
-      { name, description, version, accuracy },
+      { name, description, version },
       req.user.id
     );
 
@@ -55,7 +55,7 @@ export const uploadModelWithToken = async (req, res, next) => {
       throw new AppError('Không có file được cung cấp', 400);
     }
 
-    let { name, description, version, accuracy } = req.body;
+    let { name, description, version } = req.body;
 
     // Generate default name if not provided
     if (!name) {
@@ -81,7 +81,7 @@ export const uploadModelWithToken = async (req, res, next) => {
 
     const model = await yoloModelService.uploadModel(
       req.file,
-      { name, description, version, accuracy },
+      { name, description, version },
       userId
     );
 
@@ -185,12 +185,11 @@ export const getActiveModel = async (req, res, next) => {
 export const updateModel = async (req, res, next) => {
   try {
     const { modelId } = req.params;
-    const { description, version, accuracy, status } = req.body;
+    const { description, version, status } = req.body;
 
     const model = await yoloModelService.updateModel(modelId, {
       description,
       version,
-      accuracy,
       status
     });
 
