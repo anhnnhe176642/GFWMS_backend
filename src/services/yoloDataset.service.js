@@ -125,7 +125,7 @@ class YoloDatasetService {
       // Check if trying to remove or modify existing classes
       for (const existingClass of existingClasses) {
         if (!newClasses.includes(existingClass)) {
-          throw new ValidationError('Cannot remove or modify existing classes. Only adding new classes is allowed.');
+          throw new ValidationError('Không thể xóa hoặc sửa đổi các lớp đã tồn tại. Chỉ được phép thêm lớp mới.');
         }
       }
 
