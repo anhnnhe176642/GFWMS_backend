@@ -350,80 +350,53 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9):
 
 def create_ui():
     """Create interactive UI for Jupyter/Colab notebook"""
+    print("\n" + "="*70)
+    print("🚀 YOLO Model Training - Google Colab")
+    print("="*70 + "\n")
+    
     try:
-        from IPython.display import display
-        from ipywidgets import Text, Button, Output, VBox, Label, IntSlider, FloatSlider, HTML
-    except ImportError:
-        print("ℹ️  UI mode not available (running as script). Use --url argument instead.")
+        dataset_url = input("📥 Dataset URL (ZIP file): ").strip()
+        
+        if not dataset_url:
+            print("❌ Error: Please enter a dataset URL")
+            return False
+        
+        if not dataset_url.startswith(('http://', 'https://')):
+            print("❌ Error: URL must start with http:// or https://")
+            return False
+        
+        try:
+            epochs = int(input("⏱️  Epochs (default 60): ") or "60")
+            train_pct = float(input("📊 Train % (default 0.9): ") or "0.9")
+        except ValueError:
+            print("❌ Error: Invalid number format")
+            return False
+        
+        print("\n✅ Configuration:")
+        print(f"   Dataset: {dataset_url}")
+        print(f"   Epochs: {epochs}")
+        print(f"   Train/Val split: {int(train_pct*100)}/{int((1-train_pct)*100)}\n")
+        
+        confirm = input("🚀 Ready to start training? (yes/no): ").strip().lower()
+        if confirm != 'yes':
+            print("❌ Training cancelled")
+            return False
+        
+        print("\n" + "="*70)
+        print("🔄 STARTING TRAINING PIPELINE")
+        print("="*70 + "\n")
+        
+        success = main(dataset_url, epochs=epochs, train_pct=train_pct)
+        return success
+        
+    except KeyboardInterrupt:
+        print("\n❌ Training cancelled by user")
         return False
-    
-    output = Output()
-    url_input = Text(
-        placeholder='Paste your dataset download URL here',
-        description='Dataset URL:',
-        style={'description_width': '120px'},
-        layout={'width': '100%'}
-    )
-    
-    epochs_slider = IntSlider(
-        value=60, min=1, max=500, step=1,
-        description='Epochs:',
-        style={'description_width': '120px'}
-    )
-    
-    train_pct_slider = FloatSlider(
-        value=0.9, min=0.5, max=0.99, step=0.01,
-        description='Train %:',
-        style={'description_width': '120px'}
-    )
-    
-    status_label = Label(value="Status: Ready to start")
-    start_button = Button(description='🚀 Start Training', button_style='success')
-    
-    def on_start_click(b):
-        with output:
-            output.clear_output()
-            
-            dataset_url = url_input.value.strip()
-            epochs = epochs_slider.value
-            train_pct = train_pct_slider.value
-            
-            if not dataset_url:
-                print("❌ Error: Please enter a dataset URL")
-                status_label.value = "Status: No URL provided"
-                return
-            
-            if not dataset_url.startswith(('http://', 'https://')):
-                print("❌ Error: URL must start with http:// or https://")
-                status_label.value = "Status: Invalid URL format"
-                return
-            
-            status_label.value = "Status: Running training..."
-            success = main(dataset_url, epochs=epochs, train_pct=train_pct)
-            
-            if success:
-                status_label.value = "Status: ✅ Training completed successfully!"
-            else:
-                status_label.value = "Status: ❌ Training failed"
-    
-    start_button.on_click(on_start_click)
-    
-    display(VBox([
-        HTML("<h2>🚀 YOLO Model Training - Google Colab</h2>"),
-        HTML("<p>Enter dataset URL and click Start to begin training</p>"),
-        HTML("<hr>"),
-        url_input,
-        HTML("<b>Training Configuration:</b>"),
-        epochs_slider,
-        train_pct_slider,
-        HTML("<hr>"),
-        start_button,
-        status_label,
-        HTML("<hr style='margin-top: 20px;'><b>📋 Training Output:</b>"),
-        output
-    ]))
-    
-    return True
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 
 if __name__ == "__main__":
