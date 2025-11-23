@@ -151,6 +151,28 @@ class YoloModelService {
   }
 
   /**
+   * Use default model (deactivate current active model)
+   * Remove active status from all models to use default model
+   */
+  async useDefaultModel() {
+    // Find and deactivate the currently active model
+    const activeModel = await yoloModelRepository.getActiveModel();
+    
+    if (activeModel) {
+      await yoloModelRepository.update(activeModel.id, { isActive: false });
+      return {
+        message: `Model "${activeModel.name}" has been deactivated. Using default model.`,
+        model: null
+      };
+    }
+
+    return {
+      message: 'No active model found. Already using default model.',
+      model: null
+    };
+  }
+
+  /**
    * Get currently active model
    */
   async getActiveModel() {

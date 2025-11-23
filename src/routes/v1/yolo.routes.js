@@ -519,6 +519,39 @@ router.put(
 
 /**
  * @swagger
+ * /yolo/models/use-default:
+ *   put:
+ *     summary: Use default model (deactivate current active model)
+ *     tags: [YOLO]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Model deactivated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *       401:
+ *         description: Unauthorized
+ */
+router.put(
+  '/models/use-default',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.ACTIVATE_MODEL),
+  yoloModelController.useDefaultModel
+);
+
+/**
+ * @swagger
  * /yolo/models/{modelId}:
  *   patch:
  *     summary: Update model information

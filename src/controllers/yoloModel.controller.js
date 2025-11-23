@@ -159,6 +159,25 @@ export const setActiveModel = async (req, res, next) => {
 };
 
 /**
+ * Use default model (deactivate current active model)
+ * @route PUT /api/yolo/models/use-default
+ * @access Private - Requires permission
+ */
+export const useDefaultModel = async (req, res, next) => {
+  try {
+    const result = await yoloModelService.useDefaultModel();
+
+    res.json({
+      success: true,
+      message: result.message,
+      data: result.model
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get currently active model
  * @route GET /api/yolo/models/active
  * @access Public
