@@ -20,6 +20,13 @@ from pathlib import Path
 # UI HELPER FUNCTIONS
 # ============================================================================
 
+# ANSI color codes
+RED = '\033[91m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+BLUE = '\033[94m'
+RESET = '\033[0m'
+
 def print_header(text):
     print("\n" + "="*70)
     print(text.center(70))
@@ -31,16 +38,16 @@ def print_step(step_num, title):
     print("─"*70)
 
 def print_success(text):
-    print(f"  ✓ {text}")
+    print(f"  {GREEN}✓ {text}{RESET}")
 
 def print_error(text):
-    print(f"  ✗ {text}")
+    print(f"  {RED}✗ {text}{RESET}")
 
 def print_warning(text):
-    print(f"  ⚠ {text}")
+    print(f"  {YELLOW}⚠ {text}{RESET}")
 
 def print_info(text):
-    print(f"  ℹ {text}")
+    print(f"  {BLUE}ℹ {text}{RESET}")
 
 
 # ============================================================================
