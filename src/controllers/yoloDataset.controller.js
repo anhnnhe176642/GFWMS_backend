@@ -4,6 +4,7 @@ import { enrichImageWithUrl, enrichImagesWithUrls } from '../utils/image-url.js'
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -378,6 +379,112 @@ export const getDatasetStats = async (req, res, next) => {
       success: true,
       message: 'Dataset statistics retrieved successfully',
       data: stats
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create export token for public download
+ * Requires YOLO.MANAGE_DATASET permission
+ * @route POST /api/yolo/datasets/:datasetId/export-token
+ */
+export const createExportToken = async (req, res, next) => {
+  try {
+    const { datasetId } = req.params;
+    const { userId } = req.user;
+
+    // Verify dataset exists
+    await yoloDatasetService.getDatasetById(datasetId);
+
+    // Create JWT token with datasetId and userId (short expiry for downloads)
+    const exportToken = jwt.sign(
+      { 
+        datasetId,
+        userId,
+        type: 'export'
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' } // Token valid for 1 hour
+    );
+
+    res.json({
+      success: true,
+      message: 'Export token created successfully',
+      data: {
+        token: exportToken,
+        expiresIn: '1h'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Download dataset using export token (Public API)
+ * No authentication required - uses token instead
+ * @route GET /api/yolo/download/:token
+ */
+export const downloadDatasetWithToken = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token is required in URL path'
+      });
+    }
+
+    // Verify and decode token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      console.error('JWT verification error:', error);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired export token'
+      });
+    }
+
+    // Verify token type
+    if (decoded.type !== 'export') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token type'
+      });
+    }
+
+    const { datasetId } = decoded;
+
+    // Verify dataset exists
+    await yoloDatasetService.getDatasetById(datasetId);
+
+    // Create temp file for ZIP with fixed name "data.zip"
+    const zipFilename = 'data.zip';
+    const tempZipPath = path.join(__dirname, '../../temp', zipFilename);
+
+    // Ensure temp directory exists
+    await fs.mkdir(path.dirname(tempZipPath), { recursive: true });
+
+    // Create ZIP
+    await yoloDatasetService.exportDataset(datasetId, tempZipPath);
+
+    // Send file
+    res.download(tempZipPath, zipFilename, async (err) => {
+      // Clean up temp file after download
+      try {
+        await fs.unlink(tempZipPath);
+      } catch (cleanupError) {
+        console.error('Failed to clean up temp ZIP file:', cleanupError);
+      }
+
+      if (err) {
+        next(err);
+      }
     });
   } catch (error) {
     next(error);

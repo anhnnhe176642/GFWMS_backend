@@ -654,6 +654,47 @@ router.get(
 // ============================================
 // DATASET MANAGEMENT ROUTES
 // ============================================
+
+/**
+ * @swagger
+ * /yolo/download/{token}:
+ *   get:
+ *     summary: Download dataset using export token (Public API)
+ *     description: |
+ *       Public endpoint to download a dataset using an export token created by POST /datasets/{datasetId}/export-token.
+ *       No authentication required - the token contains all necessary information.
+ *       Downloads the dataset as "data.zip" with fixed filename.
+ *     tags: [YOLO Dataset]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Export token obtained from POST /datasets/{datasetId}/export-token
+ *     responses:
+ *       200:
+ *         description: ZIP file download (filename is always "data.zip")
+ *         content:
+ *           application/zip:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Token is required in URL path
+ *       401:
+ *         description: Invalid or expired token
+ */
+router.get(
+  '/download/:token',
+  (req, res, next) => {
+    // Import yoloDatasetController dynamically to avoid circular dependency
+    import('../../controllers/yoloDataset.controller.js').then(module => {
+      module.downloadDatasetWithToken(req, res, next);
+    });
+  }
+);
+
 router.use('/datasets', yoloDatasetRoutes);
 
 export default router;

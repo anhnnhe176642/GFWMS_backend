@@ -697,6 +697,88 @@ router.get(
 
 /**
  * @swagger
+ * /yolo/datasets/{datasetId}/export-token:
+ *   post:
+ *     summary: Create an export token for public dataset download
+ *     description: |
+ *       Creates a time-limited JWT token that can be used to download a dataset without authentication.
+ *       Token expires in 1 hour and can only be used for exporting that specific dataset.
+ *     tags: [YOLO Dataset]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: datasetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the dataset to export
+ *     responses:
+ *       200:
+ *         description: Export token created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     token:
+ *                       type: string
+ *                       description: JWT token for public download
+ *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                     expiresIn:
+ *                       type: string
+ *                       example: "1h"
+ *       401:
+ *         description: Unauthorized - requires YOLO.MANAGE_DATASET permission
+ *       404:
+ *         description: Dataset not found
+ */
+router.post(
+  '/:datasetId/export-token',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
+  validate(datasetIdParamSchema, 'params'),
+  yoloDatasetController.createExportToken
+);
+
+/**
+ * @swagger
+ * /yolo/download/{token}:
+ *   get:
+ *     summary: Download dataset using export token (Public API)
+ *     description: |
+ *       Public endpoint to download a dataset using an export token created by POST /export-token.
+ *       No authentication required - the token contains all necessary information.
+ *       Downloads the dataset as "data.zip" with fixed filename.
+ *     tags: [YOLO Dataset]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Export token obtained from POST /export-token
+ *     responses:
+ *       200:
+ *         description: ZIP file download (filename is always "data.zip")
+ *         content:
+ *           application/zip:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Invalid or expired token
+ */
+
+/**
+ * @swagger
  * /yolo/datasets/{datasetId}/import:
  *   post:
  *     summary: Import images from ZIP file into existing dataset
