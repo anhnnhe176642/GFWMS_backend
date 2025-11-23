@@ -189,3 +189,29 @@ export const imageIdParamSchema = Joi.object({
       'any.required': 'ID Hình ảnh là bắt buộc'
     })
 });
+
+// Import dataset from ZIP validation
+export const importDatasetFromZipSchema = Joi.object({
+  name: Joi.string()
+    .trim()
+    .min(1)
+    .max(100)
+    .required()
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .messages({
+      'string.base': 'Tên dataset phải là một chuỗi',
+      'string.empty': 'Tên dataset là bắt buộc',
+      'string.min': 'Tên dataset phải có ít nhất 1 ký tự',
+      'string.max': 'Tên dataset không được vượt quá 100 ký tự',
+      'string.pattern.base': 'Tên dataset chỉ có thể chứa các chữ cái, số, dấu gạch ngang và dấu gạch dưới',
+      'any.required': 'Tên dataset là bắt buộc'
+    }),
+  description: Joi.string()
+    .trim()
+    .max(500)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Mô tả không được vượt quá 500 ký tự'
+    })
+});

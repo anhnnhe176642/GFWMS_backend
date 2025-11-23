@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import archiver from 'archiver';
+import extractZip from 'extract-zip';
 import { fileURLToPath } from 'url';
 import yoloDatasetRepository from '../repositories/yoloDataset.repository.js';
 import { NotFoundError, ValidationError, InternalServerError } from '../utils/errors.js';
@@ -9,7 +10,8 @@ import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
 import { 
   getImageDimensions,
   saveDatasetImage,
-  pixelAnnotationsToYoloString
+  pixelAnnotationsToYoloString,
+  parseYoloFormat
 } from '../utils/yolo-format.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -394,6 +396,388 @@ class YoloDatasetService {
   async getDatasetStats(datasetId) {
     await this.getDatasetById(datasetId);
     return await yoloDatasetRepository.getDatasetStats(datasetId);
+  }
+
+  /**
+   * Import dataset from ZIP file (YOLO format) - Creates a new dataset
+   * Expects ZIP structure:
+   *  - images/
+   *  - labels/
+   *  - classes.txt (optional)
+   *  - notes.json (optional)
+   */
+  async importDatasetFromZip(zipFile, datasetName, datasetDescription, userId) {
+    console.log('importDatasetFromZip - Starting with datasetName:', datasetName);
+    console.log('importDatasetFromZip - ZIP file size:', zipFile.size, 'bytes');
+    
+    // Validate dataset name doesn't already exist
+    const existing = await yoloDatasetRepository.findDatasetByName(datasetName);
+    if (existing) {
+      throw new ValidationError(`Dataset with name "${datasetName}" already exists`);
+    }
+    
+    // Create temp directory for extraction
+    const tempDir = path.join(this.datasetsBasePath, `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    console.log('importDatasetFromZip - tempDir:', tempDir);
+    
+    await fs.mkdir(tempDir, { recursive: true });
+
+    // Create temp zip file path
+    const tempZipPath = path.join(tempDir, 'upload.zip');
+
+    try {
+      // Write buffer to temp zip file (stream large files)
+      console.log('importDatasetFromZip - Writing ZIP file to disk');
+      await fs.writeFile(tempZipPath, zipFile.buffer);
+      console.log('importDatasetFromZip - ZIP file written successfully');
+
+      // Extract ZIP file
+      console.log('importDatasetFromZip - Extracting ZIP (this may take a while for large files)');
+      await extractZip(tempZipPath, { dir: tempDir });
+      console.log('importDatasetFromZip - ZIP extracted successfully');
+
+      // Delete temp zip file after extraction to save space
+      try {
+        await fs.unlink(tempZipPath);
+        console.log('importDatasetFromZip - Temp ZIP file deleted');
+      } catch {
+        console.warn('Could not delete temp ZIP file');
+      }
+
+      // Read classes.txt if exists
+      const classesPath = path.join(tempDir, 'classes.txt');
+      let classes = [];
+      try {
+        const classesContent = await fs.readFile(classesPath, 'utf-8');
+        classes = classesContent.trim().split('\n').filter(c => c.trim());
+        console.log('importDatasetFromZip - Found classes:', classes);
+      } catch {
+        console.warn('classes.txt not found in ZIP, creating dataset without predefined classes');
+      }
+
+      // Create the new dataset
+      console.log('importDatasetFromZip - Creating new dataset in DB');
+      await this.ensureDatasetsDirectory();
+      const datasetPath = path.join(this.datasetsBasePath, datasetName);
+
+      const datasetData = {
+        name: datasetName,
+        description: datasetDescription || null,
+        datasetPath,
+        classes: classes || [],
+        status: 'ACTIVE'
+      };
+
+      const dataset = await withPrismaErrorHandling(
+        () => yoloDatasetRepository.createDataset(datasetData),
+        {
+          name: 'Dataset name already exists'
+        }
+      );
+      console.log('importDatasetFromZip - Dataset created with id:', dataset.id);
+
+      // Create physical directory structure
+      try {
+        console.log('importDatasetFromZip - Creating physical directories');
+        await fs.mkdir(datasetPath, { recursive: true });
+        await fs.mkdir(path.join(datasetPath, 'images'), { recursive: true });
+        await fs.mkdir(path.join(datasetPath, 'labels'), { recursive: true });
+        
+        // Create classes.txt if classes provided
+        if (classes.length > 0) {
+          const classesFilePath = path.join(datasetPath, 'classes.txt');
+          await fs.writeFile(classesFilePath, classes.join('\n'));
+        }
+        console.log('importDatasetFromZip - Directories created successfully');
+      } catch (dirError) {
+        console.error('importDatasetFromZip - Directory creation failed:', dirError);
+        // Rollback database entry if directory creation fails
+        await yoloDatasetRepository.deleteDataset(dataset.id);
+        throw new InternalServerError(`Failed to create dataset directories: ${dirError.message}`);
+      }
+
+      // Process images and labels from ZIP
+      console.log('importDatasetFromZip - Processing images from ZIP');
+      const imagesDir = path.join(tempDir, 'images');
+      const labelsDir = path.join(tempDir, 'labels');
+
+      let importedCount = 0;
+      let failedCount = 0;
+      const errors = [];
+
+      try {
+        const imageFiles = await fs.readdir(imagesDir);
+        console.log('importDatasetFromZip - Found', imageFiles.length, 'image files');
+
+        for (const imageFile of imageFiles) {
+          try {
+            const imagePath = path.join(imagesDir, imageFile);
+            const imageBuffer = await fs.readFile(imagePath);
+            
+            // Get image dimensions
+            const dimensions = await getImageDimensions(imageBuffer);
+
+            // Try to find corresponding label file
+            const labelFilename = path.parse(imageFile).name + '.txt';
+            const labelPath = path.join(labelsDir, labelFilename);
+            
+            let annotations = [];
+            try {
+              const labelContent = await fs.readFile(labelPath, 'utf-8');
+              // Parse YOLO format to pixel annotations
+              const detections = parseYoloFormat(labelContent, dimensions.width, dimensions.height);
+              
+              annotations = detections.map(d => ({
+                class_id: d.class_id || 0,
+                class_name: classes[d.class_id] || 'unknown',
+                x1: Math.round(d.bbox[0]),
+                y1: Math.round(d.bbox[1]),
+                x2: Math.round(d.bbox[0] + d.bbox[2]),
+                y2: Math.round(d.bbox[1] + d.bbox[3]),
+                confidence: d.confidence || 1.0
+              }));
+            } catch {
+              console.warn(`No label file found for ${imageFile}`);
+              // Continue without annotations
+            }
+
+            // Save image using existing utility
+            const timestamp = Date.now();
+            const originalName = path.parse(imageFile).name;
+            const ext = path.parse(imageFile).ext;
+            const filename = `${originalName}_${timestamp}${ext}`;
+
+            // Check if filename already exists
+            const exists = await yoloDatasetRepository.imageExists(dataset.id, filename);
+            if (exists) {
+              failedCount++;
+              errors.push(`${imageFile}: File already exists in dataset`);
+              continue;
+            }
+
+            const savedImagePath = await saveDatasetImage(imageBuffer, filename, this.datasetsBasePath);
+
+            // Save to database
+            const imageData = {
+              datasetId: dataset.id,
+              filename,
+              imagePath: savedImagePath,
+              width: dimensions.width,
+              height: dimensions.height,
+              format: ext.replace('.', ''),
+              objectCount: annotations.length,
+              classes: dataset.classes,
+              annotations,
+              status: 'COMPLETED', // Imported images are marked as completed
+              uploadedBy: userId || null,
+              notes: 'Imported from ZIP'
+            };
+
+            await withPrismaErrorHandling(
+              () => yoloDatasetRepository.addImage(imageData),
+              {
+                datasetId_filename: 'Image with this filename already exists in dataset'
+              }
+            );
+
+            importedCount++;
+          } catch (error) {
+            failedCount++;
+            errors.push(`${imageFile}: ${error.message}`);
+            console.error(`Failed to import image ${imageFile}:`, error);
+          }
+        }
+      } catch (error) {
+        throw new InternalServerError(`Failed to read images directory: ${error.message}`);
+      }
+
+      // Update dataset counters
+      console.log('importDatasetFromZip - Updating dataset counters');
+      await yoloDatasetRepository.updateDatasetCounters(dataset.id);
+
+      console.log('importDatasetFromZip - Complete. Imported:', importedCount, 'Failed:', failedCount);
+      return {
+        success: true,
+        dataset: {
+          id: dataset.id,
+          name: dataset.name,
+          description: dataset.description,
+          classes: dataset.classes,
+          totalImages: importedCount
+        },
+        importedCount,
+        failedCount,
+        errors,
+        message: `Dataset "${datasetName}" created and imported ${importedCount} images${failedCount > 0 ? ` (${failedCount} failed)` : ''}`
+      };
+
+    } catch (error) {
+      console.error('importDatasetFromZip - Error caught:', error);
+      throw error;
+    } finally {
+      // Clean up temp directory
+      console.log('importDatasetFromZip - Cleaning up temp directory:', tempDir);
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        console.log('importDatasetFromZip - Temp directory cleaned');
+      } catch (cleanupError) {
+        console.error('Failed to clean up temp directory:', cleanupError);
+      }
+    }
+  }
+
+  /**
+   * Import images from ZIP file into existing dataset
+   * Expects ZIP structure:
+   *  - images/
+   *  - labels/
+   *  - classes.txt (optional - will merge)
+   */
+  async importDataset(datasetId, zipFile, userId) {
+    const dataset = await this.getDatasetById(datasetId);
+    
+    // Create temp directory for extraction
+    const tempDir = path.join(this.datasetsBasePath, `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    await fs.mkdir(tempDir, { recursive: true });
+
+    try {
+      // Extract ZIP file from buffer (multer uses memory storage)
+      console.log('importDataset - Writing ZIP buffer to temp file');
+      const tempZipPath = path.join(tempDir, 'upload.zip');
+      await fs.writeFile(tempZipPath, zipFile.buffer);
+
+      console.log('importDataset - Extracting ZIP');
+      await extractZip(tempZipPath, { dir: tempDir });
+      console.log('importDataset - ZIP extracted successfully');
+
+      // Read classes.txt if exists
+      const classesPath = path.join(tempDir, 'classes.txt');
+      let importedClasses = [];
+      try {
+        const classesContent = await fs.readFile(classesPath, 'utf-8');
+        importedClasses = classesContent.trim().split('\n').filter(c => c.trim());
+      } catch {
+        console.warn('classes.txt not found in ZIP');
+      }
+
+      // Update dataset with new classes (merge)
+      if (importedClasses.length > 0) {
+        const existingClasses = dataset.classes || [];
+        const mergedClasses = [...new Set([...existingClasses, ...importedClasses])];
+        await yoloDatasetRepository.updateDataset(datasetId, { classes: mergedClasses });
+      }
+
+      // Process images and labels
+      const imagesDir = path.join(tempDir, 'images');
+      const labelsDir = path.join(tempDir, 'labels');
+
+      let importedCount = 0;
+      let failedCount = 0;
+      const errors = [];
+
+      try {
+        const imageFiles = await fs.readdir(imagesDir);
+
+        for (const imageFile of imageFiles) {
+          try {
+            const imagePath = path.join(imagesDir, imageFile);
+            const imageBuffer = await fs.readFile(imagePath);
+            
+            // Get image dimensions
+            const dimensions = await getImageDimensions(imageBuffer);
+
+            // Try to find corresponding label file
+            const labelFilename = path.parse(imageFile).name + '.txt';
+            const labelPath = path.join(labelsDir, labelFilename);
+            
+            let annotations = [];
+            try {
+              const labelContent = await fs.readFile(labelPath, 'utf-8');
+              // Parse YOLO format to pixel annotations
+              const detections = parseYoloFormat(labelContent, dimensions.width, dimensions.height);
+              
+              annotations = detections.map(d => ({
+                class_id: d.class_id || 0,
+                class_name: importedClasses[d.class_id] || 'unknown',
+                x1: Math.round(d.bbox[0]),
+                y1: Math.round(d.bbox[1]),
+                x2: Math.round(d.bbox[0] + d.bbox[2]),
+                y2: Math.round(d.bbox[1] + d.bbox[3]),
+                confidence: d.confidence || 1.0
+              }));
+            } catch {
+              console.warn(`No label file found for ${imageFile}`);
+              // Continue without annotations
+            }
+
+            // Save image using existing utility
+            const timestamp = Date.now();
+            const originalName = path.parse(imageFile).name;
+            const ext = path.parse(imageFile).ext;
+            const filename = `${originalName}_${timestamp}${ext}`;
+
+            // Check if filename already exists
+            const exists = await yoloDatasetRepository.imageExists(datasetId, filename);
+            if (exists) {
+              failedCount++;
+              errors.push(`${imageFile}: File already exists in dataset`);
+              continue;
+            }
+
+            const savedImagePath = await saveDatasetImage(imageBuffer, filename, this.datasetsBasePath);
+
+            // Save to database
+            const imageData = {
+              datasetId,
+              filename,
+              imagePath: savedImagePath,
+              width: dimensions.width,
+              height: dimensions.height,
+              format: ext.replace('.', ''),
+              objectCount: annotations.length,
+              classes: dataset.classes,
+              annotations,
+              status: 'COMPLETED', // Imported images are marked as completed
+              uploadedBy: userId || null,
+              notes: 'Imported from ZIP'
+            };
+
+            await withPrismaErrorHandling(
+              () => yoloDatasetRepository.addImage(imageData),
+              {
+                datasetId_filename: 'Image with this filename already exists in dataset'
+              }
+            );
+
+            importedCount++;
+          } catch (error) {
+            failedCount++;
+            errors.push(`${imageFile}: ${error.message}`);
+            console.error(`Failed to import image ${imageFile}:`, error);
+          }
+        }
+      } catch (error) {
+        throw new InternalServerError(`Failed to read images directory: ${error.message}`);
+      }
+
+      // Update dataset counters
+      await yoloDatasetRepository.updateDatasetCounters(datasetId);
+
+      return {
+        success: true,
+        importedCount,
+        failedCount,
+        errors,
+        message: `Imported ${importedCount} images${failedCount > 0 ? ` (${failedCount} failed)` : ''}`
+      };
+    } finally {
+      // Clean up temp directory
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        console.error('Failed to clean up temp directory:', cleanupError);
+      }
+    }
   }
 }
 

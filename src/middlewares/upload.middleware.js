@@ -38,6 +38,22 @@ const createModelFileFilter = (fieldName = 'file') => {
 };
 
 /**
+ * Create file filter for ZIP files
+ * @param {string} fieldName - Name of the field (for error messages)
+ * @returns {Function} File filter function
+ */
+const createZipFileFilter = (fieldName = 'file') => {
+  return (req, file, cb) => {
+    // Accept .zip files
+    if (file.originalname.endsWith('.zip') || file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed') {
+      cb(null, true);
+    } else {
+      cb(new ValidationError('Chỉ chấp nhận file ZIP (.zip)', fieldName), false);
+    }
+  };
+};
+
+/**
  * Create multer upload middleware with custom options
  * @param {Object} options - Upload options
  * @param {string} options.fieldName - Name of the field (default: 'file')
@@ -59,6 +75,8 @@ export const createUploadMiddleware = (options = {}) => {
   // Select appropriate file filter based on fileType
   const fileFilter = fileType === 'model' 
     ? createModelFileFilter(fieldName)
+    : fileType === 'zip'
+    ? createZipFileFilter(fieldName)
     : createImageFileFilter(fieldName);
 
   const upload = multer({
@@ -130,6 +148,16 @@ export const uploadDocument = createUploadMiddleware({
 });
 
 export const handleDocumentUploadError = createUploadErrorHandler('document', 10);
+
+// Middleware to handle ZIP file upload (single file, 1000MB max for large datasets)
+export const uploadZipFile = createUploadMiddleware({
+  fieldName: 'zipFile',
+  maxSize: 1000,
+  multiple: false,
+  fileType: 'zip'
+});
+
+export const handleZipFileUploadError = createUploadErrorHandler('zipFile', 1000);
 
 // Legacy export for backward compatibility
 export const handleUploadError = handleAvatarUploadError;

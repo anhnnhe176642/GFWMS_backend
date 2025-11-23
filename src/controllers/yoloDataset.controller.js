@@ -284,6 +284,90 @@ export const exportDataset = async (req, res, next) => {
 };
 
 /**
+ * Import dataset from ZIP file and create a new dataset
+ * @route POST /api/yolo/datasets/import-zip
+ */
+export const importDatasetFromZip = async (req, res, next) => {
+  try {
+    console.log('importDatasetFromZip called');
+    console.log('req.file:', req.file ? 'exists' : 'missing');
+    console.log('req.body:', req.body);
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No ZIP file provided'
+      });
+    }
+
+    const { name, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dataset name is required'
+      });
+    }
+
+    console.log('Calling importDatasetFromZip service with name:', name);
+    const result = await yoloDatasetService.importDatasetFromZip(
+      req.file,
+      name,
+      description,
+      req.user?.id
+    );
+    console.log('Import result:', result);
+
+    res.status(201).json({
+      success: result.success,
+      message: result.message,
+      data: {
+        dataset: result.dataset,
+        importedCount: result.importedCount,
+        failedCount: result.failedCount,
+        errors: result.errors
+      }
+    });
+  } catch (error) {
+    console.error('Error in importDatasetFromZip:', error);
+    next(error);
+  }
+};
+
+/**
+ * Import dataset from ZIP file into existing dataset
+ * @route POST /api/yolo/datasets/:datasetId/import
+ */
+export const importDatasetToExisting = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No ZIP file provided'
+      });
+    }
+
+    const result = await yoloDatasetService.importDataset(
+      req.params.datasetId,
+      req.file,
+      req.user?.id
+    );
+
+    res.status(200).json({
+      success: result.success,
+      message: result.message,
+      data: {
+        importedCount: result.importedCount,
+        failedCount: result.failedCount,
+        errors: result.errors
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get dataset statistics
  * @route GET /api/yolo/datasets/:datasetId/stats
  */

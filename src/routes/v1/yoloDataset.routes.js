@@ -11,7 +11,8 @@ import {
   getDatasetsSchema,
   getDatasetImagesSchema,
   datasetIdParamSchema,
-  imageIdParamSchema
+  imageIdParamSchema,
+  importDatasetFromZipSchema
 } from '../../validations/yoloDataset.validation.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
@@ -27,12 +28,119 @@ const uploadDatasetImage = createUploadMiddleware({
 
 const handleImageUploadError = createUploadErrorHandler('image', 10);
 
+// Upload middleware for ZIP files (1000MB max)
+const uploadDatasetZip = createUploadMiddleware({
+  fieldName: 'zipFile',
+  maxSize: 1000,
+  multiple: false,
+  fileType: 'zip'
+});
+
+const handleZipUploadError = createUploadErrorHandler('zipFile', 1000);
+
 /**
  * @swagger
  * tags:
  *   name: YOLO Dataset
  *   description: YOLO dataset management for training data
  */
+
+/**
+ * @swagger
+ * /yolo/datasets/import-zip:
+ *   post:
+ *     summary: Import dataset from ZIP file (creates new dataset)
+ *     description: |
+ *       Import a complete dataset from a ZIP file and create a new dataset in the system.
+ *       ZIP file structure expected:
+ *       - images/ - folder containing image files
+ *       - labels/ - folder containing .txt label files (optional)
+ *       - classes.txt - class names, one per line (optional)
+ *       
+ *       Process:
+ *       1. Create new dataset with provided name
+ *       2. Extract and read classes.txt from ZIP
+ *       3. Import all images with corresponding labels
+ *       4. Mark all imported images as COMPLETED
+ *       5. Return dataset info and import statistics
+ *     tags: [YOLO Dataset]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - zipFile
+ *               - name
+ *             properties:
+ *               zipFile:
+ *                 type: string
+ *                 format: binary
+ *                 description: ZIP file containing YOLO format dataset (max 500MB)
+ *               name:
+ *                 type: string
+ *                 description: Name for the new dataset (alphanumeric, hyphens, underscores only)
+ *                 example: fabric_defects_v1
+ *               description:
+ *                 type: string
+ *                 description: Optional description for the dataset
+ *     responses:
+ *       201:
+ *         description: Dataset created and imported successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                   example: "Dataset \"fabric_defects_v1\" created and imported 150 images"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     dataset:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         description:
+ *                           type: string
+ *                         classes:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         totalImages:
+ *                           type: integer
+ *                     importedCount:
+ *                       type: integer
+ *                       description: Number of successfully imported images
+ *                     failedCount:
+ *                       type: integer
+ *                       description: Number of failed imports
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: List of error messages for failed imports
+ *       400:
+ *         description: No ZIP file provided, validation error, or dataset name already exists
+ */
+router.post(
+  '/import-zip',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
+  uploadDatasetZip,
+  handleZipUploadError,
+  validate(importDatasetFromZipSchema, 'body'),
+  yoloDatasetController.importDatasetFromZip
+);
 
 /**
  * @swagger
@@ -585,6 +693,89 @@ router.get(
   requirePermission(PERMISSIONS.YOLO.EXPORT_DATASET),
   validate(datasetIdParamSchema, 'params'),
   yoloDatasetController.exportDataset
+);
+
+/**
+ * @swagger
+ * /yolo/datasets/{datasetId}/import:
+ *   post:
+ *     summary: Import images from ZIP file into existing dataset
+ *     description: |
+ *       Import images from a ZIP file into an existing dataset.
+ *       ZIP file structure expected:
+ *       - images/ - folder containing image files
+ *       - labels/ - folder containing .txt label files (optional)
+ *       - classes.txt - class names, one per line (optional, will merge with existing)
+ *       
+ *       Process:
+ *       1. Extract ZIP file
+ *       2. Merge classes from ZIP with existing dataset classes
+ *       3. Import all images with corresponding labels
+ *       4. Mark imported images as COMPLETED
+ *       5. Update dataset counters
+ *     tags: [YOLO Dataset]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: datasetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the existing dataset to import into
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - zipFile
+ *             properties:
+ *               zipFile:
+ *                 type: string
+ *                 format: binary
+ *                 description: ZIP file containing YOLO format dataset (max 500MB)
+ *     responses:
+ *       200:
+ *         description: Images imported successfully into existing dataset
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                   example: "Imported 150 images (5 failed)"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     importedCount:
+ *                       type: integer
+ *                       description: Number of successfully imported images
+ *                     failedCount:
+ *                       type: integer
+ *                       description: Number of failed imports
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: List of error messages for failed imports
+ *       400:
+ *         description: No ZIP file provided
+ *       404:
+ *         description: Dataset not found
+ */
+router.post(
+  '/:datasetId/import',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
+  validate(datasetIdParamSchema, 'params'),
+  uploadDatasetZip,
+  handleZipUploadError,
+  yoloDatasetController.importDatasetToExisting
 );
 
 /**
