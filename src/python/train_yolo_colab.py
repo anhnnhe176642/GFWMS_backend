@@ -583,32 +583,68 @@ def create_gui():
         import ipywidgets as widgets
         from IPython.display import display
         
-        # Định dạng CSS cho các thẻ input
-        input_style = widgets.HTML("""
+        # CSS toàn cục cho các widget input
+        display(widgets.HTML("""
             <style>
-                .widget-text input, .widget-text textarea {
-                    background-color: #f5f5f5;
-                    color: #333;
+                /* Styling cho Text widgets */
+                .jupyter-widgets-view .widget-inline-hbox .widget-text input,
+                .jupyter-widgets-view .widget-inline-hbox .widget-textarea textarea {
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                    border: 1px solid #cccccc !important;
+                    padding: 6px 8px !important;
                 }
-                .widget-text input:focus, .widget-text textarea:focus {
-                    background-color: #ffffff;
-                    border-color: #0078d4;
+                
+                /* Styling cho Slider widgets */
+                .jupyter-widgets-view .widget-inline-hbox .widget-hslider .widget-readout {
+                    background-color: #f0f0f0 !important;
+                    color: #000000 !important;
                 }
-                /* Cho giao diện tối */
+                
+                /* Styling cho Dropdown widgets */
+                .jupyter-widgets-view .widget-inline-hbox select {
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                    border: 1px solid #cccccc !important;
+                }
+                
+                /* Focus state */
+                .jupyter-widgets-view .widget-inline-hbox .widget-text input:focus,
+                .jupyter-widgets-view .widget-inline-hbox .widget-textarea textarea:focus {
+                    background-color: #f9f9f9 !important;
+                    border-color: #0078d4 !important;
+                    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2) !important;
+                }
+                
+                /* Dark mode */
                 @media (prefers-color-scheme: dark) {
-                    .widget-text input, .widget-text textarea {
-                        background-color: #2d2d2d;
-                        color: #e0e0e0;
-                        border-color: #555;
+                    .jupyter-widgets-view .widget-inline-hbox .widget-text input,
+                    .jupyter-widgets-view .widget-inline-hbox .widget-textarea textarea {
+                        background-color: #333333 !important;
+                        color: #e0e0e0 !important;
+                        border-color: #555555 !important;
                     }
-                    .widget-text input:focus, .widget-text textarea:focus {
-                        background-color: #3a3a3a;
-                        border-color: #0078d4;
+                    
+                    .jupyter-widgets-view .widget-inline-hbox select {
+                        background-color: #333333 !important;
+                        color: #e0e0e0 !important;
+                        border-color: #555555 !important;
+                    }
+                    
+                    .jupyter-widgets-view .widget-inline-hbox .widget-hslider .widget-readout {
+                        background-color: #444444 !important;
+                        color: #e0e0e0 !important;
+                    }
+                    
+                    .jupyter-widgets-view .widget-inline-hbox .widget-text input:focus,
+                    .jupyter-widgets-view .widget-inline-hbox .widget-textarea textarea:focus {
+                        background-color: #3f3f3f !important;
+                        border-color: #0078d4 !important;
+                        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.3) !important;
                     }
                 }
             </style>
-        """)
-        display(input_style)
+        """))
         
         # Trường nhập liệu
         url_input = widgets.Text(
