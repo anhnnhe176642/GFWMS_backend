@@ -251,9 +251,8 @@ export const exportDataset = async (req, res, next) => {
   try {
     const dataset = await yoloDatasetService.getDatasetById(req.params.datasetId);
     
-    // Create temp file for ZIP
-    const timestamp = Date.now();
-    const zipFilename = `${dataset.name}_${timestamp}.zip`;
+    // Create temp file for ZIP - use dataset name as filename
+    const zipFilename = `${dataset.name}.zip`;
     const tempZipPath = path.join(__dirname, '../../temp', zipFilename);
 
     // Ensure temp directory exists

@@ -449,7 +449,7 @@ class YoloDatasetService {
       let classes = [];
       try {
         const classesContent = await fs.readFile(classesPath, 'utf-8');
-        classes = classesContent.trim().split('\n').filter(c => c.trim());
+        classes = classesContent.trim().split('\n').map(c => c.trim()).filter(c => c);
         console.log('importDatasetFromZip - Found classes:', classes);
       } catch {
         console.warn('classes.txt not found in ZIP, creating dataset without predefined classes');
@@ -655,7 +655,7 @@ class YoloDatasetService {
       let importedClasses = [];
       try {
         const classesContent = await fs.readFile(classesPath, 'utf-8');
-        importedClasses = classesContent.trim().split('\n').filter(c => c.trim());
+        importedClasses = classesContent.trim().split('\n').map(c => c.trim()).filter(c => c);
       } catch {
         console.warn('classes.txt not found in ZIP');
       }
