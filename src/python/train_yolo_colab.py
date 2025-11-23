@@ -28,7 +28,7 @@ BLUE = '\033[94m'
 RESET = '\033[0m'
 
 # Global verbose flag
-VERBOSE = True
+VERBOSE = False
 
 def set_verbose(verbose):
     """Bật/tắt chế độ hiển thị chi tiết"""
@@ -657,14 +657,14 @@ def create_gui():
         )
         
         verbose_toggle = widgets.ToggleButton(
-            value=True,
-            description='Chi tiết',
-            button_style='info',
+            value=False,
+            description='Chi tiết: TẮT',
+            button_style='danger',
             tooltip='Bật/tắt hiển thị chi tiết'
         )
         
         submit_button = widgets.Button(
-            description='Bắt đầu huấn luyện',
+            description='🚀 Bắt đầu huấn luyện',
             button_style='success',
             tooltip='Nhấp để bắt đầu huấn luyện'
         )
@@ -674,9 +674,11 @@ def create_gui():
         def on_verbose_toggle(change):
             set_verbose(change['new'])
             if change['new']:
-                print_success("Chế độ chi tiết: BẬT")
+                verbose_toggle.description = 'Chi tiết: BẬT'
+                verbose_toggle.button_style = 'info'
             else:
-                print_success("Chế độ chi tiết: TẮT")
+                verbose_toggle.description = 'Chi tiết: TẮT'
+                verbose_toggle.button_style = 'danger'
         
         verbose_toggle.observe(on_verbose_toggle, names='value')
         
@@ -799,17 +801,13 @@ if __name__ == "__main__":
     parser.add_argument('--model-name', default=None, help='Tên mô hình để tải')
     parser.add_argument('--description', default=None, help='Mô tả mô hình')
     parser.add_argument('--accuracy', type=float, default=None, help='Độ chính xác mô hình (0-100)')
-    parser.add_argument('--verbose', action='store_true', default=True, help='Hiển thị chi tiết (mặc định: bật)')
-    parser.add_argument('--quiet', action='store_true', help='Chế độ yên tĩnh, chỉ hiển thị kết quả chính')
+    parser.add_argument('--verbose', action='store_true', help='Hiển thị chi tiết (mặc định: chế độ yên tĩnh)')
     parser.add_argument('--ui', action='store_true', help='Khởi chạy chế độ GUI tương tác')
     
     args = parser.parse_args()
     
     # Thiết lập chế độ verbose
-    if args.quiet:
-        set_verbose(False)
-    else:
-        set_verbose(True)
+    set_verbose(args.verbose)
     
     # Chế độ UI - chạy giao diện tương tác với các tham số tùy chọn làm mặc định
     if args.ui:
