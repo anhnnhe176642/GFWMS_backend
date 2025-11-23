@@ -26,56 +26,56 @@ def print_step(step_num, title):
 
 def download_dataset(url, dest_path="/content/data.zip"):
     """Download dataset from URL"""
-    print_step(2, "DOWNLOADING DATASET")
-    print(f"📥 Downloading from: {url}")
+    print_step(2, "TAI DATASET")
+    print(f"Dang tai tu: {url}")
     
     try:
         import urllib.request
         urllib.request.urlretrieve(url, dest_path)
         file_size = os.path.getsize(dest_path) / (1024**2)
-        print(f"✅ Download completed! ({file_size:.2f} MB)")
+        print(f"Tai xong! ({file_size:.2f} MB)")
         return True
     except Exception as e:
-        print(f"❌ Download failed: {e}")
+        print(f"Loi tai: {e}")
         return False
 
 
 def extract_dataset(zip_path="/content/data.zip", extract_path="/content/custom_data"):
     """Extract dataset"""
-    print_step(3, "EXTRACTING DATASET")
-    print(f"📂 Extracting to {extract_path}...")
+    print_step(3, "GIAI NEN DATASET")
+    print(f"Dang giai nen toi {extract_path}...")
     
     try:
         os.makedirs(extract_path, exist_ok=True)
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_path)
-        print("✅ Extraction completed!")
+        print("Giai nen xong!")
         return True
     except Exception as e:
-        print(f"❌ Extraction failed: {e}")
+        print(f"Loi giai nen: {e}")
         return False
 
 
 def split_data(data_path="/content/custom_data", train_pct=0.9):
     """Split data into train/validation"""
-    print_step(4, "SPLITTING DATA INTO TRAIN/VALIDATION")
+    print_step(4, "CHIA DU LIEU TRAIN/VALIDATION")
     
     try:
         # Find images directory (could be 'images' or nested in subdirectories)
         images_path = None
         labels_path = None
         
-        print("🔍 Searching for images and labels directories...")
+        print("Dang tim thu muc images va labels...")
         for root, dirs, files in os.walk(data_path):
             if 'images' in dirs:
                 images_path = os.path.join(root, 'images')
-                print(f"   Found images: {images_path}")
+                print(f"   Tim thay images: {images_path}")
             if 'labels' in dirs:
                 labels_path = os.path.join(root, 'labels')
-                print(f"   Found labels: {labels_path}")
+                print(f"   Tim thay labels: {labels_path}")
         
         if not images_path or not labels_path:
-            print(f"⚠️  Using root directories (images/labels not found in subdirs)")
+            print(f"Su dung thu muc goc (images/labels khong tim thay trong subdirs)")
             images_path = os.path.join(data_path, 'images')
             labels_path = os.path.join(data_path, 'labels')
         
@@ -88,7 +88,7 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
         # Get all images
         if os.path.exists(images_path):
             image_files = [f for f in os.listdir(images_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
-            print(f"📊 Found {len(image_files)} images")
+            print(f"Tim thay {len(image_files)} anh")
             
             # Split files
             import random
@@ -98,7 +98,7 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
             train_files = image_files[:split_idx]
             val_files = image_files[split_idx:]
             
-            print(f"✂️  Splitting: {len(train_files)} train, {len(val_files)} validation")
+            print(f"Chia tach: {len(train_files)} train, {len(val_files)} validation")
             
             # Copy training images and labels
             for img_file in train_files:
@@ -126,14 +126,14 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
                     dst_label = os.path.join(data_path, 'validation', 'labels', label_file)
                     shutil.copy2(src_label, dst_label)
             
-            print("✅ Data split completed!")
+            print("Chia tach du lieu xong!")
             return True
         else:
-            print(f"❌ Images not found at {images_path}")
+            print(f"Loi: Anh khong tim thay tai {images_path}")
             return False
             
     except Exception as e:
-        print(f"❌ Data split failed: {e}")
+        print(f"Loi chia tach du lieu: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -141,8 +141,8 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
 
 def install_libraries():
     """Install required libraries"""
-    print_step(5, "INSTALLING REQUIRED LIBRARIES")
-    print("📦 Installing ultralytics...")
+    print_step(5, "CAI DAT THU VIEN")
+    print("Dang cai dat ultralytics...")
     
     try:
         result = subprocess.run(
@@ -150,13 +150,13 @@ def install_libraries():
             timeout=300
         )
         if result.returncode == 0:
-            print("✅ Installation completed!")
+            print("Cai dat xong!")
             return True
         else:
-            print(f"⚠️  Installation completed with return code: {result.returncode}")
+            print(f"Canh bao: Cai dat xong voi return code: {result.returncode}")
             return True
     except Exception as e:
-        print(f"❌ Installation failed: {e}")
+        print(f"Loi cai dat: {e}")
         return False
 
 
@@ -164,21 +164,21 @@ def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt",
                      yaml_output="/content/data.yaml",
                      base_path="/content/custom_data"):
     """Create data.yaml configuration"""
-    print_step(6, "CREATING DATA.YAML CONFIGURATION")
+    print_step(6, "TAO FILE DATA.YAML")
     
     try:
         if not os.path.exists(classes_txt_path):
-            print(f"❌ classes.txt not found at {classes_txt_path}")
+            print(f"Loi: Khong tim thay classes.txt tai {classes_txt_path}")
             return False
         
         with open(classes_txt_path, 'r') as f:
             classes = [line.strip() for line in f.readlines() if line.strip()]
         
         if not classes:
-            print("❌ No classes found in classes.txt")
+            print("Loi: Khong co class nao trong classes.txt")
             return False
         
-        print(f"✅ Found {len(classes)} classes: {', '.join(classes)}")
+        print(f"Tim thay {len(classes)} classes: {', '.join(classes)}")
         
         data = {
             'path': base_path,
@@ -191,19 +191,19 @@ def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt",
         with open(yaml_output, 'w') as f:
             yaml.dump(data, f, sort_keys=False)
         
-        print(f"\n✅ Created data.yaml:")
+        print(f"\nTao file data.yaml:")
         with open(yaml_output, 'r') as f:
             print(f.read())
         
         return True
     except Exception as e:
-        print(f"❌ Failed to create data.yaml: {e}")
+        print(f"Loi: Khong the tao data.yaml: {e}")
         return False
 
 
 def verify_data_paths(yaml_path="/content/data.yaml"):
     """Verify data paths exist and have images"""
-    print("\n🔍 Verifying data paths...")
+    print("\nKiem tra duong dan du lieu...")
     
     try:
         with open(yaml_path, 'r') as f:
@@ -213,57 +213,57 @@ def verify_data_paths(yaml_path="/content/data.yaml"):
         train_path = os.path.join(base_path, yaml_data.get('train', 'train/images'))
         val_path = os.path.join(base_path, yaml_data.get('val', 'validation/images'))
         
-        print(f"\n📂 Data structure:")
+        print(f"\nCau truc thu muc:")
         print(f"   Base: {base_path}")
         print(f"   Train: {train_path}")
         print(f"   Val: {val_path}")
         
         # Check base path
         if not os.path.exists(base_path):
-            print(f"\n❌ Base path doesn't exist: {base_path}")
+            print(f"\nLoi: Duong dan base khong ton tai: {base_path}")
             return False
         
         # List all files in base path
-        print(f"\n📋 Contents of {base_path}:")
+        print(f"\nNoi dung cua {base_path}:")
         for item in os.listdir(base_path):
             item_path = os.path.join(base_path, item)
             if os.path.isdir(item_path):
                 file_count = len(os.listdir(item_path)) if os.path.isdir(item_path) else 0
-                print(f"   📁 {item}/ ({file_count} items)")
+                print(f"   {item}/ ({file_count} items)")
                 # List subdirectories
                 for subitem in os.listdir(item_path):
                     subitem_path = os.path.join(item_path, subitem)
                     if os.path.isdir(subitem_path):
                         sub_file_count = len(os.listdir(subitem_path))
-                        print(f"      📁 {subitem}/ ({sub_file_count} files)")
+                        print(f"      {subitem}/ ({sub_file_count} files)")
             else:
-                print(f"   📄 {item}")
+                print(f"   {item}")
         
         # Verify paths exist
         train_exists = os.path.exists(train_path)
         val_exists = os.path.exists(val_path)
         
-        print(f"\n✓ Status:")
-        print(f"   Train path exists: {'✅' if train_exists else '❌'}")
-        print(f"   Val path exists: {'✅' if val_exists else '❌'}")
+        print(f"\nTrang thai:")
+        print(f"   Duong dan train ton tai: {'Co' if train_exists else 'Khong'}")
+        print(f"   Duong dan val ton tai: {'Co' if val_exists else 'Khong'}")
         
         if train_exists:
             train_count = len(os.listdir(train_path))
-            print(f"   Train images: {train_count}")
+            print(f"   So anh train: {train_count}")
             if train_count == 0:
-                print("   ⚠️  No training images found!")
+                print("   Canh bao: Khong co anh training!")
                 return False
         
         if val_exists:
             val_count = len(os.listdir(val_path))
-            print(f"   Val images: {val_count}")
+            print(f"   So anh val: {val_count}")
         
         if not (train_exists and val_exists):
             return False
         
         return True
     except Exception as e:
-        print(f"❌ Path verification failed: {e}")
+        print(f"Loi: Kiem tra duong dan that bai: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -272,35 +272,35 @@ def verify_data_paths(yaml_path="/content/data.yaml"):
 def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
     """Train YOLO model"""
     print_step(7, "TRAINING YOLO MODEL")
-    print(f"🚀 Starting YOLO11s training ({epochs} epochs, {imgsz}x{imgsz})...")
-    print("⏱️  This may take 30min - several hours depending on GPU and dataset size\n")
-    print("📋 Training output:\n")
+    print(f"Bat dau training YOLO11s ({epochs} epochs, {imgsz}x{imgsz})...")
+    print("Dieu le: Dieu nay co the mat 30min - nhieu gio tuy vao GPU va kich thuoc dataset\n")
+    print("Output training:\n")
     
     try:
         from ultralytics import YOLO
-        print("✅ Ultralytics YOLO module loaded\n")
+        print("Module YOLO loaded\n")
         
         # Verify data.yaml
         if not os.path.exists(yaml_path):
-            print(f"❌ data.yaml not found at {yaml_path}")
+            print(f"Loi: Khong tim thay data.yaml tai {yaml_path}")
             return False
         
         # Verify data paths
         if not verify_data_paths(yaml_path):
-            print("❌ Data path verification failed")
+            print("Loi: Kiem tra duong dan du lieu that bai")
             return False
         
         # Load model
-        print("\n🚀 Loading model...")
+        print("\nDang load model...")
         try:
             model = YOLO('yolo11s.pt')
-            print("✅ YOLO model loaded successfully")
+            print("Model YOLO loaded")
         except Exception as e:
-            print(f"❌ Failed to load YOLO model: {e}")
+            print(f"Loi: Khong the load model: {e}")
             return False
         
         # Train model
-        print("🔄 Starting training process...\n")
+        print("Bat dau qua trinh training...\n")
         try:
             results = model.train(
                 data=yaml_path,
@@ -311,24 +311,24 @@ def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
                 verbose=True,
                 exist_ok=True
             )
-            print("\n✅ Training completed successfully!\n")
+            print("\nTraining xong!\n")
             return True
             
         except Exception as train_error:
-            print(f"\n❌ Training error occurred:")
-            print(f"Error type: {type(train_error).__name__}")
-            print(f"Error message: {str(train_error)}")
+            print(f"\nLoi training:")
+            print(f"Kieu loi: {type(train_error).__name__}")
+            print(f"Chi tiet: {str(train_error)}")
             print(f"\nFull traceback:")
             import traceback
             traceback.print_exc()
             return False
         
     except ImportError as e:
-        print(f"❌ Import error: {e}")
-        print("Please install ultralytics: pip install ultralytics")
+        print(f"Loi import: {e}")
+        print("Vui long cai dat ultralytics: pip install ultralytics")
         return False
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Loi: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -358,45 +358,45 @@ def find_model():
 
 def download_model():
     """Prepare model for download"""
-    print_step(8, "DOWNLOADING TRAINED MODEL")
+    print_step(8, "TAI MODEL DA TRAINING")
     
     try:
         model_source = find_model()
         
         if not model_source:
-            print("❌ Trained model not found!")
+            print("Loi: Khong tim thay model da training!")
             if os.path.exists('/content/runs'):
-                print("📁 Contents of /content/runs:")
+                print("Noi dung /content/runs:")
                 for root, dirs, files in os.walk('/content/runs'):
                     level = root.replace('/content/runs', '').count(os.sep)
                     indent = '   ' * level
-                    print(f"{indent}📁 {os.path.basename(root)}/")
+                    print(f"{indent}{os.path.basename(root)}/")
                     for file in files:
                         size = os.path.getsize(os.path.join(root, file)) / (1024*1024)
-                        print(f"{indent}   📄 {file} ({size:.2f} MB)")
+                        print(f"{indent}   {file} ({size:.2f} MB)")
             return False
         
         file_size_mb = os.path.getsize(model_source) / (1024 * 1024)
-        print(f"✅ Model found at: {model_source}")
-        print(f"   Size: {file_size_mb:.2f} MB")
+        print(f"Tim thay model: {model_source}")
+        print(f"   Dung luong: {file_size_mb:.2f} MB")
         
         model_destination = '/content/best_model.pt'
         shutil.copy2(model_source, model_destination)
-        print(f"\n✅ Model copied to: {model_destination}")
-        print(f"\n📥 Download link: /content/best_model.pt")
-        print(f"📁 Results location: {os.path.dirname(model_source)}")
+        print(f"\nModel da sao chep toi: {model_destination}")
+        print(f"\nDuong dan sao tai: /content/best_model.pt")
+        print(f"Duong dan ket qua: {os.path.dirname(model_source)}")
         
         return True
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Loi: {e}")
         return False
 
 
 def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9):
     """Main pipeline"""
     print("\n" + "="*70)
-    print("🚀 YOLO MODEL TRAINING PIPELINE")
+    print("QUA TRINH TRAINING YOLO MODEL")
     print("="*70)
     
     # Setup
@@ -432,7 +432,7 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9):
         return False
     
     print("\n" + "="*70)
-    print("✅ COMPLETE PIPELINE FINISHED SUCCESSFULLY!")
+    print("QUA TRINH TRAINING HOAN TAT!")
     print("="*70)
     return True
 
@@ -440,49 +440,32 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9):
 def create_ui():
     """Create interactive UI for Jupyter/Colab notebook"""
     print("\n" + "="*70)
-    print("🚀 YOLO Model Training - Google Colab")
+    print("YOLO Model Training - Google Colab")
     print("="*70 + "\n")
     
     try:
-        dataset_url = input("📥 Dataset URL (ZIP file): ").strip()
+        dataset_url = input("Nhap URL dataset (ZIP file): ").strip()
         
         if not dataset_url:
-            print("❌ Error: Please enter a dataset URL")
+            print("Loi: Vui long nhap URL dataset")
             return False
         
         if not dataset_url.startswith(('http://', 'https://')):
-            print("❌ Error: URL must start with http:// or https://")
-            return False
-        
-        try:
-            epochs = int(input("⏱️  Epochs (default 60): ") or "60")
-            train_pct = float(input("📊 Train % (default 0.9): ") or "0.9")
-        except ValueError:
-            print("❌ Error: Invalid number format")
-            return False
-        
-        print("\n✅ Configuration:")
-        print(f"   Dataset: {dataset_url}")
-        print(f"   Epochs: {epochs}")
-        print(f"   Train/Val split: {int(train_pct*100)}/{int((1-train_pct)*100)}\n")
-        
-        confirm = input("🚀 Ready to start training? (yes/no): ").strip().lower()
-        if confirm != 'yes':
-            print("❌ Training cancelled")
+            print("Loi: URL phai bat dau bang http:// hoac https://")
             return False
         
         print("\n" + "="*70)
-        print("🔄 STARTING TRAINING PIPELINE")
+        print("Bat dau qua trinh training...")
         print("="*70 + "\n")
         
-        success = main(dataset_url, epochs=epochs, train_pct=train_pct)
+        success = main(dataset_url, epochs=60, train_pct=0.9)
         return success
         
     except KeyboardInterrupt:
-        print("\n❌ Training cancelled by user")
+        print("\nTraining da huy")
         return False
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Loi: {e}")
         import traceback
         traceback.print_exc()
         return False
