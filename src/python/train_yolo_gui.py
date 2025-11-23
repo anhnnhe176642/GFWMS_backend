@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """
-YOLO Model Training Script for Google Colab
-This script downloads dataset, prepares it, trains a YOLO model, and uploads it to the backend server.
-Run this in Google Colab after installing ultralytics:
-  !pip install ultralytics
-  !python -c "import urllib.request; urllib.request.urlretrieve('https://raw.githubusercontent.com/anhnnhe176642/GFWMS_backend/AnhNN/src/python/train_yolo_colab.py', 'train_yolo.py')"
-  !python train_yolo.py
+YOLO Model Training - ALL-IN-ONE FILE
+Complete implementation: GUI (ipywidgets for Colab) + CLI + Training
+Just copy this file to Colab and run!
 """
 
 import os
@@ -17,44 +14,41 @@ import yaml
 import json
 import requests
 from pathlib import Path
+from datetime import datetime
 
+
+# ============================================================================
+# UI HELPER FUNCTIONS
+# ============================================================================
 
 def print_header(text):
-    """Print beautiful header"""
     print("\n" + "="*70)
     print(text.center(70))
     print("="*70)
 
-
 def print_step(step_num, title):
-    """Print step header"""
     print("\n" + "─"*70)
     print(f"  STEP {step_num}: {title}")
     print("─"*70)
 
-
 def print_success(text):
-    """Print success message"""
     print(f"  ✓ {text}")
 
-
 def print_error(text):
-    """Print error message"""
     print(f"  ✗ {text}")
 
-
 def print_warning(text):
-    """Print warning message"""
     print(f"  ⚠ {text}")
 
-
 def print_info(text):
-    """Print info message"""
     print(f"  ℹ {text}")
 
 
+# ============================================================================
+# TRAINING CORE FUNCTIONS
+# ============================================================================
+
 def check_gpu():
-    """Check if GPU is available"""
     try:
         import torch
         if torch.cuda.is_available():
@@ -78,27 +72,8 @@ def check_gpu():
         return False
 
 
-def download_dataset(url, dest_path="/content/data.zip"):
-    """Download dataset from URL"""
-    print_step(2, "TAI DATASET")
-    print_info(f"Downloading from: {url}")
-    
-    try:
-        import urllib.request
-        urllib.request.urlretrieve(url, dest_path)
-        file_size = os.path.getsize(dest_path) / (1024**2)
-        print_success(f"Downloaded! ({file_size:.2f} MB)")
-        return True, None
-    except Exception as e:
-        print_error(f"Download failed: {e}")
-        return False, None
-
-
 def extract_token_from_url(download_url):
-    """Extract token from download URL"""
     try:
-        # URL format: https://domain.com/api/v1/yolo/download/TOKEN
-        # Extract token from the last segment after /download/
         if '/download/' in download_url:
             token = download_url.split('/download/')[-1]
             if token:
@@ -109,25 +84,32 @@ def extract_token_from_url(download_url):
 
 
 def extract_api_url_from_download_url(download_url):
-    """Extract API base URL from download URL"""
     try:
-        # URL format: https://domain.com/api/v1/yolo/download/TOKEN
-        # Extract: https://domain.com/api
         from urllib.parse import urlparse
         parsed = urlparse(download_url)
-        
-        # Reconstruct base URL: https://domain.com
         base_url = f"{parsed.scheme}://{parsed.netloc}"
-        
-        # API URL is base_url + /api
         api_url = f"{base_url}/api"
         return api_url
     except Exception:
         return None
 
 
+def download_dataset(url, dest_path="/content/data.zip"):
+    print_step(2, "TAI DATASET")
+    print_info(f"Downloading from: {url}")
+    
+    try:
+        import urllib.request
+        urllib.request.urlretrieve(url, dest_path)
+        file_size = os.path.getsize(dest_path) / (1024**2)
+        print_success(f"Downloaded! ({file_size:.2f} MB)")
+        return True
+    except Exception as e:
+        print_error(f"Download failed: {e}")
+        return False
+
+
 def extract_dataset(zip_path="/content/data.zip", extract_path="/content/custom_data"):
-    """Extract dataset"""
     print_step(3, "GIAI NEN DATASET")
     print_info(f"Extracting to {extract_path}...")
     
@@ -143,21 +125,16 @@ def extract_dataset(zip_path="/content/data.zip", extract_path="/content/custom_
 
 
 def extract_dataset_name_from_notes(extract_path="/content/custom_data"):
-    """Extract dataset name from notes.json"""
     try:
         notes_path = os.path.join(extract_path, 'notes.json')
-        
         if not os.path.exists(notes_path):
             print_warning("notes.json not found")
             return None
-        
         with open(notes_path, 'r', encoding='utf-8') as f:
             notes_data = json.load(f)
-        
         dataset_name = notes_data.get('dataset', {}).get('name')
         if dataset_name:
             return dataset_name
-        
         return None
     except Exception as e:
         print_warning(f"Error reading notes.json: {e}")
@@ -165,11 +142,9 @@ def extract_dataset_name_from_notes(extract_path="/content/custom_data"):
 
 
 def split_data(data_path="/content/custom_data", train_pct=0.9):
-    """Split data into train/validation"""
     print_step(4, "CHIA DU LIEU TRAIN/VALIDATION")
     
     try:
-        # Remove old train/validation folders if they exist
         old_train = os.path.join(data_path, 'train')
         old_val = os.path.join(data_path, 'validation')
         if os.path.exists(old_train):
@@ -179,22 +154,18 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
             shutil.rmtree(old_val)
             print_info("Removed old validation folder")
         
-        # Find images directory (could be 'images' or nested in subdirectories)
         images_path = None
         labels_path = None
         
         print_info("Finding images and labels directories...")
         
-        # First, find the root images/labels (not in train/validation subdirs)
         if os.path.exists(os.path.join(data_path, 'images')):
             images_path = os.path.join(data_path, 'images')
         if os.path.exists(os.path.join(data_path, 'labels')):
             labels_path = os.path.join(data_path, 'labels')
         
-        # If not found in root, search subdirectories
         if not images_path or not labels_path:
             for root, dirs, files in os.walk(data_path):
-                # Skip train/validation directories
                 if 'train' in root or 'validation' in root:
                     continue
                 if 'images' in dirs and not images_path:
@@ -206,18 +177,15 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
             images_path = os.path.join(data_path, 'images')
             labels_path = os.path.join(data_path, 'labels')
         
-        # Create train/validation directories
         os.makedirs(os.path.join(data_path, 'train', 'images'), exist_ok=True)
         os.makedirs(os.path.join(data_path, 'train', 'labels'), exist_ok=True)
         os.makedirs(os.path.join(data_path, 'validation', 'images'), exist_ok=True)
         os.makedirs(os.path.join(data_path, 'validation', 'labels'), exist_ok=True)
         
-        # Get all images
         if os.path.exists(images_path):
             image_files = [f for f in os.listdir(images_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
             print_success(f"Found {len(image_files)} images")
             
-            # Split files
             import random
             random.seed(42)
             random.shuffle(image_files)
@@ -227,26 +195,22 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
             
             print_info(f"Splitting: {len(train_files)} train, {len(val_files)} validation")
             
-            # Copy training images and labels
             for img_file in train_files:
                 src_img = os.path.join(images_path, img_file)
                 dst_img = os.path.join(data_path, 'train', 'images', img_file)
                 shutil.copy2(src_img, dst_img)
                 
-                # Copy corresponding label if exists
                 label_file = os.path.splitext(img_file)[0] + '.txt'
                 src_label = os.path.join(labels_path, label_file)
                 if os.path.exists(src_label):
                     dst_label = os.path.join(data_path, 'train', 'labels', label_file)
                     shutil.copy2(src_label, dst_label)
             
-            # Copy validation images and labels
             for img_file in val_files:
                 src_img = os.path.join(images_path, img_file)
                 dst_img = os.path.join(data_path, 'validation', 'images', img_file)
                 shutil.copy2(src_img, dst_img)
                 
-                # Copy corresponding label if exists
                 label_file = os.path.splitext(img_file)[0] + '.txt'
                 src_label = os.path.join(labels_path, label_file)
                 if os.path.exists(src_label):
@@ -267,7 +231,6 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
 
 
 def install_libraries():
-    """Install required libraries"""
     print_step(5, "CAI DAT THU VIEN")
     print_info("Installing ultralytics...")
     
@@ -290,7 +253,6 @@ def install_libraries():
 def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt", 
                      yaml_output="/content/data.yaml",
                      base_path="/content/custom_data"):
-    """Create data.yaml configuration"""
     print_step(6, "TAO FILE DATA.YAML")
     
     try:
@@ -330,76 +292,7 @@ def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt",
         return False
 
 
-def verify_data_paths(yaml_path="/content/data.yaml"):
-    """Verify data paths exist and have images"""
-    print("\nKiem tra duong dan du lieu...")
-    
-    try:
-        with open(yaml_path, 'r') as f:
-            yaml_data = yaml.safe_load(f)
-        
-        base_path = yaml_data.get('path', '/content/custom_data')
-        train_path = os.path.join(base_path, yaml_data.get('train', 'train/images'))
-        val_path = os.path.join(base_path, yaml_data.get('val', 'validation/images'))
-        
-        print(f"\nCau truc thu muc:")
-        print(f"   Base: {base_path}")
-        print(f"   Train: {train_path}")
-        print(f"   Val: {val_path}")
-        
-        # Check base path
-        if not os.path.exists(base_path):
-            print(f"\nLoi: Duong dan base khong ton tai: {base_path}")
-            return False
-        
-        # List all files in base path
-        print(f"\nNoi dung cua {base_path}:")
-        for item in os.listdir(base_path):
-            item_path = os.path.join(base_path, item)
-            if os.path.isdir(item_path):
-                file_count = len(os.listdir(item_path)) if os.path.isdir(item_path) else 0
-                print(f"   {item}/ ({file_count} items)")
-                # List subdirectories
-                for subitem in os.listdir(item_path):
-                    subitem_path = os.path.join(item_path, subitem)
-                    if os.path.isdir(subitem_path):
-                        sub_file_count = len(os.listdir(subitem_path))
-                        print(f"      {subitem}/ ({sub_file_count} files)")
-            else:
-                print(f"   {item}")
-        
-        # Verify paths exist
-        train_exists = os.path.exists(train_path)
-        val_exists = os.path.exists(val_path)
-        
-        print(f"\nTrang thai:")
-        print(f"   Duong dan train ton tai: {'Co' if train_exists else 'Khong'}")
-        print(f"   Duong dan val ton tai: {'Co' if val_exists else 'Khong'}")
-        
-        if train_exists:
-            train_count = len(os.listdir(train_path))
-            print(f"   So anh train: {train_count}")
-            if train_count == 0:
-                print("   Canh bao: Khong co anh training!")
-                return False
-        
-        if val_exists:
-            val_count = len(os.listdir(val_path))
-            print(f"   So anh val: {val_count}")
-        
-        if not (train_exists and val_exists):
-            return False
-        
-        return True
-    except Exception as e:
-        print(f"Loi: Kiem tra duong dan that bai: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-
 def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
-    """Train YOLO model"""
     print_step(7, "TRAINING YOLO MODEL")
     print_info(f"Starting YOLO11s training ({epochs} epochs, {imgsz}x{imgsz})...")
     print_warning("Note: Training may take 30min - several hours depending on GPU and dataset size\n")
@@ -408,12 +301,10 @@ def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
         from ultralytics import YOLO
         print_success("YOLO module loaded\n")
         
-        # Verify data.yaml
         if not os.path.exists(yaml_path):
             print_error(f"data.yaml not found at {yaml_path}")
             return False
         
-        # Load model
         print_info("Loading model...")
         try:
             model = YOLO('yolo11s.pt')
@@ -422,7 +313,6 @@ def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
             print_error(f"Failed to load model: {e}")
             return False
         
-        # Train model
         print_info("Starting training process...\n")
         print("─"*70)
         try:
@@ -477,7 +367,6 @@ def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
 
 
 def find_model():
-    """Find best.pt model"""
     possible_paths = [
         '/content/runs/detect/train/weights/best.pt',
         '/content/runs/detect/train1/weights/best.pt',
@@ -489,7 +378,6 @@ def find_model():
         if os.path.exists(path):
             return path
     
-    # Search recursively
     if os.path.exists('/content/runs'):
         for root, dirs, files in os.walk('/content/runs'):
             if 'best.pt' in files:
@@ -499,7 +387,6 @@ def find_model():
 
 
 def download_model():
-    """Prepare model for download"""
     print_step(8, "TAI MODEL DA TRAINING")
     
     try:
@@ -535,7 +422,6 @@ def download_model():
 
 def upload_model_to_server(api_url, token, model_path="/content/best_model.pt", 
                           model_name=None, description=None, version="1.0", accuracy=None):
-    """Upload trained model to server using public token API"""
     print_step(9, "TAI MODEL LEN SERVER")
     
     try:
@@ -549,11 +435,9 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
         print_info(f"API URL: {api_url}")
         print_info(f"Token: {token[:20]}...")
         
-        # Construct upload endpoint
         upload_url = f"{api_url}/yolo/models/upload-with-token/{token}"
         print_info(f"\nUploading to {upload_url}...")
         
-        # Prepare files and data
         with open(model_path, 'rb') as f:
             files = {
                 'model': (os.path.basename(model_path), f, 'application/octet-stream')
@@ -569,15 +453,13 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
             if accuracy:
                 data['accuracy'] = accuracy
             
-            # Upload
             response = requests.post(
                 upload_url,
                 files=files,
                 data=data,
-                timeout=600  # 10 minutes timeout for large files
+                timeout=600
             )
         
-        # Check response
         if response.status_code == 201:
             print_success(f"Upload successful! (Status: {response.status_code})")
             try:
@@ -611,21 +493,21 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
         return False
 
 
+def get_timestamp():
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
 def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None, 
          model_name=None, description=None, accuracy=None):
-    """Main pipeline"""
     print_header("YOLO MODEL TRAINING PIPELINE")
     
-    # Setup
     os.makedirs('/content', exist_ok=True)
     os.makedirs('/content/custom_data', exist_ok=True)
     
-    # Check GPU availability
     print_step(1, "CHECK GPU")
     if not check_gpu():
         return False
     
-    # Extract token and API URL from dataset URL
     token = extract_token_from_url(dataset_url)
     if token:
         print_success("Token extracted from URL")
@@ -634,22 +516,18 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
         print_warning("Could not extract token from URL")
         print_info("Model upload will be skipped")
     
-    # Auto-extract API URL if not provided
     if not api_url:
         api_url = extract_api_url_from_download_url(dataset_url)
         if api_url:
             print_success("API URL extracted from download URL")
             print_info(f"API URL: {api_url}")
     
-    # Step 2: Download
     if not download_dataset(dataset_url):
         return False
     
-    # Step 3: Extract
     if not extract_dataset():
         return False
     
-    # Step 4: Extract dataset name from notes.json if model_name not provided
     if not model_name:
         dataset_name = extract_dataset_name_from_notes()
         if dataset_name:
@@ -657,27 +535,21 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
             print_success("Model name extracted from notes.json")
             print_info(f"Model name: {model_name}")
     
-    # Step 5: Split
     if not split_data(train_pct=train_pct):
         return False
     
-    # Step 6: Install
     if not install_libraries():
         return False
     
-    # Step 7: Create config
     if not create_data_yaml():
         return False
     
-    # Step 8: Train
     if not train_model(epochs=epochs, imgsz=imgsz):
         return False
     
-    # Step 9: Download
     if not download_model():
         return False
     
-    # Step 10: Upload to server (optional)
     if api_url and token:
         if not upload_model_to_server(
             api_url=api_url,
@@ -701,19 +573,16 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
     return True
 
 
-def get_timestamp():
-    """Get current timestamp in format YYYYMMDD_HHMMSS"""
-    from datetime import datetime
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
+# ============================================================================
+# GUI FOR COLAB - IPYWIDGETS
+# ============================================================================
 
-
-def create_gui_widget(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
-    """Create Jupyter/Colab GUI with ipywidgets"""
+def create_gui():
+    """Create GUI for Colab using ipywidgets"""
     try:
         import ipywidgets as widgets
         from IPython.display import display, clear_output, HTML
         
-        # Create widgets
         url_input = widgets.Text(
             value='',
             placeholder='https://your-domain.com/api/v1/yolo/download/TOKEN',
@@ -723,32 +592,26 @@ def create_gui_widget(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         )
         
         epochs_slider = widgets.IntSlider(
-            value=epochs,
-            min=10,
-            max=200,
-            step=10,
+            value=60, min=10, max=200, step=10,
             description='Epochs:',
             style={'description_width': '150px'}
         )
         
         imgsz_dropdown = widgets.Dropdown(
             options=['640', '800', '960'],
-            value=str(imgsz),
+            value='640',
             description='Image Size:',
             style={'description_width': '150px'}
         )
         
         train_pct_slider = widgets.FloatSlider(
-            value=train_pct,
-            min=0.7,
-            max=0.95,
-            step=0.05,
+            value=0.9, min=0.7, max=0.95, step=0.05,
             description='Train %:',
             style={'description_width': '150px'}
         )
         
         model_name_input = widgets.Text(
-            value=model_name or '',
+            value='',
             placeholder='Auto-generated if empty',
             description='Model Name:',
             style={'description_width': '150px'},
@@ -756,7 +619,7 @@ def create_gui_widget(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         )
         
         description_text = widgets.Textarea(
-            value=description or '',
+            value='',
             placeholder='Optional model description',
             description='Description:',
             style={'description_width': '150px'},
@@ -765,10 +628,7 @@ def create_gui_widget(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         )
         
         accuracy_input = widgets.FloatText(
-            value=accuracy or 0,
-            min=0,
-            max=100,
-            step=0.1,
+            value=0, min=0, max=100, step=0.1,
             description='Accuracy:',
             style={'description_width': '150px'}
         )
@@ -817,7 +677,6 @@ def create_gui_widget(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         
         train_button.on_click(on_train_clicked)
         
-        # Display UI
         title = widgets.HTML("<h2 style='text-align: center; color: #667eea;'>🎯 YOLO Model Training</h2>")
         
         ui_box = widgets.VBox([
@@ -840,14 +699,14 @@ def create_gui_widget(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         return True
         
     except ImportError:
-        print_warning("ipywidgets not available - falling back to console UI")
-        return create_console_ui(epochs, imgsz, train_pct, model_name, description, accuracy)
+        print_warning("ipywidgets not available")
+        return False
     except Exception as e:
         print_error(f"Error creating GUI: {e}")
-        return create_console_ui(epochs, imgsz, train_pct, model_name, description, accuracy)
+        return False
 
 
-def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
+def create_console_ui():
     """Create console-based UI (fallback)"""
     print_header("YOLO Model Training - Google Colab")
     
@@ -864,15 +723,7 @@ def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         
         print_header("Starting training process...")
         
-        success = main(
-            dataset_url=dataset_url, 
-            epochs=epochs, 
-            imgsz=imgsz,
-            train_pct=train_pct,
-            model_name=model_name,
-            description=description,
-            accuracy=accuracy
-        )
+        success = main(dataset_url=dataset_url, epochs=60, train_pct=0.9)
         return success
         
     except KeyboardInterrupt:
@@ -885,45 +736,37 @@ def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         return False
 
 
-def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
-    """Create interactive UI (GUI for Colab, console fallback for CLI)"""
-    # Try GUI first (Colab), fallback to console
+def create_ui():
+    """Create UI - GUI for Colab, console for CLI"""
     try:
-        # Check if running in Jupyter/Colab
-        get_ipython()  # This will raise NameError if not in Jupyter
-        return create_gui_widget(epochs, imgsz, train_pct, model_name, description, accuracy)
+        get_ipython()  # Check if running in Jupyter/Colab
+        return create_gui()
     except (NameError, AttributeError):
-        # Running from CLI, use console UI
-        return create_console_ui(epochs, imgsz, train_pct, model_name, description, accuracy)
+        return create_console_ui()
 
+
+# ============================================================================
+# ENTRY POINT
+# ============================================================================
 
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='YOLO Training Pipeline for Google Colab')
-    parser.add_argument('--url', default=None, help='Dataset download URL (from /yolo/download/TOKEN)')
-    parser.add_argument('--epochs', type=int, default=60, help='Number of training epochs (default: 60)')
-    parser.add_argument('--imgsz', type=int, default=640, help='Image size (default: 640)')
-    parser.add_argument('--train-pct', type=float, default=0.9, help='Training percentage (default: 0.9)')
-    parser.add_argument('--api-url', default=None, help='API base URL for uploading model (e.g., http://localhost:3000/api)')
-    parser.add_argument('--model-name', default=None, help='Model name for upload (optional, auto-generated if not provided)')
-    parser.add_argument('--description', default=None, help='Model description (optional)')
-    parser.add_argument('--accuracy', type=float, default=None, help='Model accuracy (0-100, optional)')
+    parser.add_argument('--url', default=None, help='Dataset download URL')
+    parser.add_argument('--epochs', type=int, default=60, help='Number of training epochs')
+    parser.add_argument('--imgsz', type=int, default=640, help='Image size')
+    parser.add_argument('--train-pct', type=float, default=0.9, help='Training percentage')
+    parser.add_argument('--api-url', default=None, help='API base URL for uploading model')
+    parser.add_argument('--model-name', default=None, help='Model name for upload')
+    parser.add_argument('--description', default=None, help='Model description')
+    parser.add_argument('--accuracy', type=float, default=None, help='Model accuracy')
     parser.add_argument('--ui', action='store_true', help='Launch interactive UI mode')
     
     args = parser.parse_args()
     
-    # UI mode - run interactive UI with optional arguments as defaults
     if args.ui:
-        create_ui(
-            epochs=args.epochs,
-            imgsz=args.imgsz,
-            train_pct=args.train_pct,
-            model_name=args.model_name,
-            description=args.description,
-            accuracy=args.accuracy
-        )
-    # CLI mode - use provided --url and run with arguments
+        create_ui()
     elif args.url:
         success = main(
             dataset_url=args.url,
@@ -937,6 +780,5 @@ if __name__ == "__main__":
         )
         sys.exit(0 if success else 1)
     else:
-        # No arguments provided - show help
         parser.print_help()
         sys.exit(1)
