@@ -61,18 +61,42 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
     print_step(4, "CHIA DU LIEU TRAIN/VALIDATION")
     
     try:
+        # Remove old train/validation folders if they exist
+        old_train = os.path.join(data_path, 'train')
+        old_val = os.path.join(data_path, 'validation')
+        if os.path.exists(old_train):
+            shutil.rmtree(old_train)
+            print("Xoa thu muc train cu")
+        if os.path.exists(old_val):
+            shutil.rmtree(old_val)
+            print("Xoa thu muc validation cu")
+        
         # Find images directory (could be 'images' or nested in subdirectories)
         images_path = None
         labels_path = None
         
         print("Dang tim thu muc images va labels...")
-        for root, dirs, files in os.walk(data_path):
-            if 'images' in dirs:
-                images_path = os.path.join(root, 'images')
-                print(f"   Tim thay images: {images_path}")
-            if 'labels' in dirs:
-                labels_path = os.path.join(root, 'labels')
-                print(f"   Tim thay labels: {labels_path}")
+        
+        # First, find the root images/labels (not in train/validation subdirs)
+        if os.path.exists(os.path.join(data_path, 'images')):
+            images_path = os.path.join(data_path, 'images')
+            print(f"   Tim thay images: {images_path}")
+        if os.path.exists(os.path.join(data_path, 'labels')):
+            labels_path = os.path.join(data_path, 'labels')
+            print(f"   Tim thay labels: {labels_path}")
+        
+        # If not found in root, search subdirectories
+        if not images_path or not labels_path:
+            for root, dirs, files in os.walk(data_path):
+                # Skip train/validation directories
+                if 'train' in root or 'validation' in root:
+                    continue
+                if 'images' in dirs and not images_path:
+                    images_path = os.path.join(root, 'images')
+                    print(f"   Tim thay images: {images_path}")
+                if 'labels' in dirs and not labels_path:
+                    labels_path = os.path.join(root, 'labels')
+                    print(f"   Tim thay labels: {labels_path}")
         
         if not images_path or not labels_path:
             print(f"Su dung thu muc goc (images/labels khong tim thay trong subdirs)")
@@ -108,8 +132,8 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
                 
                 # Copy corresponding label if exists
                 label_file = os.path.splitext(img_file)[0] + '.txt'
-                if os.path.exists(os.path.join(labels_path, label_file)):
-                    src_label = os.path.join(labels_path, label_file)
+                src_label = os.path.join(labels_path, label_file)
+                if os.path.exists(src_label):
                     dst_label = os.path.join(data_path, 'train', 'labels', label_file)
                     shutil.copy2(src_label, dst_label)
             
@@ -121,8 +145,8 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
                 
                 # Copy corresponding label if exists
                 label_file = os.path.splitext(img_file)[0] + '.txt'
-                if os.path.exists(os.path.join(labels_path, label_file)):
-                    src_label = os.path.join(labels_path, label_file)
+                src_label = os.path.join(labels_path, label_file)
+                if os.path.exists(src_label):
                     dst_label = os.path.join(data_path, 'validation', 'labels', label_file)
                     shutil.copy2(src_label, dst_label)
             
