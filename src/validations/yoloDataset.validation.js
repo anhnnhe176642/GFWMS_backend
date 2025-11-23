@@ -63,6 +63,13 @@ export const updateDatasetSchema = Joi.object({
     .optional()
     .messages({
       'any.only': 'Trạng thái phải là một trong: ACTIVE hoặc ARCHIVED'
+    }),
+  classes: Joi.array()
+    .items(Joi.string().trim().min(1))
+    .optional()
+    .messages({
+      'array.base': 'Các lớp phải là một mảng chuỗi',
+      'array.includesRequiredUnknowns': 'Mỗi lớp phải là một chuỗi không rỗng'
     })
 });
 

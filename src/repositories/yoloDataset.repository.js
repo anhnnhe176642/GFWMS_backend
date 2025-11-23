@@ -245,7 +245,7 @@ class YoloDatasetRepository {
    * Get dataset statistics
    */
   async getDatasetStats(datasetId) {
-    const [dataset, imageCount, totalObjects] = await Promise.all([
+    const [dataset, imageCount, totalObjects, completedImages] = await Promise.all([
       prisma.yoloDataset.findUnique({
         where: { id: datasetId },
         select: {
@@ -258,14 +258,18 @@ class YoloDatasetRepository {
         where: { datasetId }
       }),
       prisma.yoloDatasetImage.aggregate({
-        where: { datasetId },
+        where: { datasetId, status: 'COMPLETED' },
         _sum: { objectCount: true }
+      }),
+      prisma.yoloDatasetImage.count({
+        where: { datasetId, status: 'COMPLETED' }
       })
     ]);
 
     return {
       ...dataset,
       actualImageCount: imageCount,
+      completedImageCount: completedImages,
       totalObjects: totalObjects._sum.objectCount || 0
     };
   }
@@ -287,28 +291,18 @@ class YoloDatasetRepository {
 
   /**
    * Update dataset counters
+   * totalImages: number of all images
+   * totalLabels: number of COMPLETED images
+   * Note: classes is NOT updated here - it's defined when dataset is created and only can be added manually
    */
   async updateDatasetCounters(datasetId) {
     const stats = await this.getDatasetStats(datasetId);
-    
-    // Get unique classes from all images
-    const images = await prisma.yoloDatasetImage.findMany({
-      where: { datasetId },
-      select: { classes: true }
-    });
-    
-    const allClasses = new Set();
-    images.forEach(img => {
-      const imgClasses = Array.isArray(img.classes) ? img.classes : [];
-      imgClasses.forEach(cls => allClasses.add(cls));
-    });
 
     return prisma.yoloDataset.update({
       where: { id: datasetId },
       data: {
         totalImages: stats.actualImageCount,
-        totalLabels: stats.totalObjects,
-        classes: Array.from(allClasses)
+        totalLabels: stats.completedImageCount
       },
       select: this.#datasetSelectOptions
     });

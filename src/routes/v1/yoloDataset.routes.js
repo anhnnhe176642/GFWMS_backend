@@ -237,6 +237,12 @@ router.get(
  * /yolo/datasets/{datasetId}:
  *   patch:
  *     summary: Update dataset
+ *     description: |
+ *       Update dataset metadata and classes:
+ *       - **name, description, status**: Can be freely updated
+ *       - **classes**: Can only ADD new classes. Cannot remove or modify existing classes
+ *         - If trying to remove a class, will return validation error
+ *         - New classes will be merged with existing ones (duplicates removed)
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -254,14 +260,53 @@ router.get(
  *             properties:
  *               name:
  *                 type: string
+ *                 description: Dataset name
  *               description:
  *                 type: string
+ *                 description: Dataset description
  *               status:
  *                 type: string
  *                 enum: [ACTIVE, ARCHIVED]
+ *                 description: Dataset status
+ *               classes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Classes array - only new classes can be added, existing ones cannot be modified or removed
+ *                 example: ["defect", "stain", "tear"]
  *     responses:
  *       200:
- *         description: Dataset updated
+ *         description: Dataset updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     classes:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     status:
+ *                       type: string
+ *                     totalImages:
+ *                       type: integer
+ *                     totalLabels:
+ *                       type: integer
+ *       400:
+ *         description: Validation error (e.g., trying to remove existing classes)
  *       404:
  *         description: Dataset not found
  */

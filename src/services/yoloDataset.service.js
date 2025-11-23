@@ -101,6 +101,8 @@ class YoloDatasetService {
 
   /**
    * Update dataset
+   * - Allow adding new classes only (merge with existing)
+   * - Disallow modifying or deleting existing classes
    */
   async updateDataset(datasetId, data) {
     const dataset = await this.getDatasetById(datasetId);
@@ -111,6 +113,23 @@ class YoloDatasetService {
       if (existing) {
         throw new ValidationError(`Dataset with name "${data.name}" already exists`);
       }
+    }
+
+    // Handle classes - only allow adding new ones, not modifying/deleting
+    if (data.classes !== undefined) {
+      const existingClasses = dataset.classes || [];
+      const newClasses = data.classes || [];
+
+      // Check if trying to remove or modify existing classes
+      for (const existingClass of existingClasses) {
+        if (!newClasses.includes(existingClass)) {
+          throw new ValidationError('Cannot remove or modify existing classes. Only adding new classes is allowed.');
+        }
+      }
+
+      // Merge classes - keep existing and add new ones (avoid duplicates)
+      const mergedClasses = [...new Set([...existingClasses, ...newClasses])];
+      data.classes = mergedClasses;
     }
 
     return await withPrismaErrorHandling(
@@ -143,7 +162,7 @@ class YoloDatasetService {
    * Expects detection results in same format as YOLO detect endpoint (optional)
    */
   async addLabeledImage(datasetId, imageFile, detectionData, userId) {
-    await this.getDatasetById(datasetId); // Verify dataset exists
+    const dataset = await this.getDatasetById(datasetId); // Verify dataset exists
 
     // Generate unique filename
     const timestamp = Date.now();
@@ -170,9 +189,6 @@ class YoloDatasetService {
 
       // Handle detections - they are now optional
       const detections = detectionData?.detections || [];
-      const classNames = detections.length > 0 
-        ? [...new Set(detections.map(d => d.class_name || 'unknown'))]
-        : [];
 
       // Prepare annotations data (pixel format - store as-is from detection)
       const annotations = detections.map(d => ({
@@ -194,7 +210,7 @@ class YoloDatasetService {
         height: dimensions.height,
         format: ext.replace('.', ''),
         objectCount: detections.length,
-        classes: classNames,  //  Store class NAMES not IDs
+        classes: dataset.classes,  //  Use classes from dataset
         annotations,  //  Stored in DB as pixel format
         status: 'PENDING',  // Default status
         uploadedBy: userId || null,
@@ -248,12 +264,24 @@ class YoloDatasetService {
    * Update image annotations
    */
   async updateImage(imageId, data) {
-    await this.getImageById(imageId);
+    const image = await this.getImageById(imageId);
     
-    return await withPrismaErrorHandling(
+    // If annotations are being updated, recalculate objectCount
+    if (data.annotations !== undefined) {
+      data.objectCount = Array.isArray(data.annotations) ? data.annotations.length : 0;
+    }
+    
+    const updatedImage = await withPrismaErrorHandling(
       () => yoloDatasetRepository.updateImage(imageId, data),
       {}
     );
+
+    // If status changed to/from COMPLETED, update dataset counters
+    if (data.status && data.status !== image.status) {
+      await yoloDatasetRepository.updateDatasetCounters(image.datasetId);
+    }
+
+    return updatedImage;
   }
 
   /**
