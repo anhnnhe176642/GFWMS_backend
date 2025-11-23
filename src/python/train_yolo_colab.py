@@ -606,7 +606,7 @@ def create_gui():
             value='',
             placeholder='https://your-domain.com/api/v1/yolo/download/TOKEN',
             description='URL:',
-            layout=widgets.Layout(width='40%')
+            layout=widgets.Layout(width='65%')
         )
         
         epochs_input = widgets.IntSlider(
@@ -653,7 +653,7 @@ def create_gui():
             placeholder='1.0',
             description='Phiên bản:',
             style={'description_width': '100px'},
-            layout=widgets.Layout(width='60%')
+            layout=widgets.Layout(width='40%')
         )
         
         verbose_toggle = widgets.ToggleButton(
