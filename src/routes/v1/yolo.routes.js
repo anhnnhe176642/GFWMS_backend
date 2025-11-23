@@ -9,7 +9,9 @@ import {
   uploadYoloModelSchema,
   getModelsSchema,
   modelIdParamSchema,
-  paginationSchema
+  paginationSchema,
+  tokenParamSchema,
+  uploadModelWithTokenSchema
 } from '../../validations/yoloModel.validation.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
@@ -401,6 +403,67 @@ router.post(
   handleModelUploadError,
   validate(uploadYoloModelSchema, 'fields'),
   yoloModelController.uploadModel
+);
+
+/**
+ * @swagger
+ * /yolo/models/upload-with-token/{token}:
+ *   post:
+ *     summary: Upload a new YOLO model (.pt file) using public token (Public API)
+ *     description: |
+ *       Public endpoint to upload a YOLO model using an export token.
+ *       No authentication required - the token contains necessary user information.
+ *       Token must be created by POST /datasets/{datasetId}/export-token endpoint.
+ *     tags: [YOLO]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Export token obtained from POST /datasets/{datasetId}/export-token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - model
+ *             properties:
+ *               model:
+ *                 type: string
+ *                 format: binary
+ *                 description: .pt file (YOLO model)
+ *               name:
+ *                 type: string
+ *                 description: Model name (optional - if not provided, will use timestamp format YYYYMMDD_HHMMSS)
+ *               description:
+ *                 type: string
+ *                 description: Model description (optional)
+ *               version:
+ *                 type: string
+ *                 description: Model version (optional)
+ *               accuracy:
+ *                 type: number
+ *                 description: Model accuracy (optional, 0-100)
+ *     responses:
+ *       201:
+ *         description: Model uploaded successfully
+ *       400:
+ *         description: Bad request or token is required
+ *       401:
+ *         description: Invalid or expired token
+ */
+router.post(
+  '/models/upload-with-token/:token',
+  uploadYoloModel,
+  handleModelUploadError,
+  validate([
+    { schema: tokenParamSchema, source: 'params' },
+    { schema: uploadModelWithTokenSchema, source: 'fields' }
+  ]),
+  yoloModelController.uploadModelWithToken
 );
 
 /**

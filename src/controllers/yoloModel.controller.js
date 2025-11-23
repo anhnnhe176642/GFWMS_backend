@@ -1,6 +1,7 @@
 import yoloModelService from '../services/yoloModel.service.js';
 import { AppError } from '../utils/errors.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
+import jwt from 'jsonwebtoken';
 
 /**
  * Upload a new YOLO model
@@ -25,6 +26,63 @@ export const uploadModel = async (req, res, next) => {
       req.file,
       { name, description, version, accuracy },
       req.user.id
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Model uploaded successfully',
+      data: model
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload a new YOLO model using public token (Public API)
+ * @route POST /api/yolo/models/upload-with-token/:token
+ * @access Public - Uses token instead of authentication
+ */
+export const uploadModelWithToken = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      throw new AppError('Token là bắt buộc', 400);
+    }
+
+    if (!req.file) {
+      throw new AppError('Không có file được cung cấp', 400);
+    }
+
+    let { name, description, version, accuracy } = req.body;
+
+    // Generate default name if not provided
+    if (!name) {
+      const now = new Date();
+      name = `model_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    }
+
+    // Verify and decode token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      console.error('JWT verification error:', error);
+      throw new AppError('Token không hợp lệ hoặc đã hết hạn', 401);
+    }
+
+    // Verify token type
+    if (decoded.type !== 'export') {
+      throw new AppError('Loại token không hợp lệ', 401);
+    }
+
+    const userId = decoded.userId;
+
+    const model = await yoloModelService.uploadModel(
+      req.file,
+      { name, description, version, accuracy },
+      userId
     );
 
     res.status(201).json({

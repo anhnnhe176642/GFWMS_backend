@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 YOLO Model Training Script for Google Colab
-This script downloads dataset, prepares it, and trains a YOLO model.
+This script downloads dataset, prepares it, trains a YOLO model, and uploads it to the backend server.
 Run this in Google Colab after installing ultralytics:
   !pip install ultralytics
   !python -c "import urllib.request; urllib.request.urlretrieve('https://raw.githubusercontent.com/anhnnhe176642/GFWMS_backend/AnhNN/src/python/train_yolo_colab.py', 'train_yolo.py')"
@@ -14,6 +14,8 @@ import subprocess
 import zipfile
 import shutil
 import yaml
+import json
+import requests
 from pathlib import Path
 
 
@@ -34,10 +36,24 @@ def download_dataset(url, dest_path="/content/data.zip"):
         urllib.request.urlretrieve(url, dest_path)
         file_size = os.path.getsize(dest_path) / (1024**2)
         print(f"Tai xong! ({file_size:.2f} MB)")
-        return True
+        return True, None
     except Exception as e:
         print(f"Loi tai: {e}")
-        return False
+        return False, None
+
+
+def extract_token_from_url(download_url):
+    """Extract token from download URL"""
+    try:
+        # URL format: https://domain.com/api/yolo/download/TOKEN
+        # Extract token from the last segment after /download/
+        if '/download/' in download_url:
+            token = download_url.split('/download/')[-1]
+            if token:
+                return token
+        return None
+    except Exception:
+        return None
 
 
 def extract_dataset(zip_path="/content/data.zip", extract_path="/content/custom_data"):
@@ -417,7 +433,86 @@ def download_model():
         return False
 
 
-def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9):
+def upload_model_to_server(api_url, token, model_path="/content/best_model.pt", 
+                          model_name=None, description=None, version="1.0", accuracy=None):
+    """Upload trained model to server using public token API"""
+    print_step(9, "TAI MODEL LEN SERVER")
+    
+    try:
+        if not os.path.exists(model_path):
+            print(f"Loi: File model khong ton tai: {model_path}")
+            return False
+        
+        file_size_mb = os.path.getsize(model_path) / (1024 * 1024)
+        print(f"Model file: {model_path}")
+        print(f"Dung luong: {file_size_mb:.2f} MB")
+        print(f"API URL: {api_url}")
+        print(f"Token: {token[:20]}...")
+        
+        # Construct upload endpoint
+        upload_url = f"{api_url}/yolo/models/upload-with-token/{token}"
+        print(f"\nDang tai len {upload_url}...")
+        
+        # Prepare files and data
+        with open(model_path, 'rb') as f:
+            files = {
+                'model': (os.path.basename(model_path), f, 'application/octet-stream')
+            }
+            
+            data = {}
+            if model_name:
+                data['name'] = model_name
+            if description:
+                data['description'] = description
+            if version:
+                data['version'] = version
+            if accuracy:
+                data['accuracy'] = accuracy
+            
+            # Upload
+            response = requests.post(
+                upload_url,
+                files=files,
+                data=data,
+                timeout=600  # 10 minutes timeout for large files
+            )
+        
+        # Check response
+        if response.status_code == 201:
+            print(f"\n✓ Upload thanh cong! (Status: {response.status_code})")
+            try:
+                json_response = response.json()
+                if 'data' in json_response:
+                    model_info = json_response['data']
+                    print(f"\nThong tin model:")
+                    for key, value in model_info.items():
+                        print(f"   {key}: {value}")
+                else:
+                    print(f"\nResponse: {json.dumps(json_response, indent=2, ensure_ascii=False)}")
+            except:
+                print(f"Response: {response.text}")
+            return True
+        else:
+            print(f"\n✗ Upload that bai! (Status: {response.status_code})")
+            print(f"Response: {response.text}")
+            return False
+        
+    except requests.exceptions.Timeout:
+        print("Loi: Timeout - Upload mat qua nhieu thoi gian")
+        return False
+    except requests.exceptions.ConnectionError:
+        print("Loi: Khong the ket noi toi server")
+        print("Hay kiem tra URL va ket noi internet")
+        return False
+    except Exception as e:
+        print(f"Loi upload: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None, 
+         model_name=None, description=None, accuracy=None):
     """Main pipeline"""
     print("\n" + "="*70)
     print("QUA TRINH TRAINING YOLO MODEL")
@@ -426,6 +521,15 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9):
     # Setup
     os.makedirs('/content', exist_ok=True)
     os.makedirs('/content/custom_data', exist_ok=True)
+    
+    # Extract token from dataset URL
+    token = extract_token_from_url(dataset_url)
+    if token:
+        print(f"\n✓ Trich xuat token tu URL thanh cong")
+        print(f"   Token: {token[:30]}...")
+    else:
+        print("\n⚠ Khong the trich xuat token tu URL")
+        print("  Upload model se bi bo qua")
     
     # Step 2: Download
     if not download_dataset(dataset_url):
@@ -455,6 +559,26 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9):
     if not download_model():
         return False
     
+    # Step 9: Upload to server (optional)
+    if api_url and token:
+        if not upload_model_to_server(
+            api_url=api_url,
+            token=token,
+            model_name=model_name,
+            description=description,
+            version="1.0",
+            accuracy=accuracy
+        ):
+            print("\nCanh bao: Upload model that bai, nhung training da hoan tat")
+            print("Ban co the tai model manually sau")
+    else:
+        if not token:
+            print("\nThong tin: Khong the trich xuat token tu URL dataset")
+            print("De tai model len server, URL dataset phai co dang: .../yolo/download/TOKEN")
+        else:
+            print("\nThong tin: Khong co API URL, bo qua buoc upload")
+            print("De tai model len server, vui long cung cap --api-url")
+    
     print("\n" + "="*70)
     print("QUA TRINH TRAINING HOAN TAT!")
     print("="*70)
@@ -468,7 +592,7 @@ def create_ui():
     print("="*70 + "\n")
     
     try:
-        dataset_url = input("Nhap URL dataset (ZIP file): ").strip()
+        dataset_url = input("Nhap URL dataset (ZIP file - tu /yolo/download/TOKEN): ").strip()
         
         if not dataset_url:
             print("Loi: Vui long nhap URL dataset")
@@ -478,11 +602,57 @@ def create_ui():
             print("Loi: URL phai bat dau bang http:// hoac https://")
             return False
         
+        # Optional server upload
+        api_url = None
+        model_name = None
+        description = None
+        accuracy = None
+        
+        print("\n" + "-"*70)
+        print("Cau hinh upload model (optional)")
+        print("-"*70)
+        
+        upload_choice = input("Ban co muon tai model len server sau khi training? (y/n): ").strip().lower()
+        
+        if upload_choice == 'y':
+            api_url = input("Nhap API URL (vd: http://localhost:3000/api): ").strip()
+            
+            if not api_url:
+                print("Loi: Vui long nhap API URL")
+                return False
+            
+            if not api_url.startswith(('http://', 'https://')):
+                print("Loi: URL phai bat dau bang http:// hoac https://")
+                return False
+            
+            print("\n" + "-"*70)
+            print("Thong tin model (tuy chon)")
+            print("-"*70)
+            
+            model_name = input("Ten model (optional, mac dinh: auto-generated): ").strip() or None
+            description = input("Mo ta model (optional): ").strip() or None
+            
+            accuracy_input = input("Do chinh xac (0-100, optional): ").strip()
+            if accuracy_input:
+                try:
+                    accuracy = float(accuracy_input)
+                except ValueError:
+                    print("Canh bao: Do chinh xac khong hop le, bo qua")
+                    accuracy = None
+        
         print("\n" + "="*70)
         print("Bat dau qua trinh training...")
         print("="*70 + "\n")
         
-        success = main(dataset_url, epochs=60, train_pct=0.9)
+        success = main(
+            dataset_url=dataset_url,
+            epochs=60,
+            train_pct=0.9,
+            api_url=api_url,
+            model_name=model_name,
+            description=description,
+            accuracy=accuracy
+        )
         return success
         
     except KeyboardInterrupt:
@@ -499,10 +669,14 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='YOLO Training Pipeline for Google Colab')
-    parser.add_argument('--url', default=None, help='Dataset download URL')
+    parser.add_argument('--url', default=None, help='Dataset download URL (from /yolo/download/TOKEN)')
     parser.add_argument('--epochs', type=int, default=60, help='Number of training epochs (default: 60)')
     parser.add_argument('--imgsz', type=int, default=640, help='Image size (default: 640)')
     parser.add_argument('--train-pct', type=float, default=0.9, help='Training percentage (default: 0.9)')
+    parser.add_argument('--api-url', default=None, help='API base URL for uploading model (e.g., http://localhost:3000/api)')
+    parser.add_argument('--model-name', default=None, help='Model name for upload (optional, auto-generated if not provided)')
+    parser.add_argument('--description', default=None, help='Model description (optional)')
+    parser.add_argument('--accuracy', type=float, default=None, help='Model accuracy (0-100, optional)')
     parser.add_argument('--ui', action='store_true', help='Launch interactive UI mode')
     
     args = parser.parse_args()
@@ -520,7 +694,11 @@ if __name__ == "__main__":
             dataset_url=args.url,
             epochs=args.epochs,
             imgsz=args.imgsz,
-            train_pct=args.train_pct
+            train_pct=args.train_pct,
+            api_url=args.api_url,
+            model_name=args.model_name,
+            description=args.description,
+            accuracy=args.accuracy
         )
         
         sys.exit(0 if success else 1)

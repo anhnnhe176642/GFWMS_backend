@@ -106,3 +106,20 @@ export const paginationSchema = Joi.object({
   sortBy: createSortBySchema(['detectedAt', 'confidence']).optional(),
   order: sortOrderSchema.optional()
 });
+
+// ===== Token Upload Schema =====
+export const tokenParamSchema = Joi.object({
+  token: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Token là bắt buộc',
+      'any.required': 'Token là bắt buộc'
+    })
+});
+
+export const uploadModelWithTokenSchema = Joi.object({
+  name: modelNameSchema,
+  description: modelDescriptionSchema,
+  version: modelVersionSchema,
+  accuracy: accuracySchema
+});
