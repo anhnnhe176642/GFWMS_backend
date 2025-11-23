@@ -5,7 +5,8 @@ import {
   searchSchema,
   pageSchema,
   limitSchema,
-  idSchema
+  idSchema,
+  createMultiValueFilterSchema
 } from './common.validation.js';
 
 // ===== Reusable Field Schemas =====
@@ -86,7 +87,7 @@ export const getModelsSchema = Joi.object({
   search: searchSchema.optional(),
   sortBy: createSortBySchema(['name', 'createdAt', 'version', 'status']).optional(),
   order: sortOrderSchema.optional(),
-  status: statusSchema
+  status: createMultiValueFilterSchema(['ACTIVE', 'DEPRECATED', 'TESTING']).optional()
 });
 
 export const paginationSchema = Joi.object({
