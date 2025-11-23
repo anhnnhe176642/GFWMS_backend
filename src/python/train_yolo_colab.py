@@ -61,27 +61,81 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
     print_step(4, "SPLITTING DATA INTO TRAIN/VALIDATION")
     
     try:
-        print("📥 Downloading train_val_split.py script...")
-        import urllib.request
-        script_url = 'https://raw.githubusercontent.com/EdjeElectronics/Train-and-Deploy-YOLO-Models/refs/heads/main/utils/train_val_split.py'
-        urllib.request.urlretrieve(script_url, '/content/train_val_split.py')
+        # Find images directory (could be 'images' or nested in subdirectories)
+        images_path = None
+        labels_path = None
         
-        print(f"🔄 Splitting dataset ({int(train_pct*100)}% train / {int((1-train_pct)*100)}% validation)...")
-        result = subprocess.run(
-            [sys.executable, '/content/train_val_split.py',
-             f'--datapath={data_path}',
-             f'--train_pct={train_pct}'],
-            timeout=120
-        )
+        print("🔍 Searching for images and labels directories...")
+        for root, dirs, files in os.walk(data_path):
+            if 'images' in dirs:
+                images_path = os.path.join(root, 'images')
+                print(f"   Found images: {images_path}")
+            if 'labels' in dirs:
+                labels_path = os.path.join(root, 'labels')
+                print(f"   Found labels: {labels_path}")
         
-        if result.returncode == 0:
+        if not images_path or not labels_path:
+            print(f"⚠️  Using root directories (images/labels not found in subdirs)")
+            images_path = os.path.join(data_path, 'images')
+            labels_path = os.path.join(data_path, 'labels')
+        
+        # Create train/validation directories
+        os.makedirs(os.path.join(data_path, 'train', 'images'), exist_ok=True)
+        os.makedirs(os.path.join(data_path, 'train', 'labels'), exist_ok=True)
+        os.makedirs(os.path.join(data_path, 'validation', 'images'), exist_ok=True)
+        os.makedirs(os.path.join(data_path, 'validation', 'labels'), exist_ok=True)
+        
+        # Get all images
+        if os.path.exists(images_path):
+            image_files = [f for f in os.listdir(images_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+            print(f"📊 Found {len(image_files)} images")
+            
+            # Split files
+            import random
+            random.seed(42)
+            random.shuffle(image_files)
+            split_idx = int(len(image_files) * train_pct)
+            train_files = image_files[:split_idx]
+            val_files = image_files[split_idx:]
+            
+            print(f"✂️  Splitting: {len(train_files)} train, {len(val_files)} validation")
+            
+            # Copy training images and labels
+            for img_file in train_files:
+                src_img = os.path.join(images_path, img_file)
+                dst_img = os.path.join(data_path, 'train', 'images', img_file)
+                shutil.copy2(src_img, dst_img)
+                
+                # Copy corresponding label if exists
+                label_file = os.path.splitext(img_file)[0] + '.txt'
+                if os.path.exists(os.path.join(labels_path, label_file)):
+                    src_label = os.path.join(labels_path, label_file)
+                    dst_label = os.path.join(data_path, 'train', 'labels', label_file)
+                    shutil.copy2(src_label, dst_label)
+            
+            # Copy validation images and labels
+            for img_file in val_files:
+                src_img = os.path.join(images_path, img_file)
+                dst_img = os.path.join(data_path, 'validation', 'images', img_file)
+                shutil.copy2(src_img, dst_img)
+                
+                # Copy corresponding label if exists
+                label_file = os.path.splitext(img_file)[0] + '.txt'
+                if os.path.exists(os.path.join(labels_path, label_file)):
+                    src_label = os.path.join(labels_path, label_file)
+                    dst_label = os.path.join(data_path, 'validation', 'labels', label_file)
+                    shutil.copy2(src_label, dst_label)
+            
             print("✅ Data split completed!")
             return True
         else:
-            print(f"⚠️  Data split completed with return code: {result.returncode}")
-            return True
+            print(f"❌ Images not found at {images_path}")
+            return False
+            
     except Exception as e:
         print(f"❌ Data split failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -159,24 +213,59 @@ def verify_data_paths(yaml_path="/content/data.yaml"):
         train_path = os.path.join(base_path, yaml_data.get('train', 'train/images'))
         val_path = os.path.join(base_path, yaml_data.get('val', 'validation/images'))
         
-        print(f"Base path: {base_path} - {'✅' if os.path.exists(base_path) else '❌'}")
-        print(f"Train path: {train_path} - {'✅' if os.path.exists(train_path) else '❌'}")
-        print(f"Val path: {val_path} - {'✅' if os.path.exists(val_path) else '❌'}")
+        print(f"\n📂 Data structure:")
+        print(f"   Base: {base_path}")
+        print(f"   Train: {train_path}")
+        print(f"   Val: {val_path}")
         
-        if os.path.exists(train_path):
+        # Check base path
+        if not os.path.exists(base_path):
+            print(f"\n❌ Base path doesn't exist: {base_path}")
+            return False
+        
+        # List all files in base path
+        print(f"\n📋 Contents of {base_path}:")
+        for item in os.listdir(base_path):
+            item_path = os.path.join(base_path, item)
+            if os.path.isdir(item_path):
+                file_count = len(os.listdir(item_path)) if os.path.isdir(item_path) else 0
+                print(f"   📁 {item}/ ({file_count} items)")
+                # List subdirectories
+                for subitem in os.listdir(item_path):
+                    subitem_path = os.path.join(item_path, subitem)
+                    if os.path.isdir(subitem_path):
+                        sub_file_count = len(os.listdir(subitem_path))
+                        print(f"      📁 {subitem}/ ({sub_file_count} files)")
+            else:
+                print(f"   📄 {item}")
+        
+        # Verify paths exist
+        train_exists = os.path.exists(train_path)
+        val_exists = os.path.exists(val_path)
+        
+        print(f"\n✓ Status:")
+        print(f"   Train path exists: {'✅' if train_exists else '❌'}")
+        print(f"   Val path exists: {'✅' if val_exists else '❌'}")
+        
+        if train_exists:
             train_count = len(os.listdir(train_path))
             print(f"   Train images: {train_count}")
             if train_count == 0:
                 print("   ⚠️  No training images found!")
                 return False
         
-        if os.path.exists(val_path):
+        if val_exists:
             val_count = len(os.listdir(val_path))
             print(f"   Val images: {val_count}")
+        
+        if not (train_exists and val_exists):
+            return False
         
         return True
     except Exception as e:
         print(f"❌ Path verification failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
