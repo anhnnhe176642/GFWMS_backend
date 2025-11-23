@@ -583,69 +583,6 @@ def create_gui():
         import ipywidgets as widgets
         from IPython.display import display
         
-        # CSS toàn cục cho các widget input
-        display(widgets.HTML("""
-            <style>
-                /* Styling cho Text widgets */
-                .jupyter-widgets-view .widget-inline-hbox .widget-text input,
-                .jupyter-widgets-view .widget-inline-hbox .widget-textarea textarea {
-                    background-color: #ffffff !important;
-                    color: #000000 !important;
-                    border: 1px solid #cccccc !important;
-                    padding: 6px 8px !important;
-                }
-                
-                /* Styling cho Slider widgets */
-                .jupyter-widgets-view .widget-inline-hbox .widget-hslider .widget-readout {
-                    background-color: #f0f0f0 !important;
-                    color: #000000 !important;
-                }
-                
-                /* Styling cho Dropdown widgets */
-                .jupyter-widgets-view .widget-inline-hbox select {
-                    background-color: #ffffff !important;
-                    color: #000000 !important;
-                    border: 1px solid #cccccc !important;
-                }
-                
-                /* Focus state */
-                .jupyter-widgets-view .widget-inline-hbox .widget-text input:focus,
-                .jupyter-widgets-view .widget-inline-hbox .widget-textarea textarea:focus {
-                    background-color: #f9f9f9 !important;
-                    border-color: #0078d4 !important;
-                    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2) !important;
-                }
-                
-                /* Dark mode */
-                @media (prefers-color-scheme: dark) {
-                    .jupyter-widgets-view .widget-inline-hbox .widget-text input,
-                    .jupyter-widgets-view .widget-inline-hbox .widget-textarea textarea {
-                        background-color: #333333 !important;
-                        color: #e0e0e0 !important;
-                        border-color: #555555 !important;
-                    }
-                    
-                    .jupyter-widgets-view .widget-inline-hbox select {
-                        background-color: #333333 !important;
-                        color: #e0e0e0 !important;
-                        border-color: #555555 !important;
-                    }
-                    
-                    .jupyter-widgets-view .widget-inline-hbox .widget-hslider .widget-readout {
-                        background-color: #444444 !important;
-                        color: #e0e0e0 !important;
-                    }
-                    
-                    .jupyter-widgets-view .widget-inline-hbox .widget-text input:focus,
-                    .jupyter-widgets-view .widget-inline-hbox .widget-textarea textarea:focus {
-                        background-color: #3f3f3f !important;
-                        border-color: #0078d4 !important;
-                        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.3) !important;
-                    }
-                }
-            </style>
-        """))
-        
         # Trường nhập liệu
         url_input = widgets.Text(
             value='',
@@ -659,15 +596,13 @@ def create_gui():
             min=10,
             max=200,
             step=10,
-            description='Epochs:',
-            style={'description_width': 'initial'}
+            description='Epochs:'
         )
         
         imgsz_dropdown = widgets.Dropdown(
             options=['640', '800', '960'],
             value='640',
-            description='Kích thước:',
-            style={'description_width': 'initial'}
+            description='Kích thước:'
         )
         
         train_pct_input = widgets.FloatSlider(
@@ -675,8 +610,7 @@ def create_gui():
             min=0.5,
             max=0.95,
             step=0.05,
-            description='Train %:',
-            style={'description_width': 'initial'}
+            description='Train %:'
         )
         
         model_name_input = widgets.Text(
@@ -698,8 +632,7 @@ def create_gui():
             value=0,
             min=0,
             max=100,
-            description='Độ chính xác:',
-            style={'description_width': 'initial'}
+            description='Độ chính xác:'
         )
         
         submit_button = widgets.Button(
