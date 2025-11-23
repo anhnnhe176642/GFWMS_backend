@@ -653,7 +653,7 @@ def create_ui():
     print("="*70 + "\n")
     
     try:
-        dataset_url = input("Nhap URL dataset download (https://domain.com/api/v1/yolo/download/TOKEN): ").strip()
+        dataset_url = input("Nhap URL dataset download: ").strip()
         
         if not dataset_url:
             print("Loi: Vui long nhap URL dataset")
@@ -663,38 +663,11 @@ def create_ui():
             print("Loi: URL phai bat dau bang http:// hoac https://")
             return False
         
-        # Optional model metadata
-        model_name = None
-        description = None
-        accuracy = None
-        
-        print("\n" + "-"*70)
-        print("Thong tin model (tuy chon)")
-        print("-"*70)
-        
-        model_name = input("Ten model (optional, mac dinh: auto-generated): ").strip() or None
-        description = input("Mo ta model (optional): ").strip() or None
-        
-        accuracy_input = input("Do chinh xac (0-100, optional): ").strip()
-        if accuracy_input:
-            try:
-                accuracy = float(accuracy_input)
-            except ValueError:
-                print("Canh bao: Do chinh xac khong hop le, bo qua")
-                accuracy = None
-        
         print("\n" + "="*70)
         print("Bat dau qua trinh training...")
         print("="*70 + "\n")
         
-        success = main(
-            dataset_url=dataset_url,
-            epochs=60,
-            train_pct=0.9,
-            model_name=model_name,
-            description=description,
-            accuracy=accuracy
-        )
+        success = main(dataset_url=dataset_url, epochs=60, train_pct=0.9)
         return success
         
     except KeyboardInterrupt:
