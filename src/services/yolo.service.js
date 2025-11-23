@@ -206,11 +206,18 @@ class YOLOService {
       try {
         const activeModel = await yoloModelRepository.getActiveModel();
         if (activeModel) {
+          // Calculate average confidence from all detections
+          let averageConfidence = 0;
+          if (result.detections && result.detections.length > 0) {
+            const totalConfidence = result.detections.reduce((sum, detection) => sum + detection.confidence, 0);
+            averageConfidence = totalConfidence / result.detections.length;
+          }
+
           await yoloModelRepository.logDetection({
             modelId: activeModel.id,
             imagePath: originalName,
             totalObjects: result.total_objects,
-            confidence: options.confidence || 0.5,
+            confidence: averageConfidence,
             detectionTime: detectionTime
           });
         }
