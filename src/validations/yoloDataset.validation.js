@@ -153,8 +153,16 @@ export const getDatasetImagesSchema = Joi.object({
   page: pageSchema,
   limit: limitSchema,
   search: searchSchema.optional(),
-  sortBy: createSortBySchema(['filename', 'createdAt', 'objectCount']).optional(),
-  order: sortOrderSchema.optional()
+  status: createMultiValueFilterSchema(
+    Joi.string().valid('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'),
+    'Trạng thái'
+  ),
+  sortBy: createSortBySchema(['filename', 'createdAt', 'status', 'objectCount', 'uploadedByUser.fullname']).optional(),
+  order: sortOrderSchema.optional(),
+  createdFrom: dateFromSchema,
+  createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({
+    'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu'
+  })
 });
 
 // Dataset ID param validation

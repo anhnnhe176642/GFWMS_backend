@@ -156,7 +156,12 @@ export const addLabeledImage = async (req, res, next) => {
 export const getDatasetImages = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
-      sortableFields: ['filename', 'createdAt', 'objectCount']
+      filterFields: ['status'],
+      dateRangeConfig: {
+        fromField: 'createdFrom',
+        toField: 'createdTo',
+        targetField: 'createdAt'
+      }
     });
 
     const result = await yoloDatasetService.getDatasetImages(

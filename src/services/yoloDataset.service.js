@@ -194,8 +194,8 @@ class YoloDatasetService {
         height: dimensions.height,
         format: ext.replace('.', ''),
         objectCount: detections.length,
-        classes: classNames,  // ← Store class NAMES not IDs
-        annotations,  // ← Stored in DB as pixel format
+        classes: classNames,  //  Store class NAMES not IDs
+        annotations,  //  Stored in DB as pixel format
         status: 'PENDING',  // Default status
         uploadedBy: userId || null,
         notes: detectionData?.notes || null

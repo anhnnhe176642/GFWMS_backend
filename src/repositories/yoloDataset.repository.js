@@ -30,9 +30,31 @@ class YoloDatasetRepository {
     annotations: true,
     status: true,
     uploadedBy: true,
+    uploadedByUser: {
+      select: {
+        id: true,
+        fullname: true,
+        username: true
+      }
+    },
     notes: true,
     createdAt: true,
     updatedAt: true
+  };
+
+  #imageListSelectOptions = {
+    id: true,
+    filename: true,
+    imagePath: true,
+    objectCount: true,
+    status: true,
+    uploadedByUser: {
+      select: {
+        id: true,
+        fullname: true
+      }
+    },
+    createdAt: true
   };
 
   /**
@@ -161,17 +183,15 @@ class YoloDatasetRepository {
       limit = 20,
       search = '',
       sortBy = 'createdAt',
-      order = 'desc'
+      order = 'desc',
+      filters = {}
     } = queryOptions;
 
+    const searchableFields = ['filename', 'notes'];
+    const baseWhere = buildWhereClause({ search, ...filters }, searchableFields);
     const where = {
       datasetId,
-      ...(search && {
-        OR: [
-          { filename: { contains: search, mode: 'insensitive' } },
-          { notes: { contains: search, mode: 'insensitive' } }
-        ]
-      })
+      ...baseWhere
     };
 
     const { skip, take } = buildPagination(page, limit);
@@ -182,7 +202,7 @@ class YoloDatasetRepository {
         where,
         skip,
         take,
-        select: this.#imageSelectOptions,
+        select: this.#imageListSelectOptions,
         orderBy
       }),
       prisma.yoloDatasetImage.count({ where })

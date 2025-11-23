@@ -385,7 +385,7 @@ router.post(
  * @swagger
  * /yolo/datasets/{datasetId}/images:
  *   get:
- *     summary: Get images in dataset
+ *     summary: Get images in dataset with pagination, filtering, and sorting
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -400,30 +400,102 @@ router.post(
  *         schema:
  *           type: integer
  *           default: 1
+ *         description: Page number (starts from 1)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
+ *         description: Search by filename or notes
  *       - in: query
- *         name: sortBy
- *         description: Sort by field (support multiple fields separated by comma)
+ *         name: status
  *         schema:
  *           type: string
- *           enum: [filename, createdAt, objectCount]
- *         example: "createdAt,filename"
+ *         description: Filter by image status (support multiple values separated by comma). Example PENDING,COMPLETED
+ *         example: "PENDING,PROCESSING"
+ *       - in: query
+ *         name: sortBy
+ *         description: Sort by field (support multiple fields separated by comma). Support nested sort by uploadedByUser.fullname
+ *         schema:
+ *           type: string
+ *           enum: [filename, createdAt, status, objectCount, uploadedByUser.fullname]
+ *         example: "createdAt,uploadedByUser.fullname"
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
  *           enum: [asc, desc]
+ *         description: Sort order (support multiple values separated by comma)
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter images created from this date (ISO 8601 format, inclusive)
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter images created until this date (ISO 8601 format, inclusive)
  *     responses:
  *       200:
- *         description: List of images
+ *         description: List of images with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       filename:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                         enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *                       objectCount:
+ *                         type: integer
+ *                       uploadedByUser:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           fullname:
+ *                             type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNext:
+ *                       type: boolean
+ *                     hasPrev:
+ *                       type: boolean
  */
 router.get(
   '/:datasetId/images',

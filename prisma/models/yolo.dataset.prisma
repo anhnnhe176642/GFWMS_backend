@@ -60,6 +60,7 @@ model YoloDatasetImage {
   
   // Metadata
   uploadedBy    String?
+  uploadedByUser User? @relation(fields: [uploadedBy], references: [id])
   notes         String?
   
   // Timestamps
