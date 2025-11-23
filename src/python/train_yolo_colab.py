@@ -490,7 +490,7 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
         print(f"Token: {token[:20]}...")
         
         # Construct upload endpoint
-        upload_url = f"{api_url}/yolo/models/upload-with-token/{token}"
+        upload_url = f"{api_url}/v1/yolo/models/upload-with-token/{token}"
         print(f"\nDang tai len {upload_url}...")
         
         # Prepare files and data
@@ -646,7 +646,7 @@ def get_timestamp():
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
-def create_ui():
+def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
     """Create interactive UI for Jupyter/Colab notebook"""
     print("\n" + "="*70)
     print("YOLO Model Training - Google Colab")
@@ -667,7 +667,15 @@ def create_ui():
         print("Bat dau qua trinh training...")
         print("="*70 + "\n")
         
-        success = main(dataset_url=dataset_url, epochs=60, train_pct=0.9)
+        success = main(
+            dataset_url=dataset_url, 
+            epochs=epochs, 
+            imgsz=imgsz,
+            train_pct=train_pct,
+            model_name=model_name,
+            description=description,
+            accuracy=accuracy
+        )
         return success
         
     except KeyboardInterrupt:
@@ -696,15 +704,18 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    # UI mode
-    if args.ui or (not args.url and '--url' not in sys.argv):
-        create_ui()
-    else:
-        # CLI mode
-        if not args.url:
-            parser.print_help()
-            sys.exit(1)
-        
+    # UI mode - run interactive UI with optional arguments as defaults
+    if args.ui:
+        create_ui(
+            epochs=args.epochs,
+            imgsz=args.imgsz,
+            train_pct=args.train_pct,
+            model_name=args.model_name,
+            description=args.description,
+            accuracy=args.accuracy
+        )
+    # CLI mode - use provided --url and run with arguments
+    elif args.url:
         success = main(
             dataset_url=args.url,
             epochs=args.epochs,
@@ -715,5 +726,8 @@ if __name__ == "__main__":
             description=args.description,
             accuracy=args.accuracy
         )
-        
         sys.exit(0 if success else 1)
+    else:
+        # No arguments provided - show help
+        parser.print_help()
+        sys.exit(1)
