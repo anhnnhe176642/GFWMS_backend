@@ -45,13 +45,31 @@ def download_dataset(url, dest_path="/content/data.zip"):
 def extract_token_from_url(download_url):
     """Extract token from download URL"""
     try:
-        # URL format: https://domain.com/api/yolo/download/TOKEN
+        # URL format: https://domain.com/api/v1/yolo/download/TOKEN
         # Extract token from the last segment after /download/
         if '/download/' in download_url:
             token = download_url.split('/download/')[-1]
             if token:
                 return token
         return None
+    except Exception:
+        return None
+
+
+def extract_api_url_from_download_url(download_url):
+    """Extract API base URL from download URL"""
+    try:
+        # URL format: https://domain.com/api/v1/yolo/download/TOKEN
+        # Extract: https://domain.com/api
+        from urllib.parse import urlparse
+        parsed = urlparse(download_url)
+        
+        # Reconstruct base URL: https://domain.com
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+        
+        # API URL is base_url + /api
+        api_url = f"{base_url}/api"
+        return api_url
     except Exception:
         return None
 
@@ -522,7 +540,7 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
     os.makedirs('/content', exist_ok=True)
     os.makedirs('/content/custom_data', exist_ok=True)
     
-    # Extract token from dataset URL
+    # Extract token and API URL from dataset URL
     token = extract_token_from_url(dataset_url)
     if token:
         print(f"\n✓ Trich xuat token tu URL thanh cong")
@@ -530,6 +548,13 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
     else:
         print("\n⚠ Khong the trich xuat token tu URL")
         print("  Upload model se bi bo qua")
+    
+    # Auto-extract API URL if not provided
+    if not api_url:
+        api_url = extract_api_url_from_download_url(dataset_url)
+        if api_url:
+            print(f"\n✓ Trich xuat API URL tu download URL thanh cong")
+            print(f"   API URL: {api_url}")
     
     # Step 2: Download
     if not download_dataset(dataset_url):
@@ -574,9 +599,9 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
     else:
         if not token:
             print("\nThong tin: Khong the trich xuat token tu URL dataset")
-            print("De tai model len server, URL dataset phai co dang: .../yolo/download/TOKEN")
-        else:
-            print("\nThong tin: Khong co API URL, bo qua buoc upload")
+            print("De tai model len server, URL dataset phai co dang: https://domain.com/api/v1/yolo/download/TOKEN")
+        if not api_url:
+            print("\nThong tin: Khong the trich xuat API URL tu dataset URL")
             print("De tai model len server, vui long cung cap --api-url")
     
     print("\n" + "="*70)
@@ -592,7 +617,7 @@ def create_ui():
     print("="*70 + "\n")
     
     try:
-        dataset_url = input("Nhap URL dataset (ZIP file - tu /yolo/download/TOKEN): ").strip()
+        dataset_url = input("Nhap URL dataset download (https://domain.com/api/v1/yolo/download/TOKEN): ").strip()
         
         if not dataset_url:
             print("Loi: Vui long nhap URL dataset")
@@ -602,43 +627,25 @@ def create_ui():
             print("Loi: URL phai bat dau bang http:// hoac https://")
             return False
         
-        # Optional server upload
-        api_url = None
+        # Optional model metadata
         model_name = None
         description = None
         accuracy = None
         
         print("\n" + "-"*70)
-        print("Cau hinh upload model (optional)")
+        print("Thong tin model (tuy chon)")
         print("-"*70)
         
-        upload_choice = input("Ban co muon tai model len server sau khi training? (y/n): ").strip().lower()
+        model_name = input("Ten model (optional, mac dinh: auto-generated): ").strip() or None
+        description = input("Mo ta model (optional): ").strip() or None
         
-        if upload_choice == 'y':
-            api_url = input("Nhap API URL (vd: http://localhost:3000/api): ").strip()
-            
-            if not api_url:
-                print("Loi: Vui long nhap API URL")
-                return False
-            
-            if not api_url.startswith(('http://', 'https://')):
-                print("Loi: URL phai bat dau bang http:// hoac https://")
-                return False
-            
-            print("\n" + "-"*70)
-            print("Thong tin model (tuy chon)")
-            print("-"*70)
-            
-            model_name = input("Ten model (optional, mac dinh: auto-generated): ").strip() or None
-            description = input("Mo ta model (optional): ").strip() or None
-            
-            accuracy_input = input("Do chinh xac (0-100, optional): ").strip()
-            if accuracy_input:
-                try:
-                    accuracy = float(accuracy_input)
-                except ValueError:
-                    print("Canh bao: Do chinh xac khong hop le, bo qua")
-                    accuracy = None
+        accuracy_input = input("Do chinh xac (0-100, optional): ").strip()
+        if accuracy_input:
+            try:
+                accuracy = float(accuracy_input)
+            except ValueError:
+                print("Canh bao: Do chinh xac khong hop le, bo qua")
+                accuracy = None
         
         print("\n" + "="*70)
         print("Bat dau qua trinh training...")
@@ -648,7 +655,6 @@ def create_ui():
             dataset_url=dataset_url,
             epochs=60,
             train_pct=0.9,
-            api_url=api_url,
             model_name=model_name,
             description=description,
             accuracy=accuracy
