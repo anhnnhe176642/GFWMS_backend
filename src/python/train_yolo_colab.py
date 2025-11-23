@@ -351,8 +351,8 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9):
 def create_ui():
     """Create interactive UI for Jupyter/Colab notebook"""
     try:
-        from IPython.display import display, HTML
-        from ipywidgets import Text, Button, Output, VBox, Label, IntSlider, FloatSlider
+        from IPython.display import display
+        from ipywidgets import Text, Button, Output, VBox, Label, IntSlider, FloatSlider, HTML
     except ImportError:
         print("ℹ️  UI mode not available (running as script). Use --url argument instead.")
         return False
@@ -409,17 +409,17 @@ def create_ui():
     start_button.on_click(on_start_click)
     
     display(VBox([
-        HTML(value="<h2>🚀 YOLO Model Training - Google Colab</h2>"),
-        HTML(value="<p>Enter dataset URL and click Start to begin training</p>"),
-        HTML(value="<hr>"),
+        HTML("<h2>🚀 YOLO Model Training - Google Colab</h2>"),
+        HTML("<p>Enter dataset URL and click Start to begin training</p>"),
+        HTML("<hr>"),
         url_input,
-        HTML(value="<b>Training Configuration:</b>"),
+        HTML("<b>Training Configuration:</b>"),
         epochs_slider,
         train_pct_slider,
-        HTML(value="<hr>"),
+        HTML("<hr>"),
         start_button,
         status_label,
-        HTML(value="<hr style='margin-top: 20px;'><b>📋 Training Output:</b>"),
+        HTML("<hr style='margin-top: 20px;'><b>📋 Training Output:</b>"),
         output
     ]))
     
