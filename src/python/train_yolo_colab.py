@@ -715,13 +715,15 @@ def create_gui():
         submit_button.on_click(on_submit_clicked)
         
         # Display UI
-        display(url_input)
-        display(widgets.HBox([epochs_input, imgsz_dropdown]))
-        display(widgets.HBox([train_pct_input, version_input]))
-        display(model_name_input)
-        display(description_input)
-        display(widgets.HBox([submit_button, verbose_toggle]))
-        display(output)
+        display(widgets.VBox([
+            url_input,
+            widgets.HBox([epochs_input, imgsz_dropdown]),
+            widgets.HBox([train_pct_input, version_input]),
+            model_name_input,
+            description_input,
+            widgets.HBox([submit_button, verbose_toggle]),
+            output
+        ]))
         
     except ImportError:
         print_warning("ipywidgets không có sẵn")
