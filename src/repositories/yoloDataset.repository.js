@@ -213,6 +213,19 @@ class YoloDatasetRepository {
   }
 
   /**
+   * Get all images in a dataset without pagination, filtering, or sorting
+   * Used for export operations
+   */
+  async getAllDatasetImages(datasetId) {
+    return prisma.yoloDatasetImage.findMany({
+      where: { datasetId },
+      select: {
+        ...this.#imageSelectOptions
+      }
+    });
+  }
+
+  /**
    * Update image
    */
   async updateImage(id, data) {

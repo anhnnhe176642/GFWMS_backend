@@ -317,7 +317,7 @@ class YoloDatasetService {
     const dataset = await this.getDatasetById(datasetId);
     
     // Get all images in dataset
-    const images = await yoloDatasetRepository.getDatasetImages(datasetId, { limit: 10000 });
+    const images = await yoloDatasetRepository.getAllDatasetImages(datasetId);
 
     return new Promise((resolve, reject) => {
       const output = fsSync.createWriteStream(outputPath);
@@ -343,7 +343,7 @@ class YoloDatasetService {
       archive.append(classesContent, { name: 'classes.txt' });
 
       // Add images and labels
-      for (const image of images.data) {
+      for (const image of images) {
         try {
           const imagePath = path.join(this.datasetsBasePath, image.imagePath);
           const imageBuffer = fsSync.readFileSync(imagePath);
@@ -367,7 +367,7 @@ class YoloDatasetService {
         dataset: {
           name: dataset.name,
           description: dataset.description || '',
-          totalImages: images.data.length,
+          totalImages: images.length,
           classes: classNames,
           createdAt: dataset.createdAt,
           updatedAt: dataset.updatedAt
