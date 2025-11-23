@@ -53,21 +53,21 @@ def check_gpu():
         if torch.cuda.is_available():
             device_count = torch.cuda.device_count()
             device_name = torch.cuda.get_device_name(0)
-            print_success(f"GPU detected: {device_name} (Count: {device_count})")
+            print_success(f"GPU được phát hiện: {device_name} (Số lượng: {device_count})")
             return True
         else:
-            print_error("No GPU detected!")
+            print_error("Không phát hiện GPU!")
             print("\n" + "!"*70)
-            print("  GPU REQUIRED - Please enable GPU in Colab:")
-            print("  1. Click 'Runtime' menu")
-            print("  2. Select 'Change runtime type'")
-            print("  3. Choose 'T4' or higher GPU")
-            print("  4. Click 'Save'")
-            print("  5. Re-run this cell")
+            print("  YÊU CẦU GPU - Vui lòng kích hoạt GPU trong Colab:")
+            print("  1. Nhấp vào menu 'Runtime'")
+            print("  2. Chọn 'Change runtime type'")
+            print("  3. Chọn 'T4' hoặc GPU cao hơn")
+            print("  4. Nhấp vào 'Save'")
+            print("  5. Chạy lại ô này")
             print("!"*70 + "\n")
             return False
     except Exception as e:
-        print_error(f"Error checking GPU: {e}")
+        print_error(f"Lỗi kiểm tra GPU: {e}")
         return False
 
 
@@ -94,32 +94,32 @@ def extract_api_url_from_download_url(download_url):
 
 
 def download_dataset(url, dest_path="/content/data.zip"):
-    print_step(2, "TAI DATASET")
-    print_info(f"Downloading from: {url}")
+    print_step(2, "TẢI XUỐNG DATASET")
+    print_info(f"Đang tải từ: {url}")
     
     try:
         import urllib.request
         urllib.request.urlretrieve(url, dest_path)
         file_size = os.path.getsize(dest_path) / (1024**2)
-        print_success(f"Downloaded! ({file_size:.2f} MB)")
+        print_success(f"Tải xuống thành công! ({file_size:.2f} MB)")
         return True
     except Exception as e:
-        print_error(f"Download failed: {e}")
+        print_error(f"Tải xuống thất bại: {e}")
         return False
 
 
 def extract_dataset(zip_path="/content/data.zip", extract_path="/content/custom_data"):
-    print_step(3, "GIAI NEN DATASET")
-    print_info(f"Extracting to {extract_path}...")
+    print_step(3, "GIẢI NÉN DATASET")
+    print_info(f"Đang giải nén tới {extract_path}...")
     
     try:
         os.makedirs(extract_path, exist_ok=True)
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_path)
-        print_success("Extracted successfully!")
+        print_success("Giải nén thành công!")
         return True
     except Exception as e:
-        print_error(f"Extraction failed: {e}")
+        print_error(f"Giải nén thất bại: {e}")
         return False
 
 
@@ -127,7 +127,7 @@ def extract_dataset_name_from_notes(extract_path="/content/custom_data"):
     try:
         notes_path = os.path.join(extract_path, 'notes.json')
         if not os.path.exists(notes_path):
-            print_warning("notes.json not found")
+            print_warning("Không tìm thấy notes.json")
             return None
         with open(notes_path, 'r', encoding='utf-8') as f:
             notes_data = json.load(f)
@@ -136,27 +136,27 @@ def extract_dataset_name_from_notes(extract_path="/content/custom_data"):
             return dataset_name
         return None
     except Exception as e:
-        print_warning(f"Error reading notes.json: {e}")
+        print_warning(f"Lỗi đọc notes.json: {e}")
         return None
 
 
 def split_data(data_path="/content/custom_data", train_pct=0.9):
-    print_step(4, "CHIA DU LIEU TRAIN/VALIDATION")
+    print_step(4, "CHIA DỮ LIỆU TRAIN/VALIDATION")
     
     try:
         old_train = os.path.join(data_path, 'train')
         old_val = os.path.join(data_path, 'validation')
         if os.path.exists(old_train):
             shutil.rmtree(old_train)
-            print_info("Removed old train folder")
+            print_info("Đã xóa thư mục train cũ")
         if os.path.exists(old_val):
             shutil.rmtree(old_val)
-            print_info("Removed old validation folder")
+            print_info("Đã xóa thư mục validation cũ")
         
         images_path = None
         labels_path = None
         
-        print_info("Finding images and labels directories...")
+        print_info("Đang tìm thư mục images và labels...")
         
         if os.path.exists(os.path.join(data_path, 'images')):
             images_path = os.path.join(data_path, 'images')
@@ -183,7 +183,7 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
         
         if os.path.exists(images_path):
             image_files = [f for f in os.listdir(images_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
-            print_success(f"Found {len(image_files)} images")
+            print_success(f"Tìm thấy {len(image_files)} hình ảnh")
             
             import random
             random.seed(42)
@@ -192,7 +192,7 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
             train_files = image_files[:split_idx]
             val_files = image_files[split_idx:]
             
-            print_info(f"Splitting: {len(train_files)} train, {len(val_files)} validation")
+            print_info(f"Chia dữ liệu: {len(train_files)} train, {len(val_files)} validation")
             
             for img_file in train_files:
                 src_img = os.path.join(images_path, img_file)
@@ -216,22 +216,22 @@ def split_data(data_path="/content/custom_data", train_pct=0.9):
                     dst_label = os.path.join(data_path, 'validation', 'labels', label_file)
                     shutil.copy2(src_label, dst_label)
             
-            print_success("Data split completed!")
+            print_success("Chia dữ liệu hoàn tất!")
             return True
         else:
-            print_error(f"Images not found at {images_path}")
+            print_error(f"Không tìm thấy hình ảnh tại {images_path}")
             return False
             
     except Exception as e:
-        print_error(f"Data split failed: {e}")
+        print_error(f"Chia dữ liệu thất bại: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 
 def install_libraries():
-    print_step(5, "CAI DAT THU VIEN")
-    print_info("Installing ultralytics...")
+    print_step(5, "CÀI ĐẶT THƯ VIỆN")
+    print_info("Đang cài đặt ultralytics...")
     
     try:
         result = subprocess.run(
@@ -239,34 +239,34 @@ def install_libraries():
             timeout=300
         )
         if result.returncode == 0:
-            print_success("Libraries installed!")
+            print_success("Thư viện đã được cài đặt!")
             return True
         else:
-            print_warning(f"Installation completed with return code: {result.returncode}")
+            print_warning(f"Cài đặt hoàn tất với mã lỗi: {result.returncode}")
             return True
     except Exception as e:
-        print_error(f"Installation failed: {e}")
+        print_error(f"Cài đặt thất bại: {e}")
         return False
 
 
 def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt", 
                      yaml_output="/content/data.yaml",
                      base_path="/content/custom_data"):
-    print_step(6, "TAO FILE DATA.YAML")
+    print_step(6, "TẠO FILE DATA.YAML")
     
     try:
         if not os.path.exists(classes_txt_path):
-            print_error(f"classes.txt not found at {classes_txt_path}")
+            print_error(f"Không tìm thấy classes.txt tại {classes_txt_path}")
             return False
         
         with open(classes_txt_path, 'r') as f:
             classes = [line.strip() for line in f.readlines() if line.strip()]
         
         if not classes:
-            print_error("No classes found in classes.txt")
+            print_error("Không tìm thấy lớp nào trong classes.txt")
             return False
         
-        print_success(f"Found {len(classes)} classes: {', '.join(classes)}")
+        print_success(f"Tìm thấy {len(classes)} lớp: {', '.join(classes)}")
         
         data = {
             'path': base_path,
@@ -279,7 +279,7 @@ def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt",
         with open(yaml_output, 'w') as f:
             yaml.dump(data, f, sort_keys=False)
         
-        print("\n  data.yaml content:")
+        print("\n  Nội dung data.yaml:")
         with open(yaml_output, 'r') as f:
             for line in f.read().split('\n'):
                 if line:
@@ -287,32 +287,32 @@ def create_data_yaml(classes_txt_path="/content/custom_data/classes.txt",
         
         return True
     except Exception as e:
-        print_error(f"Failed to create data.yaml: {e}")
+        print_error(f"Không thể tạo data.yaml: {e}")
         return False
 
 
 def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
-    print_step(7, "TRAINING YOLO MODEL")
-    print_info(f"Starting YOLO11s training ({epochs} epochs, {imgsz}x{imgsz})...")
-    print_warning("Note: Training may take 30min - several hours depending on GPU and dataset size\n")
+    print_step(7, "HUẤN LUYỆN MÔ HÌNH YOLO")
+    print_info(f"Bắt đầu huấn luyện YOLO11s ({epochs} epochs, {imgsz}x{imgsz})...")
+    print_warning("Lưu ý: Huấn luyện có thể mất 30 phút - vài giờ tùy thuộc vào GPU và kích thước dataset\n")
     
     try:
         from ultralytics import YOLO
-        print_success("YOLO module loaded\n")
+        print_success("Module YOLO đã được tải\n")
         
         if not os.path.exists(yaml_path):
-            print_error(f"data.yaml not found at {yaml_path}")
+            print_error(f"Không tìm thấy data.yaml tại {yaml_path}")
             return False
         
-        print_info("Loading model...")
+        print_info("Đang tải mô hình...")
         try:
             model = YOLO('yolo11s.pt')
-            print_success("Model loaded successfully")
+            print_success("Mô hình đã tải thành công")
         except Exception as e:
-            print_error(f"Failed to load model: {e}")
+            print_error(f"Không thể tải mô hình: {e}")
             return False
         
-        print_info("Starting training process...\n")
+        print_info("Bắt đầu quá trình huấn luyện...\n")
         print("─"*70)
         try:
             results = model.train(
@@ -325,41 +325,41 @@ def train_model(yaml_path="/content/data.yaml", epochs=60, imgsz=640):
                 exist_ok=True
             )
             print("─"*70)
-            print_success("Training completed!\n")
+            print_success("Huấn luyện hoàn tất!\n")
             return True
             
         except ValueError as e:
             if "Invalid CUDA" in str(e) or "device" in str(e).lower():
-                print_error("GPU not available!")
+                print_error("GPU không khả dụng!")
                 print("\n" + "!"*70)
-                print("  GPU REQUIRED - Please enable GPU in Colab:")
-                print("  1. Click 'Runtime' menu")
-                print("  2. Select 'Change runtime type'")
-                print("  3. Choose 'T4' GPU or higher (A100 preferred)")
-                print("  4. Click 'Save'")
-                print("  5. Re-run this cell")
+                print("  YÊU CẦU GPU - Vui lòng kích hoạt GPU trong Colab:")
+                print("  1. Nhấp vào menu 'Runtime'")
+                print("  2. Chọn 'Change runtime type'")
+                print("  3. Chọn 'T4' GPU hoặc cao hơn (A100 được ưu tiên)")
+                print("  4. Nhấp vào 'Save'")
+                print("  5. Chạy lại ô này")
                 print("!"*70 + "\n")
                 return False
             else:
-                print_error(f"Training error: {e}")
+                print_error(f"Lỗi huấn luyện: {e}")
                 import traceback
                 traceback.print_exc()
                 return False
         
         except Exception as train_error:
-            print_error(f"Training failed:")
-            print(f"  Error type: {type(train_error).__name__}")
-            print(f"  Details: {str(train_error)}")
+            print_error(f"Huấn luyện thất bại:")
+            print(f"  Loại lỗi: {type(train_error).__name__}")
+            print(f"  Chi tiết: {str(train_error)}")
             import traceback
             traceback.print_exc()
             return False
         
     except ImportError as e:
-        print_error(f"Import error: {e}")
-        print_info("Please install ultralytics: pip install ultralytics")
+        print_error(f"Lỗi nhập: {e}")
+        print_info("Vui lòng cài đặt ultralytics: pip install ultralytics")
         return False
     except Exception as e:
-        print_error(f"Unexpected error: {e}")
+        print_error(f"Lỗi không mong muốn: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -386,15 +386,15 @@ def find_model():
 
 
 def download_model():
-    print_step(8, "TAI MODEL DA TRAINING")
+    print_step(8, "TẢI XUỐNG MÔ HÌNH ĐÃ HUẤN LUYỆN")
     
     try:
         model_source = find_model()
         
         if not model_source:
-            print_error("No trained model found!")
+            print_error("Không tìm thấy mô hình đã huấn luyện!")
             if os.path.exists('/content/runs'):
-                print("\n  Contents of /content/runs:")
+                print("\n  Nội dung của /content/runs:")
                 for root, dirs, files in os.walk('/content/runs'):
                     level = root.replace('/content/runs', '').count(os.sep)
                     indent = '    ' * level
@@ -405,37 +405,37 @@ def download_model():
             return False
         
         file_size_mb = os.path.getsize(model_source) / (1024 * 1024)
-        print_success(f"Model found: {model_source}")
-        print_info(f"Size: {file_size_mb:.2f} MB")
+        print_success(f"Tìm thấy mô hình: {model_source}")
+        print_info(f"Kích thước: {file_size_mb:.2f} MB")
         
         model_destination = '/content/best_model.pt'
         shutil.copy2(model_source, model_destination)
-        print_success(f"Model copied to: {model_destination}")
+        print_success(f"Mô hình đã sao chép tới: {model_destination}")
         
         return True
         
     except Exception as e:
-        print_error(f"Failed to download model: {e}")
+        print_error(f"Không thể tải xuống mô hình: {e}")
         return False
 
 
 def upload_model_to_server(api_url, token, model_path="/content/best_model.pt", 
                           model_name=None, description=None, version="1.0", accuracy=None):
-    print_step(9, "TAI MODEL LEN SERVER")
+    print_step(9, "TẢI MÔ HÌNH LÊN SERVER")
     
     try:
         if not os.path.exists(model_path):
-            print_error(f"Model file not found: {model_path}")
+            print_error(f"Tệp mô hình không được tìm thấy: {model_path}")
             return False
         
         file_size_mb = os.path.getsize(model_path) / (1024 * 1024)
-        print_info(f"Model file: {model_path}")
-        print_info(f"Size: {file_size_mb:.2f} MB")
-        print_info(f"API URL: {api_url}")
+        print_info(f"Tệp mô hình: {model_path}")
+        print_info(f"Kích thước: {file_size_mb:.2f} MB")
+        print_info(f"URL API: {api_url}")
         print_info(f"Token: {token[:20]}...")
         
         upload_url = f"{api_url}/yolo/models/upload-with-token/{token}"
-        print_info(f"\nUploading to {upload_url}...")
+        print_info(f"\nĐang tải lên tới {upload_url}...")
         
         with open(model_path, 'rb') as f:
             files = {
@@ -460,33 +460,33 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
             )
         
         if response.status_code == 201:
-            print_success(f"Upload successful! (Status: {response.status_code})")
+            print_success(f"Tải lên thành công! (Trạng thái: {response.status_code})")
             try:
                 json_response = response.json()
                 if 'data' in json_response:
                     model_info = json_response['data']
-                    print("\n  Model information:")
+                    print("\n  Thông tin mô hình:")
                     for key, value in model_info.items():
                         print(f"    {key}: {value}")
                 else:
-                    print(f"\n  Response: {json.dumps(json_response, indent=2, ensure_ascii=False)}")
+                    print(f"\n  Phản hồi: {json.dumps(json_response, indent=2, ensure_ascii=False)}")
             except:
-                print(f"  Response: {response.text}")
+                print(f"  Phản hồi: {response.text}")
             return True
         else:
-            print_error(f"Upload failed! (Status: {response.status_code})")
-            print(f"  Response: {response.text}")
+            print_error(f"Tải lên thất bại! (Trạng thái: {response.status_code})")
+            print(f"  Phản hồi: {response.text}")
             return False
         
     except requests.exceptions.Timeout:
-        print_error("Timeout - Upload took too long")
+        print_error("Quá hạn - Tải lên mất quá lâu")
         return False
     except requests.exceptions.ConnectionError:
-        print_error("Failed to connect to server")
-        print_info("Please check URL and internet connection")
+        print_error("Không thể kết nối tới server")
+        print_info("Vui lòng kiểm tra URL và kết nối internet")
         return False
     except Exception as e:
-        print_error(f"Upload failed: {e}")
+        print_error(f"Tải lên thất bại: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -499,28 +499,28 @@ def get_timestamp():
 
 def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None, 
          model_name=None, description=None, accuracy=None):
-    print_header("YOLO MODEL TRAINING PIPELINE")
+    print_header("QUY TRÌNH HUẤN LUYỆN MÔ HÌNH YOLO")
     
     os.makedirs('/content', exist_ok=True)
     os.makedirs('/content/custom_data', exist_ok=True)
     
-    print_step(1, "CHECK GPU")
+    print_step(1, "KIỂM TRA GPU")
     if not check_gpu():
         return False
     
     token = extract_token_from_url(dataset_url)
     if token:
-        print_success("Token extracted from URL")
+        print_success("Token đã được trích xuất từ URL")
         print_info(f"Token: {token[:30]}...")
     else:
-        print_warning("Could not extract token from URL")
-        print_info("Model upload will be skipped")
+        print_warning("Không thể trích xuất token từ URL")
+        print_info("Tải mô hình sẽ bị bỏ qua")
     
     if not api_url:
         api_url = extract_api_url_from_download_url(dataset_url)
         if api_url:
-            print_success("API URL extracted from download URL")
-            print_info(f"API URL: {api_url}")
+            print_success("URL API đã được trích xuất từ URL tải xuống")
+            print_info(f"URL API: {api_url}")
     
     if not download_dataset(dataset_url):
         return False
@@ -532,8 +532,8 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
         dataset_name = extract_dataset_name_from_notes()
         if dataset_name:
             model_name = f"{dataset_name}_trained_{get_timestamp()}"
-            print_success("Model name extracted from notes.json")
-            print_info(f"Model name: {model_name}")
+            print_success("Tên mô hình đã được trích xuất từ notes.json")
+            print_info(f"Tên mô hình: {model_name}")
     
     if not split_data(train_pct=train_pct):
         return False
@@ -559,17 +559,17 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
             version="1.0",
             accuracy=accuracy
         ):
-            print_warning("Model upload failed, but training was successful")
-            print_info("You can upload the model manually later")
+            print_warning("Tải mô hình thất bại, nhưng huấn luyện thành công")
+            print_info("Bạn có thể tải mô hình theo cách thủ công sau này")
     else:
         if not token:
-            print_info("Could not extract token from dataset URL")
-            print_info("Required format: https://domain.com/api/v1/yolo/download/TOKEN")
+            print_info("Không thể trích xuất token từ URL dataset")
+            print_info("Định dạng yêu cầu: https://domain.com/api/v1/yolo/download/TOKEN")
         if not api_url:
-            print_info("Could not extract API URL from dataset URL")
-            print_info("To upload model, please provide --api-url argument")
+            print_info("Không thể trích xuất URL API từ URL dataset")
+            print_info("Để tải mô hình, vui lòng cung cấp tham số --api-url")
     
-    print_header("TRAINING PIPELINE COMPLETED!")
+    print_header("QUY TRÌNH HUẤN LUYỆN HO ÀN TẤT!")
     return True
 
 
@@ -578,12 +578,39 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
 # ============================================================================
 
 def create_gui():
-    """Create simple GUI for Colab using ipywidgets"""
+    """Tạo GUI đơn giản cho Colab bằng ipywidgets"""
     try:
         import ipywidgets as widgets
         from IPython.display import display
         
-        # Input fields
+        # Định dạng CSS cho các thẻ input
+        input_style = widgets.HTML("""
+            <style>
+                .widget-text input, .widget-text textarea {
+                    background-color: #f5f5f5;
+                    color: #333;
+                }
+                .widget-text input:focus, .widget-text textarea:focus {
+                    background-color: #ffffff;
+                    border-color: #0078d4;
+                }
+                /* Cho giao diện tối */
+                @media (prefers-color-scheme: dark) {
+                    .widget-text input, .widget-text textarea {
+                        background-color: #2d2d2d;
+                        color: #e0e0e0;
+                        border-color: #555;
+                    }
+                    .widget-text input:focus, .widget-text textarea:focus {
+                        background-color: #3a3a3a;
+                        border-color: #0078d4;
+                    }
+                }
+            </style>
+        """)
+        display(input_style)
+        
+        # Trường nhập liệu
         url_input = widgets.Text(
             value='',
             placeholder='https://your-domain.com/api/v1/yolo/download/TOKEN',
@@ -596,13 +623,15 @@ def create_gui():
             min=10,
             max=200,
             step=10,
-            description='Epochs:'
+            description='Epochs:',
+            style={'description_width': 'initial'}
         )
         
         imgsz_dropdown = widgets.Dropdown(
             options=['640', '800', '960'],
             value='640',
-            description='Image Size:'
+            description='Kích thước:',
+            style={'description_width': 'initial'}
         )
         
         train_pct_input = widgets.FloatSlider(
@@ -610,20 +639,21 @@ def create_gui():
             min=0.5,
             max=0.95,
             step=0.05,
-            description='Train %:'
+            description='Train %:',
+            style={'description_width': 'initial'}
         )
         
         model_name_input = widgets.Text(
             value='',
-            placeholder='Auto if empty',
-            description='Model Name:',
+            placeholder='Tự động nếu để trống',
+            description='Tên mô hình:',
             layout=widgets.Layout(width='100%')
         )
         
         description_input = widgets.Textarea(
             value='',
-            placeholder='Optional description',
-            description='Description:',
+            placeholder='Mô tả tùy chọn',
+            description='Mô tả:',
             rows=3,
             layout=widgets.Layout(width='100%')
         )
@@ -632,13 +662,14 @@ def create_gui():
             value=0,
             min=0,
             max=100,
-            description='Accuracy:'
+            description='Độ chính xác:',
+            style={'description_width': 'initial'}
         )
         
         submit_button = widgets.Button(
-            description='🚀 Start Training',
+            description='Bắt đầu huấn luyện',
             button_style='info',
-            tooltip='Click to start training'
+            tooltip='Nhấp để bắt đầu huấn luyện'
         )
         
         output = widgets.Output()
@@ -648,11 +679,11 @@ def create_gui():
                 output.clear_output()
                 
                 if not url_input.value:
-                    print_error("URL is required!")
+                    print_error("URL là bắt buộc!")
                     return
                 
                 if not url_input.value.startswith(('http://', 'https://')):
-                    print_error("URL must start with http:// or https://")
+                    print_error("URL phải bắt đầu bằng http:// hoặc https://")
                     return
                 
                 try:
@@ -667,12 +698,12 @@ def create_gui():
                     )
                     
                     if success:
-                        print_success("Training completed successfully!")
+                        print_success("Huấn luyện hoàn tất thành công!")
                     else:
-                        print_error("Training failed!")
+                        print_error("Huấn luyện thất bại!")
                         
                 except Exception as e:
-                    print_error(f"Error: {e}")
+                    print_error(f"Lỗi: {e}")
                     import traceback
                     traceback.print_exc()
         
@@ -690,29 +721,29 @@ def create_gui():
         return True
         
     except ImportError:
-        print_warning("ipywidgets not available")
+        print_warning("ipywidgets không có sẵn")
         return False
     except Exception as e:
-        print_error(f"Error creating GUI: {e}")
+        print_error(f"Lỗi tạo GUI: {e}")
         return False
 
 
 def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
-    """Create console-based UI (fallback)"""
-    print_header("YOLO Model Training")
+    """Tạo giao diện dựa trên bảng điều khiển (dự phòng)"""
+    print_header("Huấn luyện Mô hình YOLO")
     
     try:
-        dataset_url = input("\n  Enter dataset download URL: ").strip()
+        dataset_url = input("\n  Nhập URL tải xuống dataset: ").strip()
         
         if not dataset_url:
-            print_error("Dataset URL is required")
+            print_error("URL Dataset là bắt buộc")
             return False
         
         if not dataset_url.startswith(('http://', 'https://')):
-            print_error("URL must start with http:// or https://")
+            print_error("URL phải bắt đầu bằng http:// hoặc https://")
             return False
         
-        print_header("Starting training process...")
+        print_header("Bắt đầu quá trình huấn luyện...")
         
         success = main(
             dataset_url=dataset_url, 
@@ -726,23 +757,23 @@ def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
         return success
         
     except KeyboardInterrupt:
-        print_warning("Training cancelled")
+        print_warning("Huấn luyện đã bị hủy")
         return False
     except Exception as e:
-        print_error(f"Error: {e}")
+        print_error(f"Lỗi: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 
 def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=None, accuracy=None):
-    """Create interactive UI (GUI for Colab, console fallback for CLI)"""
+    """Tạo giao diện tương tác (GUI cho Colab, bảng điều khiển dự phòng cho CLI)"""
     try:
-        # Check if running in Jupyter/Colab
-        get_ipython()  # This will raise NameError if not in Jupyter
+        # Kiểm tra xem có chạy trong Jupyter/Colab không
+        get_ipython()  # Điều này sẽ gây ra NameError nếu không ở Jupyter
         return create_gui()
     except (NameError, AttributeError):
-        # Running from CLI, use console UI
+        # Chạy từ CLI, sử dụng giao diện bảng điều khiển
         return create_console_ui(epochs, imgsz, train_pct, model_name, description, accuracy)
 
 
@@ -753,20 +784,20 @@ def create_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, description=
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description='YOLO Training Pipeline')
-    parser.add_argument('--url', default=None, help='Dataset download URL')
-    parser.add_argument('--epochs', type=int, default=60, help='Number of training epochs (default: 60)')
-    parser.add_argument('--imgsz', type=int, default=640, help='Image size (default: 640)')
-    parser.add_argument('--train-pct', type=float, default=0.9, help='Training percentage (default: 0.9)')
-    parser.add_argument('--api-url', default=None, help='API base URL for uploading model')
-    parser.add_argument('--model-name', default=None, help='Model name for upload')
-    parser.add_argument('--description', default=None, help='Model description')
-    parser.add_argument('--accuracy', type=float, default=None, help='Model accuracy (0-100)')
-    parser.add_argument('--ui', action='store_true', help='Launch interactive GUI mode')
+    parser = argparse.ArgumentParser(description='Quy trình huấn luyện YOLO')
+    parser.add_argument('--url', default=None, help='URL tải xuống dataset')
+    parser.add_argument('--epochs', type=int, default=60, help='Số lượng epochs huấn luyện (mặc định: 60)')
+    parser.add_argument('--imgsz', type=int, default=640, help='Kích thước hình ảnh (mặc định: 640)')
+    parser.add_argument('--train-pct', type=float, default=0.9, help='Phần trăm huấn luyện (mặc định: 0.9)')
+    parser.add_argument('--api-url', default=None, help='URL cơ sở API để tải mô hình')
+    parser.add_argument('--model-name', default=None, help='Tên mô hình để tải')
+    parser.add_argument('--description', default=None, help='Mô tả mô hình')
+    parser.add_argument('--accuracy', type=float, default=None, help='Độ chính xác mô hình (0-100)')
+    parser.add_argument('--ui', action='store_true', help='Khởi chạy chế độ GUI tương tác')
     
     args = parser.parse_args()
     
-    # UI mode - run interactive UI with optional arguments as defaults
+    # Chế độ UI - chạy giao diện tương tác với các tham số tùy chọn làm mặc định
     if args.ui:
         create_ui(
             epochs=args.epochs,
@@ -776,7 +807,7 @@ if __name__ == "__main__":
             description=args.description,
             accuracy=args.accuracy
         )
-    # CLI mode - use provided --url and run with arguments
+    # Chế độ CLI - sử dụng --url được cung cấp và chạy với các tham số
     elif args.url:
         success = main(
             dataset_url=args.url,
