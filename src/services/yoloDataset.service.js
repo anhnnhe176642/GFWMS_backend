@@ -412,6 +412,17 @@ class YoloDatasetService {
     console.log('importDatasetFromZip - Starting with datasetName:', datasetName);
     console.log('importDatasetFromZip - ZIP file size:', zipFile.size, 'bytes');
     
+    // Validate ZIP file format
+    if (!zipFile.buffer || zipFile.buffer.length < 4) {
+      throw new ValidationError('Định dạng tệp không hợp lệ: Tệp quá nhỏ hoặc trống');
+    }
+
+    // Check ZIP file signature (PK\x03\x04)
+    const zipSignature = zipFile.buffer.slice(0, 4);
+    if (zipSignature[0] !== 0x50 || zipSignature[1] !== 0x4b || zipSignature[2] !== 0x03 || zipSignature[3] !== 0x04) {
+      throw new ValidationError('Định dạng tệp không hợp lệ: Đây không phải là tệp ZIP hợp lệ. Vui lòng tải lên một tệp ZIP.');
+    }
+
     // Validate dataset name doesn't already exist
     const existing = await yoloDatasetRepository.findDatasetByName(datasetName);
     if (existing) {
@@ -433,10 +444,14 @@ class YoloDatasetService {
       await fs.writeFile(tempZipPath, zipFile.buffer);
       console.log('importDatasetFromZip - ZIP file written successfully');
 
-      // Extract ZIP file
+      // Extract ZIP file with error handling
       console.log('importDatasetFromZip - Extracting ZIP (this may take a while for large files)');
-      await extractZip(tempZipPath, { dir: tempDir });
-      console.log('importDatasetFromZip - ZIP extracted successfully');
+      try {
+        await extractZip(tempZipPath, { dir: tempDir });
+        console.log('importDatasetFromZip - ZIP extracted successfully');
+      } catch (extractError) {
+        throw new ValidationError(`Tệp ZIP không hợp lệ: ${extractError.message}. Vui lòng đảm bảo tệp là tệp lưu trữ ZIP hợp lệ.`);
+      }
 
       // Delete temp zip file after extraction to save space
       try {
@@ -445,6 +460,27 @@ class YoloDatasetService {
       } catch {
         console.warn('Could not delete temp ZIP file');
       }
+
+      // Verify ZIP structure - check if images directory exists
+      const imagesDir = path.join(tempDir, 'images');
+      try {
+        const imagesDirStats = await fs.stat(imagesDir);
+        if (!imagesDirStats.isDirectory()) {
+          throw new ValidationError('Cấu trúc ZIP không hợp lệ: "images" không phải là thư mục. Vui lòng đảm bảo tệp ZIP của bạn chứa một thư mục "images" có các tệp hình ảnh.');
+        }
+      } catch (statError) {
+        if (statError instanceof ValidationError) {
+          throw statError;
+        }
+        throw new ValidationError('Cấu trúc ZIP không hợp lệ: Thiếu thư mục "images" bắt buộc. Vui lòng đảm bảo tệp ZIP của bạn chứa: \n- images/ (thư mục chứa các tệp hình ảnh)\n- labels/ (tùy chọn, thư mục chứa các tệp nhãn YOLO .txt)\n- classes.txt (tùy chọn, mỗi tên lớp một dòng)');
+      }
+
+      // Check if images directory is empty
+      const imageFiles = await fs.readdir(imagesDir);
+      if (imageFiles.length === 0) {
+        throw new ValidationError('Không tìm thấy hình ảnh trong tệp ZIP. Vui lòng đảm bảo thư mục "images" chứa ít nhất một tệp hình ảnh.');
+      }
+      console.log('importDatasetFromZip - ZIP structure validated, found', imageFiles.length, 'images');
 
       // Read classes.txt if exists
       const classesPath = path.join(tempDir, 'classes.txt');
@@ -502,7 +538,6 @@ class YoloDatasetService {
 
       // Process images and labels from ZIP
       console.log('importDatasetFromZip - Processing images from ZIP');
-      const imagesDir = path.join(tempDir, 'images');
       const labelsDir = path.join(tempDir, 'labels');
 
       let importedCount = 0;
@@ -510,10 +545,10 @@ class YoloDatasetService {
       const errors = [];
 
       try {
-        const imageFiles = await fs.readdir(imagesDir);
-        console.log('importDatasetFromZip - Found', imageFiles.length, 'image files');
+        const imageFilesInTemp = await fs.readdir(imagesDir);
+        console.log('importDatasetFromZip - Found', imageFilesInTemp.length, 'image files');
 
-        for (const imageFile of imageFiles) {
+        for (const imageFile of imageFilesInTemp) {
           try {
             const imagePath = path.join(imagesDir, imageFile);
             const imageBuffer = await fs.readFile(imagePath);
@@ -639,6 +674,17 @@ class YoloDatasetService {
    *  - classes.txt (optional - will merge)
    */
   async importDataset(datasetId, zipFile, userId) {
+    // Validate ZIP file format
+    if (!zipFile.buffer || zipFile.buffer.length < 4) {
+      throw new ValidationError('Định dạng tệp không hợp lệ: Tệp quá nhỏ hoặc trống');
+    }
+
+    // Check ZIP file signature (PK\x03\x04)
+    const zipSignature = zipFile.buffer.slice(0, 4);
+    if (zipSignature[0] !== 0x50 || zipSignature[1] !== 0x4b || zipSignature[2] !== 0x03 || zipSignature[3] !== 0x04) {
+      throw new ValidationError('Định dạng tệp không hợp lệ: Đây không phải là tệp ZIP hợp lệ. Vui lòng tải lên một tệp ZIP.');
+    }
+
     const dataset = await this.getDatasetById(datasetId);
     
     // Create temp directory for extraction
@@ -652,8 +698,33 @@ class YoloDatasetService {
       await fs.writeFile(tempZipPath, zipFile.buffer);
 
       console.log('importDataset - Extracting ZIP');
-      await extractZip(tempZipPath, { dir: tempDir });
-      console.log('importDataset - ZIP extracted successfully');
+      try {
+        await extractZip(tempZipPath, { dir: tempDir });
+        console.log('importDataset - ZIP extracted successfully');
+      } catch (extractError) {
+        throw new ValidationError(`Tệp ZIP không hợp lệ: ${extractError.message}. Vui lòng đảm bảo tệp là tệp lưu trữ ZIP hợp lệ.`);
+      }
+
+      // Verify ZIP structure - check if images directory exists
+      const imagesDir = path.join(tempDir, 'images');
+      try {
+        const imagesDirStats = await fs.stat(imagesDir);
+        if (!imagesDirStats.isDirectory()) {
+          throw new ValidationError('Cấu trúc ZIP không hợp lệ: "images" không phải là thư mục. Vui lòng đảm bảo tệp ZIP của bạn chứa một thư mục "images" có các tệp hình ảnh.');
+        }
+      } catch (statError) {
+        if (statError instanceof ValidationError) {
+          throw statError;
+        }
+        throw new ValidationError('Cấu trúc ZIP không hợp lệ: Thiếu thư mục "images" bắt buộc. Vui lòng đảm bảo tệp ZIP của bạn chứa: \n- images/ (thư mục chứa các tệp hình ảnh)\n- labels/ (tùy chọn, thư mục chứa các tệp nhãn YOLO .txt)\n- classes.txt (tùy chọn, mỗi tên lớp một dòng)');
+      }
+
+      // Check if images directory is empty
+      const imageFilesInTemp = await fs.readdir(imagesDir);
+      if (imageFilesInTemp.length === 0) {
+        throw new ValidationError('Không tìm thấy hình ảnh trong tệp ZIP. Vui lòng đảm bảo thư mục "images" chứa ít nhất một tệp hình ảnh.');
+      }
+      console.log('importDataset - ZIP structure validated, found', imageFilesInTemp.length, 'images');
 
       // Read classes.txt if exists
       const classesPath = path.join(tempDir, 'classes.txt');
@@ -685,7 +756,6 @@ class YoloDatasetService {
       }
 
       // Process images and labels
-      const imagesDir = path.join(tempDir, 'images');
       const labelsDir = path.join(tempDir, 'labels');
 
       let importedCount = 0;
