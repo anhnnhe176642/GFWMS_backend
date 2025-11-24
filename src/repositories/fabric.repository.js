@@ -110,7 +110,20 @@ export class FabricRepository {
     return formatPaginatedResponse(fabrics, total, page, limit);
   }
 
-  
+  async decreaseQuantityInStock(fabricId, quantity) {
+    const fabric = await this.findById(fabricId);
+    if (!fabric) throw new Error(`Fabric ID ${fabricId} không tồn tại`);
+    if (fabric.quantityInStock < quantity) {
+      throw new Error(
+        `Vải có ID ${fabricId} không đủ tồn kho (còn ${fabric.quantityInStock}, cần ${quantity})`
+      );
+    }
+
+    return await prisma.fabric.update({
+      where: { id: fabricId },
+      data: { quantityInStock: { decrement: quantity } }
+    });
+  }
 }
 
 export const fabricRepository = new FabricRepository();

@@ -69,6 +69,73 @@ class FabricShelfRepository {
       }
     });
   }
+
+async findByFabricIdInWarehouse(fabricId, warehouseId) {
+  return await prisma.fabricShelf.findMany({
+    where: {
+      fabricId,
+      shelf: { warehouseId },
+      quantity: { gt: 0 }
+    },
+    select: {
+      shelfId: true,
+      quantity: true,
+      shelf: {
+        select: {
+          id: true,
+          code: true,
+          createdAt: true   
+        }
+      }
+    },
+    orderBy: [
+      { shelf: { createdAt: 'asc' }}, 
+      { quantity: 'desc' }           
+    ]
+  });
+}
+
+
+
+  /**
+   * Lấy 1 record FabricShelf theo shelfId + fabricId
+   */
+  async findByShelfIdAndFabricId(shelfId, fabricId) {
+    return await prisma.fabricShelf.findUnique({
+      where: { shelfId_fabricId: { shelfId, fabricId } },
+      include: {
+        shelf: { select: { id: true, code: true, warehouseId: true } }
+      }
+    });
+  }
+
+  /**
+   * Trừ số lượng vải trên kệ
+   */
+  async decreaseQuantity(shelfId, fabricId, quantity) {
+    const fs = await this.findByShelfIdAndFabricId(shelfId, fabricId);
+    if (!fs) throw new Error(`Kệ ID ${shelfId} không có vải ${fabricId}`);
+    if (fs.quantity < quantity) {
+      throw new Error(
+        `Kệ ${fs.shelf.code} không đủ số lượng (còn ${fs.quantity}, cần ${quantity})`
+      );
+    }
+
+    // Trừ quantity trong FabricShelf
+    await prisma.fabricShelf.update({
+      where: { shelfId_fabricId: { shelfId, fabricId } },
+      data: { quantity: { decrement: quantity } }
+    });
+
+    // Trừ currentQuantity của shelf
+    await prisma.shelf.update({
+      where: { id: shelfId },
+      data: { currentQuantity: { decrement: quantity } }
+    });
+
+    return true;
+  }
+
 }
 
 export const fabricShelfRepository = new FabricShelfRepository();

@@ -47,7 +47,7 @@ const exportStatusSchema = Joi.string()
   .default('PENDING')
   .trim()
   .messages({
-    'any.only': 'Trạng thái chỉ được là: PENDING, APPROVED hoặc REJECTED'
+    'any.only': 'Chỉ được là PENDING, APPROVED hoặc REJECTED'
   });
 
 /**
@@ -74,7 +74,7 @@ export const paginationQuerySchema = Joi.object({
  * QUERY (FILTER + SORT)
  * ============================
  */
-const allowedExportFabricSortFields = ['id', 'createdAt', 'updatedAt', 'status'];
+const allowedExportFabricSortFields = ['id', 'createdAt', 'updatedAt', 'status','warehouseId','storeId'];
 
 export const exportFabricQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedExportFabricSortFields),
@@ -122,3 +122,53 @@ export const createExportFabricSchema = Joi.object({
     'any.required': 'Danh sách vải (exportItems) là bắt buộc'
   })
 });
+
+/**
+ * ============================
+ * APPROVE / REJECT EXPORT FABRIC
+ * ============================
+ */
+
+// Chọn kệ cho từng exportItem
+const exportItemShelfSelectionSchema = Joi.object({
+  fabricId: Joi.number().integer().positive().required().messages({
+    'number.base': 'Mã vải phải là số',
+    'number.integer': 'Mã vải phải là số nguyên',
+    'number.positive': 'Mã vải phải lớn hơn 0',
+    'any.required': 'Vui lòng chọn vải'
+  }),
+  shelfId: Joi.number().integer().positive().required().messages({
+    'number.base': 'Mã kệ phải là số',
+    'number.integer': 'Mã kệ phải là số nguyên',
+    'number.positive': 'Mã kệ phải lớn hơn 0',
+    'any.required': 'Vui lòng chọn kệ'
+  }),
+  quantityToTake: Joi.number().integer().positive().required().messages({
+    'number.base': 'Số lượng lấy phải là số',
+    'number.integer': 'Số lượng lấy phải là số nguyên',
+    'number.positive': 'Số lượng lấy phải lớn hơn 0',
+    'any.required': 'Vui lòng nhập số lượng lấy từ kệ'
+  })
+});
+
+// Body approve/reject
+export const approveExportFabricSchema = Joi.object({
+  status: Joi.string()
+    .uppercase()
+    .valid('APPROVED', 'REJECTED')
+    .required()
+    .messages({
+      'any.only': 'Trạng thái chỉ được là: APPROVED hoặc REJECTED',
+      'any.required': 'Trạng thái là bắt buộc'
+    }),
+  itemShelfSelections: Joi.array()
+    .items(exportItemShelfSelectionSchema)
+    .when('status', {
+      is: 'APPROVED',
+      then: Joi.required().messages({
+        'any.required': 'Danh sách chọn kệ là bắt buộc khi duyệt phiếu APPROVED'
+      }),
+      otherwise: Joi.forbidden()
+    })
+});
+
