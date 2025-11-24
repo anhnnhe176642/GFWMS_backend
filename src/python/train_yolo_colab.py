@@ -120,7 +120,28 @@ def download_dataset(url, dest_path="/content/data.zip"):
     
     try:
         import urllib.request
-        urllib.request.urlretrieve(url, dest_path)
+        
+        def download_progress_hook(block_num, block_size, total_size):
+            """Hiển thị tiến độ tải xuống"""
+            downloaded = block_num * block_size
+            
+            if total_size > 0:
+                percent = min(downloaded * 100 / total_size, 100)
+                downloaded_mb = downloaded / (1024 * 1024)
+                total_mb = total_size / (1024 * 1024)
+                
+                # Tính tốc độ tải
+                bar_length = 40
+                filled = int(bar_length * percent / 100)
+                bar = '█' * filled + '░' * (bar_length - filled)
+                
+                print(f"  [{bar}] {percent:.1f}% ({downloaded_mb:.1f}/{total_mb:.1f} MB)", end='\r')
+        
+        urllib.request.urlretrieve(url, dest_path, reporthook=download_progress_hook)
+        
+        # Xóa dòng tiến độ
+        print(" " * 100, end='\r')
+        
         file_size = os.path.getsize(dest_path) / (1024**2)
         print_success(f"Tải xuống thành công! ({file_size:.2f} MB)")
         return True
@@ -776,14 +797,14 @@ def create_gui():
         )
         
         retry_button = widgets.Button(
-            description='Thử lại',
+            description='🔄 Thử lại tải lên',
             button_style='warning',
             tooltip='Thử lại tải mô hình lên server',
             layout=widgets.Layout(display='none')
         )
         
         download_button = widgets.Button(
-            description='Tải xuống mô hình',
+            description='⬇️ Tải xuống mô hình',
             button_style='info',
             tooltip='Tải xuống mô hình về máy tính',
             layout=widgets.Layout(display='none')
@@ -905,7 +926,6 @@ files.download('/content/best_model.pt')
         
         submit_button.on_click(on_submit_clicked)
         retry_button.on_click(on_retry_clicked)
-        download_button.on_click(on_download_clicked)
         
         # Display UI với container có độ dài cố định
         form_container = widgets.VBox([
@@ -922,14 +942,9 @@ files.download('/content/best_model.pt')
             widgets.HBox([submit_button, verbose_toggle]),
         ], layout=widgets.Layout(width='500px', border='1px solid #ccc', padding='20px'))
         
-        button_container = widgets.HBox([
-            retry_button,
-            download_button
-        ])
-        
         display(widgets.VBox([
             form_container,
-            button_container,
+            retry_button,
             output
         ]))
         
