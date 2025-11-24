@@ -1,7 +1,8 @@
 import express from 'express';
 import {
   getAllFabrics,
-  getFabricById
+  getFabricById,
+  getFabricInventoryByWarehouse
 } from '../../controllers/fabric.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
@@ -146,8 +147,6 @@ router.get(
 );
 
 
-
-
 // Lấy chi tiết Fabric
 /**
  * @swagger
@@ -220,6 +219,61 @@ router.get(
   requirePermission(PERMISSIONS.FABRICS.VIEW_DETAIL),
   validate(fabricIdParamSchema, 'params'),
   getFabricById
+);
+
+
+
+//Lấy thông tin tồn kho vải theo kho
+/**
+ * @swagger
+ * /fabrics/{id}/inventory-by-warehouses:
+ *   get:
+ *     summary: Lấy thông tin tồn kho vải theo từng kho (cho staff store)
+ *     description: API này giúp staff store tra cứu số lượng vải còn lại ở các kho khác nhau
+ *     tags: [Fabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *         description: ID của vải cần tra cứu
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Lấy thông tin tồn kho thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     fabricId:
+ *                       type: integer
+ *                     totalQuantity:
+ *                       type: number
+ *                     inventoryByWarehouse:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           warehouseId:
+ *                             type: integer
+ *                           warehouseName:
+ *                             type: string
+ *                           quantity:
+ *                             type: number
+ */
+router.get('/:id/inventory-by-warehouses',
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.VIEW_QUANTITY),
+  validate(fabricIdParamSchema, 'params'),
+  getFabricInventoryByWarehouse
 );
 
 

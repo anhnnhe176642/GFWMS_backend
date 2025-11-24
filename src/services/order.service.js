@@ -10,12 +10,13 @@ const processRollPurchase = async (fabric, quantity) => {
     );
   }
 
+  const pricePerRoll = fabric.sellingPrice ?? fabric.category.sellingPricePerRoll;
   return {
     fabricId: fabric.id,
     quantity,
     saleUnit: 'ROLL',
-    price: fabric.category.sellingPricePerRoll,
-    totalPrice: quantity * fabric.category.sellingPricePerRoll,
+    price: pricePerRoll,
+    totalPrice: quantity * pricePerRoll,
     stockOperation: {
       type: 'WAREHOUSE',
       rollsToDeduct: quantity

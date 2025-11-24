@@ -44,5 +44,22 @@ export const getFabricById = async (req, res, next) => {
 };
 
 
+//Lấy thông tin tồn kho vải theo kho
+
+export const getFabricInventoryByWarehouse = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await fabricService.getFabricInventoryByWarehouse(parseInt(id));
+
+    res.json({
+      message: 'Lấy thông tin tồn kho vải theo kho thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 
 
