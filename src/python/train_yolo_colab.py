@@ -452,7 +452,7 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
         file_size_mb = os.path.getsize(model_path) / (1024 * 1024)
         print_info(f"Tệp mô hình: {model_path}")
         print_info(f"Kích thước: {file_size_mb:.2f} MB")
-        print_info(f"URL API: {api_url}")
+        print_info(f"TOKEN URL API: {api_url}")
         print_info(f"Token: {token[:20]}...")
         
         upload_url = f"{api_url}/v1/yolo/models/upload-with-token/{token}"
@@ -502,7 +502,7 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
         return False
     except requests.exceptions.ConnectionError:
         print_error("Không thể kết nối tới server")
-        print_info("Vui lòng kiểm tra URL và kết nối internet")
+        print_info("Vui lòng kiểm tra TOKEN URL và kết nối internet")
         return False
     except Exception as e:
         print_error(f"Tải lên thất bại: {e}")
@@ -529,17 +529,17 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
     
     token = extract_token_from_url(dataset_url)
     if token:
-        print_success("Token đã được trích xuất từ URL")
+        print_success("Token đã được trích xuất từ TOKEN URL")
         print_info(f"Token: {token[:30]}...")
     else:
-        print_warning("Không thể trích xuất token từ URL")
+        print_warning("Không thể trích xuất token từ TOKEN URL")
         print_info("Tải mô hình sẽ bị bỏ qua")
     
     if not api_url:
         api_url = extract_api_url_from_download_url(dataset_url)
         if api_url:
-            print_success("URL API đã được trích xuất từ URL tải xuống")
-            print_info(f"URL API: {api_url}")
+            print_success("TOKEN URL API đã được trích xuất từ TOKEN URL tải xuống")
+            print_info(f"TOKEN URL API: {api_url}")
     
     if not download_dataset(dataset_url):
         return False
@@ -581,10 +581,10 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
             print_info("Bạn có thể tải mô hình theo cách thủ công sau này")
     else:
         if not token:
-            print_info("Không thể trích xuất token từ URL dataset")
+            print_info("Không thể trích xuất token từ TOKEN URL dataset")
             print_info("Định dạng yêu cầu: https://domain.com/api/v1/yolo/download/TOKEN")
         if not api_url:
-            print_info("Không thể trích xuất URL API từ URL dataset")
+            print_info("Không thể trích xuất TOKEN URL API từ TOKEN URL dataset")
             print_info("Để tải mô hình, vui lòng cung cấp tham số --api-url")
     
     print_header("QUY TRÌNH HUẤN LUYỆN HO ÀN TẤT!")
@@ -602,7 +602,7 @@ def create_gui():
         from IPython.display import display
         
         # Trường nhập liệu
-        url_label = widgets.HTML("<b>URL:</b>")
+        url_label = widgets.HTML("<b>TOKEN URL:</b>")
         url_input = widgets.Text(
             value='',
             placeholder='https://your-domain.com/api/v1/yolo/download/TOKEN',
@@ -684,11 +684,11 @@ def create_gui():
                 output.clear_output()
                 
                 if not url_input.value:
-                    print_error("URL là bắt buộc!")
+                    print_error("TOKEN URL là bắt buộc!")
                     return
                 
                 if not url_input.value.startswith(('http://', 'https://')):
-                    print_error("URL phải bắt đầu bằng http:// hoặc https://")
+                    print_error("TOKEN URL phải bắt đầu bằng http:// hoặc https://")
                     return
                 
                 try:
@@ -745,14 +745,14 @@ def create_console_ui(epochs=60, imgsz=640, train_pct=0.9, model_name=None, desc
     print_header("Huấn luyện Mô hình YOLO")
     
     try:
-        dataset_url = input("\n  Nhập URL tải xuống dataset: ").strip()
+        dataset_url = input("\n  Nhập TOKEN URL tải xuống dataset: ").strip()
         
         if not dataset_url:
-            print_error("URL Dataset là bắt buộc")
+            print_error("TOKEN URL Dataset là bắt buộc")
             return False
         
         if not dataset_url.startswith(('http://', 'https://')):
-            print_error("URL phải bắt đầu bằng http:// hoặc https://")
+            print_error("TOKEN URL phải bắt đầu bằng http:// hoặc https://")
             return False
         
         print_header("Bắt đầu quá trình huấn luyện...")
@@ -797,11 +797,11 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='Quy trình huấn luyện YOLO')
-    parser.add_argument('--url', default=None, help='URL tải xuống dataset')
+    parser.add_argument('--url', default=None, help='TOKEN URL tải xuống dataset')
     parser.add_argument('--epochs', type=int, default=60, help='Số lượng epochs huấn luyện (mặc định: 60)')
     parser.add_argument('--imgsz', type=int, default=640, help='Kích thước hình ảnh (mặc định: 640)')
     parser.add_argument('--train-pct', type=float, default=0.9, help='Phần trăm huấn luyện (mặc định: 0.9)')
-    parser.add_argument('--api-url', default=None, help='URL cơ sở API để tải mô hình')
+    parser.add_argument('--api-url', default=None, help='TOKEN URL cơ sở API để tải mô hình')
     parser.add_argument('--model-name', default=None, help='Tên mô hình để tải')
     parser.add_argument('--description', default=None, help='Mô tả mô hình')
     parser.add_argument('--version', default='1.0', help='Phiên bản mô hình (mặc định: 1.0)')
