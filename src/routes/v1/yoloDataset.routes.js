@@ -525,7 +525,6 @@ router.delete(
 router.post(
   '/:datasetId/images',
   authenticateToken,
-  requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
   validate(datasetIdParamSchema, 'params'),
   uploadDatasetImage,
   handleImageUploadError,
