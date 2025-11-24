@@ -106,6 +106,19 @@ export const PERMISSIONS = {
     DELETE:       { key: 'shelf:delete',       description: 'Xóa kệ (soft delete)' },
   },
 
+  // Order Management
+  ORDERS: {
+    CREATE_ONLINE:         {key: 'order:create_online',        description: 'Tạo đơn hàng online (customer)'},
+    CREATE_OFFLINE:        {key: 'order:create_offline',       description: 'Tạo đơn hàng offline tại cửa hàng (staff)'},
+    VIEW_MY:               {key: 'order:view_my',              description: 'Xem danh sách đơn hàng của tôi (customer)'},
+    VIEW_LIST:             {key: 'order:view_list',            description: 'Xem danh sách đơn hàng'},
+    VIEW_DETAIL:           {key: 'order:view_detail',          description: 'Xem chi tiết đơn hàng'},
+    UPDATE_STATUS:         {key: 'order:update_status',        description: 'Cập nhật trạng thái đơn hàng'},
+    CANCEL:                {key: 'order:cancel',               description: 'Hủy đơn hàng'},
+    CONFIRM_PAYMENT:       {key: 'order:confirm_payment',      description: 'Xác nhận thanh toán'},
+    CHECK_CUSTOMER_CREDIT: {key: 'order:check_customer_credit',description: 'Kiểm tra tín dụng khách hàng'}
+  },
+
   // YOLO Detection & Model Management
   YOLO: {
     DETECT:       { key: 'yolo:detect',        description: 'Phát hiện đối tượng trong hình ảnh' },
