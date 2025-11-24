@@ -11,7 +11,8 @@ import {
   getDatasetsSchema,
   getDatasetImagesSchema,
   datasetIdParamSchema,
-  imageIdParamSchema
+  imageIdParamSchema,
+  importDatasetFromZipSchema
 } from '../../validations/yoloDataset.validation.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
@@ -27,12 +28,119 @@ const uploadDatasetImage = createUploadMiddleware({
 
 const handleImageUploadError = createUploadErrorHandler('image', 10);
 
+// Upload middleware for ZIP files (1000MB max)
+const uploadDatasetZip = createUploadMiddleware({
+  fieldName: 'zipFile',
+  maxSize: 1000,
+  multiple: false,
+  fileType: 'zip'
+});
+
+const handleZipUploadError = createUploadErrorHandler('zipFile', 1000);
+
 /**
  * @swagger
  * tags:
  *   name: YOLO Dataset
  *   description: YOLO dataset management for training data
  */
+
+/**
+ * @swagger
+ * /yolo/datasets/import-zip:
+ *   post:
+ *     summary: Import dataset from ZIP file (creates new dataset)
+ *     description: |
+ *       Import a complete dataset from a ZIP file and create a new dataset in the system.
+ *       ZIP file structure expected:
+ *       - images/ - folder containing image files
+ *       - labels/ - folder containing .txt label files (optional)
+ *       - classes.txt - class names, one per line (optional)
+ *       
+ *       Process:
+ *       1. Create new dataset with provided name
+ *       2. Extract and read classes.txt from ZIP
+ *       3. Import all images with corresponding labels
+ *       4. Mark all imported images as COMPLETED
+ *       5. Return dataset info and import statistics
+ *     tags: [YOLO Dataset]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - zipFile
+ *               - name
+ *             properties:
+ *               zipFile:
+ *                 type: string
+ *                 format: binary
+ *                 description: ZIP file containing YOLO format dataset (max 500MB)
+ *               name:
+ *                 type: string
+ *                 description: Name for the new dataset (alphanumeric, hyphens, underscores only)
+ *                 example: fabric_defects_v1
+ *               description:
+ *                 type: string
+ *                 description: Optional description for the dataset
+ *     responses:
+ *       201:
+ *         description: Dataset created and imported successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                   example: "Dataset \"fabric_defects_v1\" created and imported 150 images"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     dataset:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         description:
+ *                           type: string
+ *                         classes:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         totalImages:
+ *                           type: integer
+ *                     importedCount:
+ *                       type: integer
+ *                       description: Number of successfully imported images
+ *                     failedCount:
+ *                       type: integer
+ *                       description: Number of failed imports
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: List of error messages for failed imports
+ *       400:
+ *         description: No ZIP file provided, validation error, or dataset name already exists
+ */
+router.post(
+  '/import-zip',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
+  uploadDatasetZip,
+  handleZipUploadError,
+  validate(importDatasetFromZipSchema, 'body'),
+  yoloDatasetController.importDatasetFromZip
+);
 
 /**
  * @swagger
@@ -58,9 +166,6 @@ const handleImageUploadError = createUploadErrorHandler('image', 10);
  *               description:
  *                 type: string
  *                 description: Dataset description
- *               version:
- *                 type: string
- *                 example: "1.0"
  *               classes:
  *                 type: array
  *                 items:
@@ -87,7 +192,7 @@ router.post(
  * @swagger
  * /yolo/datasets:
  *   get:
- *     summary: Get all datasets with pagination
+ *     summary: Get all datasets with pagination, filtering, and sorting
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -97,35 +202,107 @@ router.post(
  *         schema:
  *           type: integer
  *           default: 1
+ *         description: Page number (starts from 1)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
+ *         description: Search by dataset name or description
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *           enum: [ACTIVE, ARCHIVED, PROCESSING]
+ *         description: Filter by status (support multiple values separated by comma). Example ACTIVE,ARCHIVED
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *           enum: [name, createdAt, totalImages, status]
  *           default: createdAt
+ *         description: Sort by field (name, createdAt, description, totalImages, totalLabels, status)
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *           enum: [asc, desc]
  *           default: desc
+ *         description: Sort order (asc or desc)
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter datasets created from this date (ISO 8601 format, inclusive)
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter datasets created until this date (ISO 8601 format, inclusive)
  *     responses:
  *       200:
- *         description: List of datasets
+ *         description: Successfully retrieved list of datasets
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       totalImages:
+ *                         type: integer
+ *                       totalLabels:
+ *                         type: integer
+ *                       classes:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNext:
+ *                       type: boolean
+ *                     hasPrev:
+ *                       type: boolean
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
  */
 router.get(
   '/',
@@ -168,6 +345,12 @@ router.get(
  * /yolo/datasets/{datasetId}:
  *   patch:
  *     summary: Update dataset
+ *     description: |
+ *       Update dataset metadata and classes:
+ *       - **name, description, status**: Can be freely updated
+ *       - **classes**: Can only ADD new classes. Cannot remove or modify existing classes
+ *         - If trying to remove a class, will return validation error
+ *         - New classes will be merged with existing ones (duplicates removed)
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -185,16 +368,53 @@ router.get(
  *             properties:
  *               name:
  *                 type: string
+ *                 description: Dataset name
  *               description:
  *                 type: string
- *               version:
- *                 type: string
+ *                 description: Dataset description
  *               status:
  *                 type: string
- *                 enum: [ACTIVE, ARCHIVED, PROCESSING]
+ *                 enum: [ACTIVE, ARCHIVED]
+ *                 description: Dataset status
+ *               classes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Classes array - only new classes can be added, existing ones cannot be modified or removed
+ *                 example: ["defect", "stain", "tear"]
  *     responses:
  *       200:
- *         description: Dataset updated
+ *         description: Dataset updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     classes:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     status:
+ *                       type: string
+ *                     totalImages:
+ *                       type: integer
+ *                     totalLabels:
+ *                       type: integer
+ *       400:
+ *         description: Validation error (e.g., trying to remove existing classes)
  *       404:
  *         description: Dataset not found
  */
@@ -259,7 +479,6 @@ router.delete(
  *             type: object
  *             required:
  *               - image
- *               - detections
  *             properties:
  *               image:
  *                 type: string
@@ -267,14 +486,39 @@ router.delete(
  *                 description: Image file (dimensions extracted automatically)
  *               detections:
  *                 type: string
- *                 description: JSON string of detection results (from YOLO detect endpoint)
+ *                 description: Optional JSON string of detection results (from YOLO detect endpoint)
  *                 example: '[{"class_id":0,"class_name":"defect","confidence":0.95,"bbox":{"x1":100,"y1":100,"x2":200,"y2":200}}]'
  *               notes:
  *                 type: string
  *                 description: Optional notes about this image
  *     responses:
  *       201:
- *         description: Image added to dataset
+ *         description: Image added to dataset with PENDING status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     datasetId:
+ *                       type: string
+ *                     filename:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *                       description: Image processing status (default PENDING)
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
  *       400:
  *         description: Validation error
  */
@@ -294,7 +538,7 @@ router.post(
  * @swagger
  * /yolo/datasets/{datasetId}/images:
  *   get:
- *     summary: Get images in dataset
+ *     summary: Get images in dataset with pagination, filtering, and sorting
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -309,28 +553,105 @@ router.post(
  *         schema:
  *           type: integer
  *           default: 1
+ *         description: Page number (starts from 1)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
+ *         description: Search by filename or notes
  *       - in: query
- *         name: sortBy
+ *         name: status
  *         schema:
  *           type: string
- *           enum: [filename, createdAt, objectCount]
+ *         description: Filter by image status (support multiple values separated by comma). Example PENDING,COMPLETED
+ *         example: "PENDING,PROCESSING"
+ *       - in: query
+ *         name: sortBy
+ *         description: Sort by field (support multiple fields separated by comma). Support nested sort by uploadedByUser.fullname
+ *         schema:
+ *           type: string
+ *           enum: [filename, createdAt, status, objectCount, notes, uploadedByUser.fullname]
+ *         example: "createdAt,uploadedByUser.fullname"
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
  *           enum: [asc, desc]
+ *         description: Sort order (support multiple values separated by comma)
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter images created from this date (ISO 8601 format, inclusive)
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter images created until this date (ISO 8601 format, inclusive)
  *     responses:
  *       200:
- *         description: List of images
+ *         description: List of images with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       filename:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                         enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *                       objectCount:
+ *                         type: integer
+ *                       notes:
+ *                         type: string
+ *                         description: Notes about the image
+ *                       uploadedByUser:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           fullname:
+ *                             type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNext:
+ *                       type: boolean
+ *                     hasPrev:
+ *                       type: boolean
  */
 router.get(
   '/:datasetId/images',
@@ -372,6 +693,171 @@ router.get(
   requirePermission(PERMISSIONS.YOLO.EXPORT_DATASET),
   validate(datasetIdParamSchema, 'params'),
   yoloDatasetController.exportDataset
+);
+
+/**
+ * @swagger
+ * /yolo/datasets/{datasetId}/export-token:
+ *   post:
+ *     summary: Create an export token for public dataset download
+ *     description: |
+ *       Creates a time-limited JWT token that can be used to download a dataset without authentication.
+ *       Token expires in 1 hour and can only be used for exporting that specific dataset.
+ *     tags: [YOLO Dataset]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: datasetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the dataset to export
+ *     responses:
+ *       200:
+ *         description: Export token created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     token:
+ *                       type: string
+ *                       description: JWT token for public download
+ *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                     expiresIn:
+ *                       type: string
+ *                       example: "1h"
+ *       401:
+ *         description: Unauthorized - requires YOLO.MANAGE_DATASET permission
+ *       404:
+ *         description: Dataset not found
+ */
+router.post(
+  '/:datasetId/export-token',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
+  validate(datasetIdParamSchema, 'params'),
+  yoloDatasetController.createExportToken
+);
+
+/**
+ * @swagger
+ * /yolo/download/{token}:
+ *   get:
+ *     summary: Download dataset using export token (Public API)
+ *     description: |
+ *       Public endpoint to download a dataset using an export token created by POST /export-token.
+ *       No authentication required - the token contains all necessary information.
+ *       Downloads the dataset as "data.zip" with fixed filename.
+ *     tags: [YOLO Dataset]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Export token obtained from POST /export-token
+ *     responses:
+ *       200:
+ *         description: ZIP file download (filename is always "data.zip")
+ *         content:
+ *           application/zip:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Invalid or expired token
+ */
+
+/**
+ * @swagger
+ * /yolo/datasets/{datasetId}/import:
+ *   post:
+ *     summary: Import images from ZIP file into existing dataset
+ *     description: |
+ *       Import images from a ZIP file into an existing dataset.
+ *       ZIP file structure expected:
+ *       - images/ - folder containing image files
+ *       - labels/ - folder containing .txt label files (optional)
+ *       - classes.txt - class names, one per line (optional, will merge with existing)
+ *       
+ *       Process:
+ *       1. Extract ZIP file
+ *       2. Merge classes from ZIP with existing dataset classes
+ *       3. Import all images with corresponding labels
+ *       4. Mark imported images as COMPLETED
+ *       5. Update dataset counters
+ *     tags: [YOLO Dataset]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: datasetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the existing dataset to import into
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - zipFile
+ *             properties:
+ *               zipFile:
+ *                 type: string
+ *                 format: binary
+ *                 description: ZIP file containing YOLO format dataset (max 500MB)
+ *     responses:
+ *       200:
+ *         description: Images imported successfully into existing dataset
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                   example: "Imported 150 images (5 failed)"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     importedCount:
+ *                       type: integer
+ *                       description: Number of successfully imported images
+ *                     failedCount:
+ *                       type: integer
+ *                       description: Number of failed imports
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: List of error messages for failed imports
+ *       400:
+ *         description: No ZIP file provided
+ *       404:
+ *         description: Dataset not found
+ */
+router.post(
+  '/:datasetId/import',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
+  validate(datasetIdParamSchema, 'params'),
+  uploadDatasetZip,
+  handleZipUploadError,
+  yoloDatasetController.importDatasetToExisting
 );
 
 /**
@@ -430,7 +916,7 @@ router.get(
  * @swagger
  * /yolo/datasets/images/{imageId}:
  *   patch:
- *     summary: Update image annotations or notes
+ *     summary: Update image annotations, notes, or status
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -448,6 +934,12 @@ router.get(
  *             properties:
  *               notes:
  *                 type: string
+ *                 description: Notes about the image
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *                 description: Image processing status
+ *                 example: COMPLETED
  *               annotations:
  *                 type: array
  *                 items:
@@ -455,13 +947,17 @@ router.get(
  *                   properties:
  *                     class_id:
  *                       type: integer
- *                     x_center:
+ *                     class_name:
+ *                       type: string
+ *                     confidence:
  *                       type: number
- *                     y_center:
+ *                     x1:
  *                       type: number
- *                     width:
+ *                     y1:
  *                       type: number
- *                     height:
+ *                     x2:
+ *                       type: number
+ *                     y2:
  *                       type: number
  *     responses:
  *       200:

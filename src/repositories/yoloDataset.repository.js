@@ -13,7 +13,6 @@ class YoloDatasetRepository {
     classes: true,
     datasetPath: true,
     status: true,
-    version: true,
     createdAt: true,
     updatedAt: true
   };
@@ -29,10 +28,34 @@ class YoloDatasetRepository {
     objectCount: true,
     classes: true,
     annotations: true,
+    status: true,
     uploadedBy: true,
+    uploadedByUser: {
+      select: {
+        id: true,
+        fullname: true,
+        username: true
+      }
+    },
     notes: true,
     createdAt: true,
     updatedAt: true
+  };
+
+  #imageListSelectOptions = {
+    id: true,
+    filename: true,
+    imagePath: true,
+    objectCount: true,
+    status: true,
+    notes: true,
+    uploadedByUser: {
+      select: {
+        id: true,
+        fullname: true
+      }
+    },
+    createdAt: true
   };
 
   /**
@@ -161,17 +184,15 @@ class YoloDatasetRepository {
       limit = 20,
       search = '',
       sortBy = 'createdAt',
-      order = 'desc'
+      order = 'desc',
+      filters = {}
     } = queryOptions;
 
+    const searchableFields = ['filename', 'notes'];
+    const baseWhere = buildWhereClause({ search, ...filters }, searchableFields);
     const where = {
       datasetId,
-      ...(search && {
-        OR: [
-          { filename: { contains: search, mode: 'insensitive' } },
-          { notes: { contains: search, mode: 'insensitive' } }
-        ]
-      })
+      ...baseWhere
     };
 
     const { skip, take } = buildPagination(page, limit);
@@ -182,13 +203,29 @@ class YoloDatasetRepository {
         where,
         skip,
         take,
-        select: this.#imageSelectOptions,
+        select: this.#imageListSelectOptions,
         orderBy
       }),
       prisma.yoloDatasetImage.count({ where })
     ]);
 
     return formatPaginatedResponse(data, total, page, take);
+  }
+
+  /**
+   * Get all completed images in a dataset without pagination, filtering, or sorting
+   * Used for export operations
+   */
+  async getAllDatasetImages(datasetId) {
+    return prisma.yoloDatasetImage.findMany({
+      where: { 
+        datasetId,
+        status: 'COMPLETED'
+      },
+      select: {
+        ...this.#imageSelectOptions
+      }
+    });
   }
 
   /**
@@ -225,7 +262,7 @@ class YoloDatasetRepository {
    * Get dataset statistics
    */
   async getDatasetStats(datasetId) {
-    const [dataset, imageCount, totalObjects] = await Promise.all([
+    const [dataset, imageCount, totalObjects, completedImages] = await Promise.all([
       prisma.yoloDataset.findUnique({
         where: { id: datasetId },
         select: {
@@ -238,14 +275,18 @@ class YoloDatasetRepository {
         where: { datasetId }
       }),
       prisma.yoloDatasetImage.aggregate({
-        where: { datasetId },
+        where: { datasetId, status: 'COMPLETED' },
         _sum: { objectCount: true }
+      }),
+      prisma.yoloDatasetImage.count({
+        where: { datasetId, status: 'COMPLETED' }
       })
     ]);
 
     return {
       ...dataset,
       actualImageCount: imageCount,
+      completedImageCount: completedImages,
       totalObjects: totalObjects._sum.objectCount || 0
     };
   }
@@ -267,28 +308,18 @@ class YoloDatasetRepository {
 
   /**
    * Update dataset counters
+   * totalImages: number of all images
+   * totalLabels: number of COMPLETED images
+   * Note: classes is NOT updated here - it's defined when dataset is created and only can be added manually
    */
   async updateDatasetCounters(datasetId) {
     const stats = await this.getDatasetStats(datasetId);
-    
-    // Get unique classes from all images
-    const images = await prisma.yoloDatasetImage.findMany({
-      where: { datasetId },
-      select: { classes: true }
-    });
-    
-    const allClasses = new Set();
-    images.forEach(img => {
-      const imgClasses = Array.isArray(img.classes) ? img.classes : [];
-      imgClasses.forEach(cls => allClasses.add(cls));
-    });
 
     return prisma.yoloDataset.update({
       where: { id: datasetId },
       data: {
         totalImages: stats.actualImageCount,
-        totalLabels: stats.totalObjects,
-        classes: Array.from(allClasses)
+        totalLabels: stats.completedImageCount
       },
       select: this.#datasetSelectOptions
     });

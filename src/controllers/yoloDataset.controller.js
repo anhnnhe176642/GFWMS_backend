@@ -4,6 +4,7 @@ import { enrichImageWithUrl, enrichImagesWithUrls } from '../utils/image-url.js'
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,7 +35,11 @@ export const getAllDatasets = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
       filterFields: ['status'],
-      sortableFields: ['name', 'createdAt', 'totalImages', 'status']
+      dateRangeConfig: {
+        fromField: 'createdFrom',
+        toField: 'createdTo',
+        targetField: 'createdAt'
+      }
     });
 
     const result = await yoloDatasetService.getAllDatasets(queryParams);
@@ -118,7 +123,7 @@ export const addLabeledImage = async (req, res, next) => {
       });
     }
 
-    // Parse detection data from body
+    // Parse detection data from body (optional)
     // detections already parsed by parseMultipartJson middleware
     const detectionData = {
       detections: req.body.detections || [],
@@ -152,7 +157,12 @@ export const addLabeledImage = async (req, res, next) => {
 export const getDatasetImages = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
-      sortableFields: ['filename', 'createdAt', 'objectCount']
+      filterFields: ['status'],
+      dateRangeConfig: {
+        fromField: 'createdFrom',
+        toField: 'createdTo',
+        targetField: 'createdAt'
+      }
     });
 
     const result = await yoloDatasetService.getDatasetImages(
@@ -242,9 +252,8 @@ export const exportDataset = async (req, res, next) => {
   try {
     const dataset = await yoloDatasetService.getDatasetById(req.params.datasetId);
     
-    // Create temp file for ZIP
-    const timestamp = Date.now();
-    const zipFilename = `${dataset.name}_${timestamp}.zip`;
+    // Create temp file for ZIP - use dataset name as filename
+    const zipFilename = `${dataset.name}.zip`;
     const tempZipPath = path.join(__dirname, '../../temp', zipFilename);
 
     // Ensure temp directory exists
@@ -275,6 +284,90 @@ export const exportDataset = async (req, res, next) => {
 };
 
 /**
+ * Import dataset from ZIP file and create a new dataset
+ * @route POST /api/yolo/datasets/import-zip
+ */
+export const importDatasetFromZip = async (req, res, next) => {
+  try {
+    console.log('importDatasetFromZip called');
+    console.log('req.file:', req.file ? 'exists' : 'missing');
+    console.log('req.body:', req.body);
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No ZIP file provided'
+      });
+    }
+
+    const { name, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dataset name is required'
+      });
+    }
+
+    console.log('Calling importDatasetFromZip service with name:', name);
+    const result = await yoloDatasetService.importDatasetFromZip(
+      req.file,
+      name,
+      description,
+      req.user?.id
+    );
+    console.log('Import result:', result);
+
+    res.status(201).json({
+      success: result.success,
+      message: result.message,
+      data: {
+        dataset: result.dataset,
+        importedCount: result.importedCount,
+        failedCount: result.failedCount,
+        errors: result.errors
+      }
+    });
+  } catch (error) {
+    console.error('Error in importDatasetFromZip:', error);
+    next(error);
+  }
+};
+
+/**
+ * Import dataset from ZIP file into existing dataset
+ * @route POST /api/yolo/datasets/:datasetId/import
+ */
+export const importDatasetToExisting = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No ZIP file provided'
+      });
+    }
+
+    const result = await yoloDatasetService.importDataset(
+      req.params.datasetId,
+      req.file,
+      req.user?.id
+    );
+
+    res.status(200).json({
+      success: result.success,
+      message: result.message,
+      data: {
+        importedCount: result.importedCount,
+        failedCount: result.failedCount,
+        errors: result.errors
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get dataset statistics
  * @route GET /api/yolo/datasets/:datasetId/stats
  */
@@ -286,6 +379,113 @@ export const getDatasetStats = async (req, res, next) => {
       success: true,
       message: 'Dataset statistics retrieved successfully',
       data: stats
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create export token for public download
+ * Requires YOLO.MANAGE_DATASET permission
+ * @route POST /api/yolo/datasets/:datasetId/export-token
+ */
+export const createExportToken = async (req, res, next) => {
+  try {
+    const { datasetId } = req.params;
+    const userId = req.user.id;
+
+    // Verify dataset exists
+    await yoloDatasetService.getDatasetById(datasetId);
+
+    // Create JWT token with datasetId and userId (short expiry for downloads)
+    const exportToken = jwt.sign(
+      { 
+        datasetId,
+        userId,
+        type: 'export'
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' } // Token valid for 1 hour
+    );
+
+    res.json({
+      success: true,
+      message: 'Export token created successfully',
+      data: {
+        token: exportToken,
+        expiresIn: '1h'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Download dataset using export token (Public API)
+ * No authentication required - uses token instead
+ * @route GET /api/yolo/download/:token
+ */
+export const downloadDatasetWithToken = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token is required in URL path'
+      });
+    }
+
+    // Verify and decode token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      console.error('JWT verification error:', error);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired export token'
+      });
+    }
+
+    // Verify token type
+    if (decoded.type !== 'export') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token type'
+      });
+    }
+
+    const { datasetId } = decoded;
+
+    // Verify dataset exists
+    await yoloDatasetService.getDatasetById(datasetId);
+
+    // Create temp file for ZIP with unique name to avoid file locks
+    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const tempZipPath = path.join(__dirname, '../../temp', `data-${uniqueSuffix}.zip`);
+    const downloadFilename = 'data.zip';
+
+    // Ensure temp directory exists
+    await fs.mkdir(path.dirname(tempZipPath), { recursive: true });
+
+    // Create ZIP
+    await yoloDatasetService.exportDataset(datasetId, tempZipPath);
+
+    // Send file
+    res.download(tempZipPath, downloadFilename, async (err) => {
+      // Clean up temp file after download
+      try {
+        await fs.unlink(tempZipPath);
+      } catch (cleanupError) {
+        console.error('Failed to clean up temp ZIP file:', cleanupError);
+      }
+
+      if (err) {
+        next(err);
+      }
     });
   } catch (error) {
     next(error);

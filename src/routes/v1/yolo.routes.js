@@ -9,17 +9,19 @@ import {
   uploadYoloModelSchema,
   getModelsSchema,
   modelIdParamSchema,
-  paginationSchema
+  paginationSchema,
+  tokenParamSchema,
+  uploadModelWithTokenSchema
 } from '../../validations/yoloModel.validation.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
 
-// Create upload middleware for YOLO detection (single image, 10MB max)
+// Create upload middleware for YOLO detection (single image, 50MB max)
 const uploadYoloImage = createUploadMiddleware({
   fieldName: 'image',
-  maxSize: 10,
+  maxSize: 50,
   multiple: false
 });
 
@@ -31,7 +33,7 @@ const uploadYoloModel = createUploadMiddleware({
   fileType: 'model'
 });
 
-const handleYoloUploadError = createUploadErrorHandler('image', 10);
+const handleYoloUploadError = createUploadErrorHandler('image', 50);
 const handleModelUploadError = createUploadErrorHandler('model', 100);
 
 /**
@@ -100,6 +102,8 @@ router.get('/model-info', yoloController.getModelInfo);
  *   post:
  *     summary: Detect and count objects in an image (with row sorting based on detection slope)
  *     tags: [YOLO]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -380,9 +384,6 @@ router.get('/models/active', yoloModelController.getActiveModel);
  *               version:
  *                 type: string
  *                 description: Model version (optional)
- *               accuracy:
- *                 type: number
- *                 description: Model accuracy (optional, 0-100)
  *     responses:
  *       201:
  *         description: Model uploaded successfully
@@ -399,6 +400,65 @@ router.post(
   handleModelUploadError,
   validate(uploadYoloModelSchema, 'fields'),
   yoloModelController.uploadModel
+);
+
+/**
+ * @swagger
+ * /yolo/models/upload-with-token/{token}:
+ *   post:
+ *     summary: Upload a new YOLO model (.pt file) using public token (Public API)
+ *     description: |
+ *       Public endpoint to upload a YOLO model using an export token.
+ *       No authentication required - the token contains necessary user information.
+ *       Token must be created by POST /datasets/{datasetId}/export-token endpoint.
+ *       Full URL: /api/v1/yolo/models/upload-with-token/{token}
+ *     tags: [YOLO]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Export token obtained from POST /datasets/{datasetId}/export-token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - model
+ *             properties:
+ *               model:
+ *                 type: string
+ *                 format: binary
+ *                 description: .pt file (YOLO model)
+ *               name:
+ *                 type: string
+ *                 description: Model name (optional - if not provided, will use timestamp format YYYYMMDD_HHMMSS)
+ *               description:
+ *                 type: string
+ *                 description: Model description (optional)
+ *               version:
+ *                 type: string
+ *                 description: Model version (optional)
+ *     responses:
+ *       201:
+ *         description: Model uploaded successfully
+ *       400:
+ *         description: Bad request or token is required
+ *       401:
+ *         description: Invalid or expired token
+ */
+router.post(
+  '/models/upload-with-token/:token',
+  uploadYoloModel,
+  handleModelUploadError,
+  validate([
+    { schema: tokenParamSchema, source: 'params' },
+    { schema: uploadModelWithTokenSchema, source: 'fields' }
+  ]),
+  yoloModelController.uploadModelWithToken
 );
 
 /**
@@ -459,6 +519,39 @@ router.put(
 
 /**
  * @swagger
+ * /yolo/models/use-default:
+ *   put:
+ *     summary: Use default model (deactivate current active model)
+ *     tags: [YOLO]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Model deactivated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *       401:
+ *         description: Unauthorized
+ */
+router.put(
+  '/models/use-default',
+  authenticateToken,
+  requirePermission(PERMISSIONS.YOLO.ACTIVATE_MODEL),
+  yoloModelController.useDefaultModel
+);
+
+/**
+ * @swagger
  * /yolo/models/{modelId}:
  *   patch:
  *     summary: Update model information
@@ -481,8 +574,6 @@ router.put(
  *                 type: string
  *               version:
  *                 type: string
- *               accuracy:
- *                 type: number
  *               status:
  *                 type: string
  *                 enum: [ACTIVE, DEPRECATED, TESTING]
@@ -652,6 +743,48 @@ router.get(
 // ============================================
 // DATASET MANAGEMENT ROUTES
 // ============================================
+
+/**
+ * @swagger
+ * /yolo/download/{token}:
+ *   get:
+ *     summary: Download dataset using export token (Public API)
+ *     description: |
+ *       Public endpoint to download a dataset using an export token created by POST /datasets/{datasetId}/export-token.
+ *       No authentication required - the token contains all necessary information.
+ *       Downloads the dataset as "data.zip" with fixed filename.
+ *       Full URL: /api/v1/yolo/download/{token}
+ *     tags: [YOLO Dataset]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Export token obtained from POST /datasets/{datasetId}/export-token
+ *     responses:
+ *       200:
+ *         description: ZIP file download (filename is always "data.zip")
+ *         content:
+ *           application/zip:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Token is required in URL path
+ *       401:
+ *         description: Invalid or expired token
+ */
+router.get(
+  '/download/:token',
+  (req, res, next) => {
+    // Import yoloDatasetController dynamically to avoid circular dependency
+    import('../../controllers/yoloDataset.controller.js').then(module => {
+      module.downloadDatasetWithToken(req, res, next);
+    });
+  }
+);
+
 router.use('/datasets', yoloDatasetRoutes);
 
 export default router;

@@ -30,4 +30,7 @@ model User {
   passwordResetPins PasswordResetPin[]
   createdExports     ExportFabric[]    @relation("CreatedExportFabric")
   receivedExports    ExportFabric[]    @relation("ReceivedExportFabric")
+  uploadedYoloModels YoloModel[]
+
+  YoloDatasetImage YoloDatasetImage[]
 }

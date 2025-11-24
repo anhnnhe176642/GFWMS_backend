@@ -1,6 +1,11 @@
 import yoloModelService from '../services/yoloModel.service.js';
 import { AppError } from '../utils/errors.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
+import jwt from 'jsonwebtoken';
+import { sendYoloModelUploadNotification } from '../utils/mailer.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 /**
  * Upload a new YOLO model
@@ -13,7 +18,7 @@ export const uploadModel = async (req, res, next) => {
       throw new AppError('Không có file được cung cấp', 400);
     }
 
-    let { name, description, version, accuracy } = req.body;
+    let { name, description, version } = req.body;
 
     // Generate default name if not provided
     if (!name) {
@@ -23,9 +28,96 @@ export const uploadModel = async (req, res, next) => {
 
     const model = await yoloModelService.uploadModel(
       req.file,
-      { name, description, version, accuracy },
+      { name, description, version },
       req.user.id
     );
+
+    // Fetch user email and send notification
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { email: true, fullname: true }
+      });
+
+      if (user && user.email) {
+        await sendYoloModelUploadNotification(user.email, name, version || '1.0');
+      }
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+      // Don't throw error, just log it
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Model uploaded successfully',
+      data: model
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload a new YOLO model using public token (Public API)
+ * @route POST /api/yolo/models/upload-with-token/:token
+ * @access Public - Uses token instead of authentication
+ */
+export const uploadModelWithToken = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      throw new AppError('Token là bắt buộc', 400);
+    }
+
+    if (!req.file) {
+      throw new AppError('Không có file được cung cấp', 400);
+    }
+
+    let { name, description, version } = req.body;
+
+    // Generate default name if not provided
+    if (!name) {
+      const now = new Date();
+      name = `model_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    }
+
+    // Verify and decode token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      console.error('JWT verification error:', error);
+      throw new AppError('Token không hợp lệ hoặc đã hết hạn', 401);
+    }
+
+    // Verify token type
+    if (decoded.type !== 'export') {
+      throw new AppError('Loại token không hợp lệ', 401);
+    }
+
+    const userId = decoded.userId;
+
+    const model = await yoloModelService.uploadModel(
+      req.file,
+      { name, description, version },
+      userId
+    );
+
+    // Fetch user email and send notification
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, fullname: true }
+      });
+
+      if (user && user.email) {
+        await sendYoloModelUploadNotification(user.email, name, version || '1.0');
+      }
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+      // Don't throw error, just log it
+    }
 
     res.status(201).json({
       success: true,
@@ -101,6 +193,25 @@ export const setActiveModel = async (req, res, next) => {
 };
 
 /**
+ * Use default model (deactivate current active model)
+ * @route PUT /api/yolo/models/use-default
+ * @access Private - Requires permission
+ */
+export const useDefaultModel = async (req, res, next) => {
+  try {
+    const result = await yoloModelService.useDefaultModel();
+
+    res.json({
+      success: true,
+      message: result.message,
+      data: result.model
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get currently active model
  * @route GET /api/yolo/models/active
  * @access Public
@@ -127,12 +238,11 @@ export const getActiveModel = async (req, res, next) => {
 export const updateModel = async (req, res, next) => {
   try {
     const { modelId } = req.params;
-    const { description, version, accuracy, status } = req.body;
+    const { description, version, status } = req.body;
 
     const model = await yoloModelService.updateModel(modelId, {
       description,
       version,
-      accuracy,
       status
     });
 

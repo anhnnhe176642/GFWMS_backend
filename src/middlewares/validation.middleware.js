@@ -87,7 +87,9 @@ export const validate = (schemaOrArray, source = 'body') => {
       const { error, value } = schema.validate(dataToValidate, VALIDATION_OPTIONS);
 
       if (error) {
-        const errorDetails = formatValidationErrors(error, currentSource);
+        // Chỉ thêm source prefix khi validate multiple sources để phân biệt
+        const sourcePrefix = validations.length > 1 ? currentSource : '';
+        const errorDetails = formatValidationErrors(error, sourcePrefix);
         errors.push(...errorDetails);
       } else {
         // Cập nhật dữ liệu đã validate

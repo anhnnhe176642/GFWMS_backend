@@ -5,7 +5,8 @@ import {
   searchSchema,
   pageSchema,
   limitSchema,
-  idSchema
+  idSchema,
+  createMultiValueFilterSchema
 } from './common.validation.js';
 
 // ===== Reusable Field Schemas =====
@@ -42,15 +43,6 @@ export const modelVersionSchema = Joi.string()
     'string.max': 'Phiên bản không được vượt quá 50 ký tự'
   });
 
-export const accuracySchema = Joi.number()
-  .min(0)
-  .max(100)
-  .optional()
-  .messages({
-    'number.min': 'Độ chính xác phải ít nhất 0',
-    'number.max': 'Độ chính xác không được vượt quá 100'
-  });
-
 export const confidenceSchema = Joi.number()
   .min(0)
   .max(1)
@@ -77,8 +69,7 @@ export const modelIdParamSchema = Joi.object({
 export const uploadYoloModelSchema = Joi.object({
   name: modelNameSchema,
   description: modelDescriptionSchema,
-  version: modelVersionSchema,
-  accuracy: accuracySchema
+  version: modelVersionSchema
 });
 
 export const selectYoloModelSchema = Joi.object({
@@ -96,7 +87,7 @@ export const getModelsSchema = Joi.object({
   search: searchSchema.optional(),
   sortBy: createSortBySchema(['name', 'createdAt', 'version', 'status']).optional(),
   order: sortOrderSchema.optional(),
-  status: statusSchema
+  status: createMultiValueFilterSchema(['ACTIVE', 'DEPRECATED', 'TESTING']).optional()
 });
 
 export const paginationSchema = Joi.object({
@@ -105,4 +96,20 @@ export const paginationSchema = Joi.object({
   search: searchSchema.optional(),
   sortBy: createSortBySchema(['detectedAt', 'confidence']).optional(),
   order: sortOrderSchema.optional()
+});
+
+// ===== Token Upload Schema =====
+export const tokenParamSchema = Joi.object({
+  token: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Token là bắt buộc',
+      'any.required': 'Token là bắt buộc'
+    })
+});
+
+export const uploadModelWithTokenSchema = Joi.object({
+  name: modelNameSchema,
+  description: modelDescriptionSchema,
+  version: modelVersionSchema
 });

@@ -54,3 +54,29 @@ export const sendPasswordResetPin = async (to, pin, expiresInMinutes = 15) => {
     html
   });
 };
+
+export const sendYoloModelUploadNotification = async (to, modelName, version) => {
+  const subject = 'YOLO Model Upload Thành Công - Warehouse Fabric System';
+  const text = `Mô hình YOLO "${modelName}" (phiên bản ${version}) của bạn đã được tải lên thành công.`;
+  const html = `
+    <div style="font-family: sans-serif; line-height:1.6">
+      <p>Xin chào,</p>
+      <p>Mô hình YOLO của bạn đã được tải lên thành công!</p>
+      <ul style="line-height: 2;">
+        <li><strong>Tên mô hình:</strong> ${modelName}</li>
+        <li><strong>Phiên bản:</strong> ${version}</li>
+        <li><strong>Thời gian upload:</strong> ${new Date().toLocaleString('vi-VN')}</li>
+      </ul>
+      <p>Mô hình của bạn đã sẵn sàng để sử dụng trong hệ thống phát hiện.</p>
+      <p>Trân trọng,<br/>Warehouse Fabric System</p>
+    </div>
+  `;
+
+  return await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    text,
+    html
+  });
+};

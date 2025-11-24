@@ -29,7 +29,7 @@ class YoloModelService {
   /**
    * Upload and register a new model
    */
-  async uploadModel(file, metadata) {
+  async uploadModel(file, metadata, userId = null) {
     if (!file) {
       throw new AppError('No file provided', 400);
     }
@@ -63,6 +63,7 @@ class YoloModelService {
         description: metadata.description || null,
         version: metadata.version || '1.0',
         status: 'ACTIVE',
+        uploadedBy: userId,
         metadata: {
           originalName: file.originalname,
           mimetype: file.mimetype,
@@ -84,6 +85,7 @@ class YoloModelService {
         fileSize: createdModel.fileSize,
         description: createdModel.description,
         version: createdModel.version,
+        uploadedBy: createdModel.uploadedBy,
         uploadedAt: createdModel.uploadedAt
       };
     } catch (error) {
@@ -147,6 +149,28 @@ class YoloModelService {
         isActive: updatedModel.isActive,
         version: updatedModel.version
       }
+    };
+  }
+
+  /**
+   * Use default model (deactivate current active model)
+   * Remove active status from all models to use default model
+   */
+  async useDefaultModel() {
+    // Find and deactivate the currently active model
+    const activeModel = await yoloModelRepository.getActiveModel();
+    
+    if (activeModel) {
+      await yoloModelRepository.update(activeModel.id, { isActive: false });
+      return {
+        message: `Model "${activeModel.name}" has been deactivated. Using default model.`,
+        model: null
+      };
+    }
+
+    return {
+      message: 'No active model found. Already using default model.',
+      model: null
     };
   }
 

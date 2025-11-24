@@ -1,6 +1,13 @@
 // YOLO Dataset Management Models
 // Stores labeled training data for YOLO model training
 
+enum YoloDatasetImageStatus {
+  PENDING        // Đang chờ
+  PROCESSING     // Đang xử lí
+  COMPLETED      // Hoàn thành
+  FAILED         // Thất bại
+}
+
 model YoloDataset {
   id            String   @id @default(cuid())
   name          String   @unique
@@ -16,7 +23,6 @@ model YoloDataset {
   
   // Status and versioning
   status        YoloDatasetStatus @default(ACTIVE)
-  version       String?
   
   // Relations
   images        YoloDatasetImage[]
@@ -49,8 +55,12 @@ model YoloDatasetImage {
   // x1, y1 = top-left corner; x2, y2 = bottom-right corner (pixel coordinates)
   annotations   Json     @default("[]")
   
+  // Status tracking
+  status        YoloDatasetImageStatus @default(PENDING)
+  
   // Metadata
   uploadedBy    String?
+  uploadedByUser User? @relation(fields: [uploadedBy], references: [id])
   notes         String?
   
   // Timestamps
@@ -59,5 +69,6 @@ model YoloDatasetImage {
   
   @@index([datasetId])
   @@index([createdAt])
+  @@index([status])
   @@unique([datasetId, filename])
 }

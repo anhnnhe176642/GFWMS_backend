@@ -133,7 +133,7 @@ class BannerRepository {
 
     // Filter theo search
     if (search) {
-      where.title = { contains: search, mode: 'insensitive' };
+      where.title = { contains: search };
     }
 
     // Filter theo isActive
