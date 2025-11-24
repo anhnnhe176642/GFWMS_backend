@@ -11,7 +11,9 @@ import {
   getImageDimensions,
   saveDatasetImage,
   pixelAnnotationsToYoloString,
-  parseYoloFormat
+  parseYoloFormat,
+  buildClassIdMapping,
+  remapDetectionsToAnnotations
 } from '../utils/yolo-format.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -446,10 +448,12 @@ class YoloDatasetService {
 
       // Read classes.txt if exists
       const classesPath = path.join(tempDir, 'classes.txt');
+      let importedClassesMap = []; // Map old class_id -> new class_id
       let classes = [];
       try {
         const classesContent = await fs.readFile(classesPath, 'utf-8');
-        classes = classesContent.trim().split('\n').map(c => c.trim()).filter(c => c);
+        importedClassesMap = classesContent.trim().split('\n').map(c => c.trim()).filter(c => c);
+        classes = importedClassesMap; // For new dataset, imported classes become dataset classes
         console.log('importDatasetFromZip - Found classes:', classes);
       } catch {
         console.warn('classes.txt not found in ZIP, creating dataset without predefined classes');
@@ -527,6 +531,7 @@ class YoloDatasetService {
               // Parse YOLO format to pixel annotations
               const detections = parseYoloFormat(labelContent, dimensions.width, dimensions.height);
               
+              // For new dataset import, class_id matches directly to importedClassesMap
               annotations = detections.map(d => ({
                 class_id: d.class_id || 0,
                 class_name: classes[d.class_id] || 'unknown',
@@ -566,7 +571,7 @@ class YoloDatasetService {
               height: dimensions.height,
               format: ext.replace('.', ''),
               objectCount: annotations.length,
-              classes: dataset.classes,
+              classes: classes, // Use classes from imported ZIP
               annotations,
               status: 'COMPLETED', // Imported images are marked as completed
               uploadedBy: userId || null,
@@ -653,18 +658,30 @@ class YoloDatasetService {
       // Read classes.txt if exists
       const classesPath = path.join(tempDir, 'classes.txt');
       let importedClasses = [];
+      let classIdMap = {}; // Map: oldClassId -> newClassId
+      let mergedClasses = [];
+      
       try {
         const classesContent = await fs.readFile(classesPath, 'utf-8');
         importedClasses = classesContent.trim().split('\n').map(c => c.trim()).filter(c => c);
+        console.log('importDataset - Found imported classes:', importedClasses);
       } catch {
         console.warn('classes.txt not found in ZIP');
       }
 
-      // Update dataset with new classes (merge)
+      // Update dataset with new classes (merge) and build mapping
+      let updatedDataset = dataset;
       if (importedClasses.length > 0) {
         const existingClasses = dataset.classes || [];
-        const mergedClasses = [...new Set([...existingClasses, ...importedClasses])];
-        await yoloDatasetRepository.updateDataset(datasetId, { classes: mergedClasses });
+        
+        // Use utility function to build class mapping
+        const mappingResult = buildClassIdMapping(existingClasses, importedClasses);
+        classIdMap = mappingResult.classIdMap;
+        mergedClasses = mappingResult.mergedClasses;
+        
+        updatedDataset = await yoloDatasetRepository.updateDataset(datasetId, { classes: mergedClasses });
+        console.log('importDataset - Class ID mapping:', classIdMap);
+        console.log('importDataset - Updated classes:', mergedClasses);
       }
 
       // Process images and labels
@@ -696,15 +713,8 @@ class YoloDatasetService {
               // Parse YOLO format to pixel annotations
               const detections = parseYoloFormat(labelContent, dimensions.width, dimensions.height);
               
-              annotations = detections.map(d => ({
-                class_id: d.class_id || 0,
-                class_name: importedClasses[d.class_id] || 'unknown',
-                x1: Math.round(d.bbox[0]),
-                y1: Math.round(d.bbox[1]),
-                x2: Math.round(d.bbox[0] + d.bbox[2]),
-                y2: Math.round(d.bbox[1] + d.bbox[3]),
-                confidence: d.confidence || 1.0
-              }));
+              // Remap class_id based on classIdMap using utility function
+              annotations = remapDetectionsToAnnotations(detections, classIdMap, updatedDataset.classes);
             } catch {
               console.warn(`No label file found for ${imageFile}`);
               // Continue without annotations
@@ -735,7 +745,7 @@ class YoloDatasetService {
               height: dimensions.height,
               format: ext.replace('.', ''),
               objectCount: annotations.length,
-              classes: dataset.classes,
+              classes: updatedDataset.classes,
               annotations,
               status: 'COMPLETED', // Imported images are marked as completed
               uploadedBy: userId || null,

@@ -222,6 +222,79 @@ async function deleteDatasetFiles(imagePath, labelPath, datasetsPath) {
   ]);
 }
 
+/**
+ * Build class ID mapping when importing classes into existing dataset
+ * Maps old class IDs (from imported dataset) to new class IDs (in merged dataset)
+ * 
+ * @param {Array<string>} existingClasses - Current classes in dataset
+ * @param {Array<string>} importedClasses - Classes from imported dataset
+ * @returns {Object} classIdMap - Mapping {oldClassId: newClassId}, and updated existingClasses array
+ * 
+ * @example
+ * const existing = ['cat', 'dog'];
+ * const imported = ['dog', 'bird', 'fish'];
+ * const result = buildClassIdMapping(existing, imported);
+ * // result = {
+ * //   classIdMap: { 0: 1, 1: 2, 2: 3 }, // dog@0->1, bird@1->2, fish@2->3
+ * //   mergedClasses: ['cat', 'dog', 'bird', 'fish']
+ * // }
+ */
+function buildClassIdMapping(existingClasses, importedClasses) {
+  const classIdMap = {};
+  const mergedClasses = [...existingClasses]; // Make a copy
+  
+  for (let oldId = 0; oldId < importedClasses.length; oldId++) {
+    const className = importedClasses[oldId];
+    let newId = mergedClasses.indexOf(className);
+    
+    if (newId === -1) {
+      // Class doesn't exist, add it to the end
+      newId = mergedClasses.length;
+      mergedClasses.push(className);
+    }
+    
+    classIdMap[oldId] = newId;
+  }
+  
+  return { classIdMap, mergedClasses };
+}
+
+/**
+ * Remap detection class IDs and convert to pixel annotations
+ * Used when importing YOLO labels - remaps class IDs based on classIdMap
+ * 
+ * @param {Array} detections - Detections from parseYoloFormat (with class_id, bbox)
+ * @param {Object} classIdMap - Mapping {oldClassId: newClassId}
+ * @param {Array<string>} classNames - Array of class names for ID lookup
+ * @returns {Array} Array of remapped annotations in pixel format
+ * 
+ * @example
+ * const detections = [
+ *   { class_id: 0, bbox: [10, 20, 100, 150] },
+ *   { class_id: 2, bbox: [200, 250, 350, 400] }
+ * ];
+ * const classIdMap = { 0: 1, 2: 3 };
+ * const classNames = ['old_0', 'dog', 'old_2', 'bird'];
+ * const result = remapDetectionsToAnnotations(detections, classIdMap, classNames);
+ * // Returns annotations with remapped class_id and pixel coordinates
+ */
+function remapDetectionsToAnnotations(detections, classIdMap, classNames) {
+  return detections.map(d => {
+    const oldClassId = d.class_id || 0;
+    const newClassId = classIdMap[oldClassId] !== undefined ? classIdMap[oldClassId] : oldClassId;
+    
+    return {
+      class_id: newClassId,
+      class_name: classNames?.[newClassId] || 'unknown',
+      x1: Math.round(d.bbox[0]),
+      y1: Math.round(d.bbox[1]),
+      x2: Math.round(d.bbox[0] + d.bbox[2]),
+      y2: Math.round(d.bbox[1] + d.bbox[3]),
+      confidence: d.confidence || 1.0
+    };
+  });
+}
+
 export {
   convertToYoloFormat,
   parseYoloFormat,
@@ -233,4 +306,6 @@ export {
   yoloStringToAnnotations,
   annotationsToYoloString,
   pixelAnnotationsToYoloString,
+  buildClassIdMapping,
+  remapDetectionsToAnnotations,
 };
