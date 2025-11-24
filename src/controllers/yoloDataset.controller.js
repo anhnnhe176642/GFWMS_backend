@@ -463,9 +463,10 @@ export const downloadDatasetWithToken = async (req, res, next) => {
     // Verify dataset exists
     await yoloDatasetService.getDatasetById(datasetId);
 
-    // Create temp file for ZIP with fixed name "data.zip"
-    const zipFilename = 'data.zip';
-    const tempZipPath = path.join(__dirname, '../../temp', zipFilename);
+    // Create temp file for ZIP with unique name to avoid file locks
+    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const tempZipPath = path.join(__dirname, '../../temp', `data-${uniqueSuffix}.zip`);
+    const downloadFilename = 'data.zip';
 
     // Ensure temp directory exists
     await fs.mkdir(path.dirname(tempZipPath), { recursive: true });
@@ -474,7 +475,7 @@ export const downloadDatasetWithToken = async (req, res, next) => {
     await yoloDatasetService.exportDataset(datasetId, tempZipPath);
 
     // Send file
-    res.download(tempZipPath, zipFilename, async (err) => {
+    res.download(tempZipPath, downloadFilename, async (err) => {
       // Clean up temp file after download
       try {
         await fs.unlink(tempZipPath);
