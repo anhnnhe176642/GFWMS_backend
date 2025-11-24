@@ -29,7 +29,7 @@ class YoloModelService {
   /**
    * Upload and register a new model
    */
-  async uploadModel(file, metadata) {
+  async uploadModel(file, metadata, userId = null) {
     if (!file) {
       throw new AppError('No file provided', 400);
     }
@@ -63,6 +63,7 @@ class YoloModelService {
         description: metadata.description || null,
         version: metadata.version || '1.0',
         status: 'ACTIVE',
+        uploadedBy: userId,
         metadata: {
           originalName: file.originalname,
           mimetype: file.mimetype,
@@ -84,6 +85,7 @@ class YoloModelService {
         fileSize: createdModel.fileSize,
         description: createdModel.description,
         version: createdModel.version,
+        uploadedBy: createdModel.uploadedBy,
         uploadedAt: createdModel.uploadedAt
       };
     } catch (error) {

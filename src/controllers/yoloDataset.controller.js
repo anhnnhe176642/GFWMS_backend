@@ -393,7 +393,7 @@ export const getDatasetStats = async (req, res, next) => {
 export const createExportToken = async (req, res, next) => {
   try {
     const { datasetId } = req.params;
-    const { userId } = req.user;
+    const userId = req.user.id;
 
     // Verify dataset exists
     await yoloDatasetService.getDatasetById(datasetId);

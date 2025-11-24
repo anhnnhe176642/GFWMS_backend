@@ -7,6 +7,8 @@ model YoloModel {
   isActive      Boolean @default(false)
   version       String?
   status        YoloModelStatus @default(ACTIVE)
+  uploadedBy    String?
+  uploadedByUser User? @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
   metadata      Json?
 
   detectionLogs YoloDetectionLog[]
@@ -16,6 +18,7 @@ model YoloModel {
 
   @@index([isActive])
   @@index([status])
+  @@index([uploadedBy])
 }
 
 model YoloDetectionLog {
