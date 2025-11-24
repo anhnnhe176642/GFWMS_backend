@@ -31,11 +31,11 @@ export const getFabricColorById = async (req, res, next) => {
     const fabricColor = await fabricColorService.getFabricColorById(id);
 
     if (!fabricColor) {
-      return res.status(404).json({ message: 'Không tìm thấy fabric color' });
+      return res.status(404).json({ message: 'Không tìm thấy màu vải' });
     }
 
     res.json({
-      message: 'Lấy thông tin fabric color thành công',
+      message: 'Lấy thông tin màu vải thành công',
       fabricColor
     });
   } catch (error) {
@@ -50,7 +50,7 @@ export const createFabricColor = async (req, res, next) => {
     const fabricColor = await fabricColorService.createFabricColor(colorData);
 
     res.status(201).json({
-      message: 'Tạo fabric color thành công',
+      message: 'Tạo màu vải thành công',
       fabricColor
     });
   } catch (error) {
@@ -67,7 +67,7 @@ export const updateFabricColor = async (req, res, next) => {
     const updatedFabricColor = await fabricColorService.updateFabricColor(id, colorData);
 
     res.json({
-      message: 'Cập nhật fabric color thành công',
+      message: 'Cập nhật màu vải thành công',
       fabricColor: updatedFabricColor
     });
   } catch (error) {
