@@ -77,7 +77,7 @@ const allowedSupplierSortFields = ['name', 'address', 'phone', 'isActive', 'crea
 export const supplierQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedSupplierSortFields),
   order: sortOrderSchema.optional(),
-  search: Joi.string().allow('').optional().messages({
+  search: Joi.string().trim().allow('').optional().messages({
     'string.base': 'Từ khóa tìm kiếm phải là chuỗi'
   })
 });

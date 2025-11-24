@@ -16,7 +16,7 @@ export const getAllFabricGlosses = async (req, res, next) => {
     const result = await fabricGlossService.getAllFabricGlossesAdvanced(queryParams);
 
     res.json({
-      message: 'Lấy danh sách fabric gloss thành công',
+      message: 'Lấy danh sách độ bóng thành công',
       ...result
     });
   } catch (error) {
@@ -31,11 +31,11 @@ export const getFabricGlossById = async (req, res, next) => {
     const fabricGloss = await fabricGlossService.getFabricGlossById(parseInt(id));
 
     if (!fabricGloss) {
-      return res.status(404).json({ message: 'Không tìm thấy fabric gloss' });
+      return res.status(404).json({ message: 'Không tìm thấy độ bóng' });
     }
 
     res.json({
-      message: 'Lấy thông tin fabric gloss thành công',
+      message: 'Lấy thông tin độ bóng thành công',
       fabricGloss
     });
   } catch (error) {
@@ -50,7 +50,7 @@ export const createFabricGloss = async (req, res, next) => {
     const fabricGloss = await fabricGlossService.createFabricGloss(glossData);
 
     res.status(201).json({
-      message: 'Tạo fabric gloss thành công',
+      message: 'Tạo độ bóng thành công',
       fabricGloss
     });
   } catch (error) {
@@ -67,7 +67,7 @@ export const updateFabricGloss = async (req, res, next) => {
     const updatedFabricGloss = await fabricGlossService.updateFabricGloss(parseInt(id), glossData);
 
     res.json({
-      message: 'Cập nhật fabric gloss thành công',
+      message: 'Cập nhật độ bóng thành công',
       fabricGloss: updatedFabricGloss
     });
   } catch (error) {

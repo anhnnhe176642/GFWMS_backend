@@ -19,7 +19,6 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateToken);
 
 /**
  * @swagger
@@ -65,7 +64,6 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryQuerySchema, 'query'),
   getAllFabricCategories
 );
@@ -93,6 +91,7 @@ router.get(
  */
 router.get(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryIdParamSchema, 'params'),
   getFabricCategoryById
@@ -137,6 +136,7 @@ router.get(
  */
 router.post(
   '/',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(createFabricCategorySchema, 'body'),
   createFabricCategory
@@ -188,6 +188,7 @@ router.post(
  */
 router.put(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryIdParamSchema, 'params'),
   validate(updateFabricCategorySchema, 'body'),
@@ -232,6 +233,7 @@ router.put(
  */
 router.delete(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryIdParamSchema, 'params'),
   deleteFabricCategory

@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# YOLO
+runs/
+models/
+!models/.gitkeep
+
+# Temp files
+*.tmp
+.DS_Store

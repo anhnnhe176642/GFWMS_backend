@@ -1,0 +1,33 @@
+model YoloModel {
+  id            Int     @id @default(autoincrement())
+  name          String  @unique
+  fileName      String
+  filePath      String
+  description   String?
+  isActive      Boolean @default(false)
+  version       String?
+  status        YoloModelStatus @default(ACTIVE)
+  metadata      Json?
+
+  detectionLogs YoloDetectionLog[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([status])
+}
+
+model YoloDetectionLog {
+  id              String   @id @default(cuid())
+  modelId         Int
+  model           YoloModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  imagePath       String
+  totalObjects    Int
+  confidence      Float
+  detectionTime   Float?   @default(0) // Detection time in milliseconds
+  detectedAt      DateTime @default(now())
+  
+  @@index([modelId])
+  @@index([detectedAt])
+}
