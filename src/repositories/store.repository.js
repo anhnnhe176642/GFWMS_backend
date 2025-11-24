@@ -18,13 +18,59 @@ export class StoreRepository {
     createdAt: true,
     updatedAt: true,
   };
-
-  async findById(id) {
+  
+  async findById(storeId) {
     return prisma.store.findUnique({
-      where: { id: parseInt(id) },
-      select: this.#storeSelectOptions
+      where: { id: parseInt(storeId) },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        fabrics: {
+          select: {
+            quantity: true,
+            fabric: {
+              select: {
+                id: true,
+                thickness: true,
+                length: true,
+                width: true,
+                weight: true,
+                gloss: {
+                  select: {
+                    id: true,
+                    description: true
+                  }
+                },
+                category: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                },
+                color: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                },
+                supplier: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     });
   }
+
 
   async create(storeData) {
     return withPrismaErrorHandling(
