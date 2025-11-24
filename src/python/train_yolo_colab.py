@@ -797,14 +797,14 @@ def create_gui():
         )
         
         retry_button = widgets.Button(
-            description='🔄 Thử lại tải lên',
+            description='Thử lại(Tải mô hình lên)',
             button_style='warning',
             tooltip='Thử lại tải mô hình lên server',
             layout=widgets.Layout(display='none')
         )
         
         download_button = widgets.Button(
-            description='⬇️ Tải xuống mô hình',
+            description='Tải xuống mô hình',
             button_style='info',
             tooltip='Tải xuống mô hình về máy tính',
             layout=widgets.Layout(display='none')
