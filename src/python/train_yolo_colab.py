@@ -440,6 +440,23 @@ def download_model():
         return False
 
 
+def download_model_file(model_path="/content/best_model.pt"):
+    """
+    Tải xuống file mô hình cho người dùng
+    Trả về bytes để người dùng có thể tải về máy
+    """
+    try:
+        if not os.path.exists(model_path):
+            print_error(f"Tệp mô hình không tìm thấy tại {model_path}")
+            return None
+        
+        with open(model_path, 'rb') as f:
+            return f.read()
+    except Exception as e:
+        print_error(f"Lỗi khi đọc file mô hình: {e}")
+        return None
+
+
 def upload_model_to_server(api_url, token, model_path="/content/best_model.pt", 
                           model_name=None, description=None, version="1.0", max_retries=3):
     print_step(9, "TẢI MÔ HÌNH LÊN SERVER")
@@ -765,6 +782,13 @@ def create_gui():
             layout=widgets.Layout(display='none')
         )
         
+        download_button = widgets.Button(
+            description='Tải xuống mô hình',
+            button_style='info',
+            tooltip='Tải xuống mô hình về máy tính',
+            layout=widgets.Layout(display='none')
+        )
+        
         output = widgets.Output()
         
         def on_verbose_toggle(change):
@@ -804,15 +828,18 @@ def create_gui():
                     if success:
                         print_success("Huấn luyện hoàn tất thành công!")
                         retry_button.layout.display = 'none'
+                        download_button.layout.display = 'block'
                     else:
                         print_error("Huấn luyện thất bại!")
                         retry_button.layout.display = 'block'
+                        download_button.layout.display = 'none'
                         
                 except Exception as e:
                     print_error(f"Lỗi: {e}")
                     import traceback
                     traceback.print_exc()
                     retry_button.layout.display = 'block'
+                    download_button.layout.display = 'none'
         
         def on_retry_clicked(b):
             with output:
@@ -839,6 +866,7 @@ def create_gui():
                     if success:
                         print_success("Tải lên thành công!")
                         retry_button.layout.display = 'none'
+                        download_button.layout.display = 'block'
                     else:
                         print_error("Tải lên vẫn thất bại")
                         print_info("Vui lòng kiểm tra kết nối internet và thử lại")
@@ -848,8 +876,36 @@ def create_gui():
                     import traceback
                     traceback.print_exc()
         
+        def on_download_clicked(b):
+            with output:
+                output.clear_output()
+                print_header("TẢI XUỐNG MÔ HÌNH")
+                
+                try:
+                    model_data = download_model_file("/content/best_model.pt")
+                    
+                    if model_data:
+                        file_size_mb = len(model_data) / (1024 * 1024)
+                        print_success(f"Tệp mô hình sẵn sàng để tải xuống ({file_size_mb:.2f} MB)")
+                        print_info("Tệp đã được chuẩn bị trong bộ nhớ Colab")
+                        print_info("Sử dụng mã code sau để tải xuống:")
+                        print("\n" + "─"*70)
+                        print("""
+from google.colab import files
+files.download('/content/best_model.pt')
+""")
+                        print("─"*70)
+                    else:
+                        print_error("Không thể tải xuống mô hình")
+                        
+                except Exception as e:
+                    print_error(f"Lỗi: {e}")
+                    import traceback
+                    traceback.print_exc()
+        
         submit_button.on_click(on_submit_clicked)
         retry_button.on_click(on_retry_clicked)
+        download_button.on_click(on_download_clicked)
         
         # Display UI với container có độ dài cố định
         form_container = widgets.VBox([
@@ -866,9 +922,14 @@ def create_gui():
             widgets.HBox([submit_button, verbose_toggle]),
         ], layout=widgets.Layout(width='500px', border='1px solid #ccc', padding='20px'))
         
+        button_container = widgets.HBox([
+            retry_button,
+            download_button
+        ])
+        
         display(widgets.VBox([
             form_container,
-            retry_button,
+            button_container,
             output
         ]))
         
