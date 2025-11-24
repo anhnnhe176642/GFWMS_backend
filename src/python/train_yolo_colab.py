@@ -441,7 +441,7 @@ def download_model():
 
 
 def upload_model_to_server(api_url, token, model_path="/content/best_model.pt", 
-                          model_name=None, description=None, version="1.0"):
+                          model_name=None, description=None, version="1.0", max_retries=3):
     print_step(9, "TẢI MÔ HÌNH LÊN SERVER")
     
     try:
@@ -458,52 +458,92 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
         upload_url = f"{api_url}/v1/yolo/models/upload-with-token/{token}"
         print_info(f"\nĐang tải lên tới {upload_url}...")
         
-        with open(model_path, 'rb') as f:
-            files = {
-                'model': (os.path.basename(model_path), f, 'application/octet-stream')
-            }
+        attempt = 0
+        while attempt < max_retries:
+            attempt += 1
             
-            data = {}
-            if model_name:
-                data['name'] = model_name
-            if description:
-                data['description'] = description
-            if version:
-                data['version'] = version
-            
-            response = requests.post(
-                upload_url,
-                files=files,
-                data=data,
-                timeout=600
-            )
-        
-        if response.status_code == 201:
-            print_success(f"Tải lên thành công! (Trạng thái: {response.status_code})")
             try:
-                json_response = response.json()
-                if 'data' in json_response:
-                    model_info = json_response['data']
-                    print("\n  Thông tin mô hình:")
-                    for key, value in model_info.items():
-                        print(f"    {key}: {value}")
+                with open(model_path, 'rb') as f:
+                    files = {
+                        'model': (os.path.basename(model_path), f, 'application/octet-stream')
+                    }
+                    
+                    data = {}
+                    if model_name:
+                        data['name'] = model_name
+                    if description:
+                        data['description'] = description
+                    if version:
+                        data['version'] = version
+                    
+                    response = requests.post(
+                        upload_url,
+                        files=files,
+                        data=data,
+                        timeout=600
+                    )
+                
+                if response.status_code == 201:
+                    print_success(f"Tải lên thành công! (Trạng thái: {response.status_code})")
+                    try:
+                        json_response = response.json()
+                        if 'data' in json_response:
+                            model_info = json_response['data']
+                            print("\n  Thông tin mô hình:")
+                            for key, value in model_info.items():
+                                print(f"    {key}: {value}")
+                        else:
+                            print(f"\n  Phản hồi: {json.dumps(json_response, indent=2, ensure_ascii=False)}")
+                    except:
+                        print(f"  Phản hồi: {response.text}")
+                    return True
                 else:
-                    print(f"\n  Phản hồi: {json.dumps(json_response, indent=2, ensure_ascii=False)}")
-            except:
-                print(f"  Phản hồi: {response.text}")
-            return True
-        else:
-            print_error(f"Tải lên thất bại! (Trạng thái: {response.status_code})")
-            print(f"  Phản hồi: {response.text}")
-            return False
+                    print_error(f"Tải lên thất bại! (Trạng thái: {response.status_code})")
+                    print(f"  Phản hồi: {response.text}")
+                    
+                    if attempt < max_retries:
+                        print_warning(f"Đang thử lại lần {attempt}/{max_retries-1}...")
+                        print("  Nhấn Enter để tiếp tục hoặc Ctrl+C để hủy:")
+                        try:
+                            input()
+                        except KeyboardInterrupt:
+                            print_warning("Đã hủy tải lên")
+                            return False
+                    else:
+                        print_error("Đã vượt quá số lần thử tối đa")
+                        return False
+                    
+            except requests.exceptions.Timeout:
+                print_error(f"Lần {attempt}: Quá hạn - Tải lên mất quá lâu")
+                if attempt < max_retries:
+                    print_warning(f"Đang thử lại lần {attempt}/{max_retries-1}...")
+                    print("  Nhấn Enter để tiếp tục hoặc Ctrl+C để hủy:")
+                    try:
+                        input()
+                    except KeyboardInterrupt:
+                        print_warning("Đã hủy tải lên")
+                        return False
+                else:
+                    print_error("Đã vượt quá số lần thử tối đa")
+                    return False
+                    
+            except requests.exceptions.ConnectionError:
+                print_error(f"Lần {attempt}: Không thể kết nối tới server")
+                print_info("Vui lòng kiểm tra TOKEN URL và kết nối internet")
+                if attempt < max_retries:
+                    print_warning(f"Đang thử lại lần {attempt}/{max_retries-1}...")
+                    print("  Nhấn Enter để tiếp tục hoặc Ctrl+C để hủy:")
+                    try:
+                        input()
+                    except KeyboardInterrupt:
+                        print_warning("Đã hủy tải lên")
+                        return False
+                else:
+                    print_error("Đã vượt quá số lần thử tối đa")
+                    return False
         
-    except requests.exceptions.Timeout:
-        print_error("Quá hạn - Tải lên mất quá lâu")
         return False
-    except requests.exceptions.ConnectionError:
-        print_error("Không thể kết nối tới server")
-        print_info("Vui lòng kiểm tra TOKEN URL và kết nối internet")
-        return False
+        
     except Exception as e:
         print_error(f"Tải lên thất bại: {e}")
         import traceback
@@ -514,6 +554,55 @@ def upload_model_to_server(api_url, token, model_path="/content/best_model.pt",
 def get_timestamp():
     from datetime import datetime
     return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def retry_upload(model_path="/content/best_model.pt", max_retries=3):
+    """
+    Hàm tiện ích cho phép thử lại tải lên mô hình
+    Sử dụng khi tải lên thất bại lần đầu
+    """
+    print_header("THỬ LẠI TẢI MÔ HÌNH LÊN SERVER")
+    
+    try:
+        api_url = input("\n  Nhập TOKEN URL API (ví dụ: https://your-domain.com/api): ").strip()
+        if not api_url:
+            print_error("TOKEN URL API là bắt buộc")
+            return False
+        
+        token = input("  Nhập token: ").strip()
+        if not token:
+            print_error("Token là bắt buộc")
+            return False
+        
+        model_name_input = input("  Nhập tên mô hình (hoặc để trống để sử dụng mặc định): ").strip()
+        description_input = input("  Nhập mô tả (tùy chọn): ").strip()
+        version_input = input("  Nhập phiên bản (mặc định: 1.0): ").strip() or "1.0"
+        
+        success = upload_model_to_server(
+            api_url=api_url,
+            token=token,
+            model_path=model_path,
+            model_name=model_name_input or None,
+            description=description_input or None,
+            version=version_input,
+            max_retries=max_retries
+        )
+        
+        if success:
+            print_success("Tải lên thành công!")
+        else:
+            print_error("Tải lên thất bại sau số lần thử tối đa")
+        
+        return success
+        
+    except KeyboardInterrupt:
+        print_warning("\nĐã hủy")
+        return False
+    except Exception as e:
+        print_error(f"Lỗi: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 
 def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None, 
@@ -578,7 +667,10 @@ def main(dataset_url, epochs=60, imgsz=640, train_pct=0.9, api_url=None,
             version=version
         ):
             print_warning("Tải mô hình thất bại, nhưng huấn luyện thành công")
-            print_info("Bạn có thể tải mô hình theo cách thủ công sau này")
+            print("\n" + "!"*70)
+            print("  ĐỀ NGHỊ: Bạn có thể thử lại tải lên bằng lệnh:")
+            print("  python train_yolo_colab.py --retry")
+            print("!"*70 + "\n")
     else:
         if not token:
             print_info("Không thể trích xuất token từ TOKEN URL dataset")
@@ -666,6 +758,13 @@ def create_gui():
             tooltip='Nhấp để bắt đầu huấn luyện'
         )
         
+        retry_button = widgets.Button(
+            description='Thử lại',
+            button_style='warning',
+            tooltip='Thử lại tải mô hình lên server',
+            layout=widgets.Layout(display='none')
+        )
+        
         output = widgets.Output()
         
         def on_verbose_toggle(change):
@@ -704,8 +803,45 @@ def create_gui():
                     
                     if success:
                         print_success("Huấn luyện hoàn tất thành công!")
+                        retry_button.layout.display = 'none'
                     else:
                         print_error("Huấn luyện thất bại!")
+                        retry_button.layout.display = 'block'
+                        
+                except Exception as e:
+                    print_error(f"Lỗi: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    retry_button.layout.display = 'block'
+        
+        def on_retry_clicked(b):
+            with output:
+                output.clear_output()
+                print_header("THỬ LẠI TẢI MÔ HÌNH LÊN SERVER")
+                
+                try:
+                    api_url = extract_api_url_from_download_url(url_input.value)
+                    token = extract_token_from_url(url_input.value)
+                    
+                    if not api_url or not token:
+                        print_error("Không thể trích xuất thông tin từ TOKEN URL")
+                        print_info("Vui lòng kiểm tra TOKEN URL có hợp lệ không")
+                        return
+                    
+                    success = upload_model_to_server(
+                        api_url=api_url,
+                        token=token,
+                        model_name=model_name_input.value or None,
+                        description=description_input.value or None,
+                        version=version_input.value or "1.0"
+                    )
+                    
+                    if success:
+                        print_success("Tải lên thành công!")
+                        retry_button.layout.display = 'none'
+                    else:
+                        print_error("Tải lên vẫn thất bại")
+                        print_info("Vui lòng kiểm tra kết nối internet và thử lại")
                         
                 except Exception as e:
                     print_error(f"Lỗi: {e}")
@@ -713,6 +849,7 @@ def create_gui():
                     traceback.print_exc()
         
         submit_button.on_click(on_submit_clicked)
+        retry_button.on_click(on_retry_clicked)
         
         # Display UI với container có độ dài cố định
         form_container = widgets.VBox([
@@ -731,6 +868,7 @@ def create_gui():
         
         display(widgets.VBox([
             form_container,
+            retry_button,
             output
         ]))
         
