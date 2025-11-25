@@ -393,6 +393,7 @@ export const getDatasetStats = async (req, res, next) => {
 export const createExportToken = async (req, res, next) => {
   try {
     const { datasetId } = req.params;
+    const { expiresIn } = req.body;
     const userId = req.user.id;
 
     // Verify dataset exists
@@ -406,7 +407,7 @@ export const createExportToken = async (req, res, next) => {
         type: 'export'
       },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' } // Token valid for 1 hour
+      { expiresIn: expiresIn || '5h' } 
     );
 
     res.json({
@@ -414,7 +415,7 @@ export const createExportToken = async (req, res, next) => {
       message: 'Export token created successfully',
       data: {
         token: exportToken,
-        expiresIn: '1h'
+        expiresIn: expiresIn || '5h'
       }
     });
   } catch (error) {

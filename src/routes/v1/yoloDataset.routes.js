@@ -12,7 +12,8 @@ import {
   getDatasetImagesSchema,
   datasetIdParamSchema,
   imageIdParamSchema,
-  importDatasetFromZipSchema
+  importDatasetFromZipSchema,
+  exportTokenSchema
 } from '../../validations/yoloDataset.validation.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
@@ -712,6 +713,12 @@ router.get(
  *         schema:
  *           type: string
  *         description: ID of the dataset to export
+ *       - in: body
+ *         name: expiresIn
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Expiration time for the token (e.g., 30m, 1h, 2d)
  *     responses:
  *       200:
  *         description: Export token created successfully
@@ -744,6 +751,7 @@ router.post(
   authenticateToken,
   requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
   validate(datasetIdParamSchema, 'params'),
+  validate(exportTokenSchema, 'body'),
   yoloDatasetController.createExportToken
 );
 

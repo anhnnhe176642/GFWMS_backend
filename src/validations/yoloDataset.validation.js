@@ -181,6 +181,15 @@ export const datasetIdParamSchema = Joi.object({
     })
 });
 
+export const exportTokenSchema = Joi.object({
+    expiresIn: Joi.string()
+      .optional()
+      .pattern(/^\d+[smhd]$/)
+      .messages({
+        'string.pattern.base': 'Thời gian hết hạn phải có định dạng số theo sau bởi s, m, h hoặc d (ví dụ: 30m, 1h, 2d)'
+      })
+});
+
 // Image ID param validation
 export const imageIdParamSchema = Joi.object({
   imageId: Joi.string()
