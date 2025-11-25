@@ -44,6 +44,26 @@ export class RoleRepository {
         // Nếu có permissions, tạo role và permissions cùng lúc
         if (permissions !== undefined && permissions.length > 0) {
           return await prisma.$transaction(async (tx) => {
+            // Lấy hoặc tạo permissions từ keys
+            const permissionRecords = await Promise.all(
+              permissions.map(async (key) => {
+                const existingPerm = await tx.permission.findUnique({
+                  where: { key },
+                  select: { id: true }
+                });
+
+                if (existingPerm) {
+                  return existingPerm;
+                }
+
+                // Tạo permission mới nếu không tồn tại
+                return await tx.permission.create({
+                  data: { key },
+                  select: { id: true }
+                });
+              })
+            );
+
             // Tạo role
             const newRole = await tx.role.create({
               data: roleData
@@ -51,9 +71,9 @@ export class RoleRepository {
 
             // Tạo role permissions
             await tx.rolePermission.createMany({
-              data: permissions.map(permissionId => ({
+              data: permissionRecords.map(perm => ({
                 role: newRole.name,
-                permissionId
+                permissionId: perm.id
               }))
             });
 
@@ -91,8 +111,7 @@ export class RoleRepository {
       },
       {
         name: 'Tên role đã tồn tại',
-        description: 'Description này đã được sử dụng cho role khác',
-        permissionId: 'Permission ID không hợp lệ'
+        description: 'Description này đã được sử dụng cho role khác'
       }
     );
   }
@@ -123,6 +142,26 @@ export class RoleRepository {
         // Nếu có permissions, cập nhật cả role và permissions
         if (permissions !== undefined) {
           return await prisma.$transaction(async (tx) => {
+            // Lấy hoặc tạo permissions từ keys
+            const permissionRecords = await Promise.all(
+              permissions.map(async (key) => {
+                const existingPerm = await tx.permission.findUnique({
+                  where: { key },
+                  select: { id: true }
+                });
+
+                if (existingPerm) {
+                  return existingPerm;
+                }
+
+                // Tạo permission mới nếu không tồn tại
+                return await tx.permission.create({
+                  data: { key },
+                  select: { id: true }
+                });
+              })
+            );
+
             // Cập nhật thông tin role
             await tx.role.update({
               where: { name },
@@ -137,9 +176,9 @@ export class RoleRepository {
             // Thêm permissions mới (nếu có)
             if (permissions.length > 0) {
               await tx.rolePermission.createMany({
-                data: permissions.map(permissionId => ({
+                data: permissionRecords.map(perm => ({
                   role: name,
-                  permissionId
+                  permissionId: perm.id
                 }))
               });
             }
@@ -178,8 +217,7 @@ export class RoleRepository {
         });
       },
       {
-        description: 'Description này đã được sử dụng cho role khác',
-        permissionId: 'id quyền không hợp lệ'
+        description: 'Description này đã được sử dụng cho role khác'
       }
     );
   }
