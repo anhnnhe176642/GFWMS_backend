@@ -43,7 +43,7 @@ class YoloModelService {
     // Check if model name already exists
     const existingModel = await yoloModelRepository.findByName(metadata.name);
     if (existingModel) {
-      throw new ConflictError('Model with this name already exists');
+      throw new ConflictError('Tên mô hình đã tồn tại', 'name');
     }
 
     // Generate unique filename

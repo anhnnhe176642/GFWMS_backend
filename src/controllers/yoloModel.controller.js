@@ -31,22 +31,7 @@ export const uploadModel = async (req, res, next) => {
       { name, description, version },
       req.user.id
     );
-
-    // Fetch user email and send notification
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { email: true, fullname: true }
-      });
-
-      if (user && user.email) {
-        await sendYoloModelUploadNotification(user.email, name, version || '1.0');
-      }
-    } catch (emailError) {
-      console.error('Failed to send email notification:', emailError);
-      // Don't throw error, just log it
-    }
-
+    
     res.status(201).json({
       success: true,
       message: 'Model uploaded successfully',
