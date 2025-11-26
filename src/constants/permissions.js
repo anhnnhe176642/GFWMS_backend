@@ -19,6 +19,7 @@ export const PERMISSIONS = {
   FABRICS: {
     VIEW_LIST:          { key: 'fabric:view_list',          description: 'Xem danh sách vải' },
     VIEW_DETAIL:        { key: 'fabric:view_detail',        description: 'Xem chi tiết vải' },
+    VIEW_QUANTITY:      { key: 'fabric:view_quantity',      description: 'Xem số lượng vải' },
     CREATE:             { key: 'fabric:create',             description: 'Tạo vải mới' },
     UPDATE:             { key: 'fabric:update',             description: 'Cập nhật thông tin vải' },
     DELETE:             { key: 'fabric:delete',             description: 'Xóa vải' },

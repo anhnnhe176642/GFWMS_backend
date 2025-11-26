@@ -124,6 +124,58 @@ export class FabricRepository {
       data: { quantityInStock: { decrement: quantity } }
     });
   }
+
+
+  //Lấy tổng số lượng vải theo từng kho
+
+  async getFabricInventoryByWarehouse(fabricId) {
+    const warehouseInventory = await prisma.fabricShelf.findMany({
+      where: {
+        fabricId,
+        quantity: { gt: 0 }
+      },
+      select: {
+        quantity: true,
+        shelf: {
+          select: {
+            warehouseId: true,
+            warehouse: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Gom nhóm theo kho
+    const warehouseMap = new Map();
+    let totalQuantity = 0;
+    
+    warehouseInventory.forEach(item => {
+      const warehouseId = item.shelf.warehouseId;
+      const warehouseName = item.shelf.warehouse.name;
+      
+      totalQuantity += item.quantity;
+      
+      if (warehouseMap.has(warehouseId)) {
+        warehouseMap.get(warehouseId).quantity += item.quantity;
+      } else {
+        warehouseMap.set(warehouseId, {
+          warehouseId,
+          warehouseName,
+          quantity: item.quantity
+        });
+      }
+    });
+
+    return {
+      totalQuantity,
+      inventoryByWarehouse: Array.from(warehouseMap.values())
+    };
+  }
 }
 
 export const fabricRepository = new FabricRepository();

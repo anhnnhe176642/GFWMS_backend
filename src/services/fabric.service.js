@@ -31,3 +31,18 @@ export const getAllFabricsAdvanced = async (queryOptions) => {
   return await fabricRepository.findWithAdvancedQuery(queryOptions);
 };
 
+export const getFabricInventoryByWarehouse = async (fabricId) => {
+  const fabric = await fabricRepository.findById(fabricId);
+  
+  if (!fabric) {
+    throw new NotFoundError('Vải không tồn tại');
+  }
+
+  const inventory = await fabricRepository.getFabricInventoryByWarehouse(fabricId);
+
+  return {
+    fabricId: fabric.id,
+    ...inventory
+  };
+};
+

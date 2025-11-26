@@ -75,31 +75,41 @@ export const createExportFabric = async (exportData) => {
   }
 
   for (const item of exportItems) {
+    // Lấy thông tin fabric
     const fabric = await fabricRepository.findById(item.fabricId);
-
     if (!fabric) {
-      throw new NotFoundError(`Loại vải bạn chọn (ID: ${item.fabricId}) hiện không có trong kho.`);
+      throw new NotFoundError(`Loại vải (ID: ${item.fabricId}) hiện không có trong kho.`);
     }
 
-    if (item.quantity > fabric.quantityInStock) {
+    // Lấy tồn kho theo warehouse
+    const inventory = await fabricRepository.getFabricInventoryByWarehouse(item.fabricId);
+    const warehouseInventory = inventory.inventoryByWarehouse.find(w => w.warehouseId === warehouseId);
+    const availableQuantity = warehouseInventory ? warehouseInventory.quantity : 0;
+
+    if (availableQuantity < item.quantity) {
       throw new ConflictError(
-        `Số lượng cần xuất (${item.quantity}) lớn hơn số lượng còn trong kho (${fabric.quantityInStock}).`
+        `${fabric.category.name} không đủ số lượng trong kho ${warehouseInventory?.warehouseName || 'Unknown'}.(Cần: ${item.quantity}, Còn: ${availableQuantity})`
       );
     }
   }
 
+  // Kiểm tra warehouse tồn tại
   const warehouse = await warehouseRepository.findById(warehouseId);
   if (!warehouse) {
     throw new NotFoundError(`Kho (ID ${warehouseId}) không tồn tại hoặc đã bị xoá.`);
   }
 
+  // Kiểm tra store tồn tại
   const store = await storeRepository.findById(storeId);
   if (!store) {
     throw new NotFoundError(`Cửa hàng (ID ${storeId}) không tồn tại hoặc đã bị xoá.`);
   }
 
+  // Tạo phiếu xuất
   return await exportFabricRepository.create(exportData);
 };
+
+
 
 
 export const approveExportFabric = async ({
