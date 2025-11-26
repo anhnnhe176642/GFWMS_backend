@@ -315,13 +315,16 @@ class YoloDatasetService {
   /**
    * Export dataset as ZIP file (YOLO format)
    * Generates .txt label files from annotations stored in DB
+   * @param {string} datasetId - ID of dataset to export
+   * @param {string} outputPath - Path where ZIP file will be saved
+   * @param {Array<string>} statusFilter - Optional array of image statuses to include (e.g., ['COMPLETED', 'PROCESSING'])
    */
-  async exportDataset(datasetId, outputPath) {
+  async exportDataset(datasetId, outputPath, statusFilter = null) {
     // Verify dataset exists and get full info
     const dataset = await this.getDatasetById(datasetId);
     
-    // Get all images in dataset
-    const images = await yoloDatasetRepository.getAllDatasetImages(datasetId);
+    // Get all images in dataset (with optional status filter)
+    const images = await yoloDatasetRepository.getAllDatasetImages(datasetId, statusFilter);
 
     return new Promise((resolve, reject) => {
       const output = fsSync.createWriteStream(outputPath);
@@ -408,7 +411,7 @@ class YoloDatasetService {
    *  - classes.txt (optional)
    *  - notes.json (optional)
    */
-  async importDatasetFromZip(zipFile, datasetName, datasetDescription, userId) {
+  async importDatasetFromZip(zipFile, datasetName, datasetDescription, userId, imageStatus = 'COMPLETED') {
     console.log('importDatasetFromZip - Starting with datasetName:', datasetName);
     console.log('importDatasetFromZip - ZIP file size:', zipFile.size, 'bytes');
     
@@ -608,7 +611,7 @@ class YoloDatasetService {
               objectCount: annotations.length,
               classes: classes, // Use classes from imported ZIP
               annotations,
-              status: 'COMPLETED', // Imported images are marked as completed
+              status: imageStatus || 'COMPLETED', // Use provided status or default to COMPLETED
               uploadedBy: userId || null,
               notes: 'Imported from ZIP'
             };
@@ -673,7 +676,7 @@ class YoloDatasetService {
    *  - labels/
    *  - classes.txt (optional - will merge)
    */
-  async importDataset(datasetId, zipFile, userId) {
+  async importDataset(datasetId, zipFile, userId, imageStatus = 'COMPLETED') {
     // Validate ZIP file format
     if (!zipFile.buffer || zipFile.buffer.length < 4) {
       throw new ValidationError('Định dạng tệp không hợp lệ: Tệp quá nhỏ hoặc trống');
@@ -817,7 +820,7 @@ class YoloDatasetService {
               objectCount: annotations.length,
               classes: updatedDataset.classes,
               annotations,
-              status: 'COMPLETED', // Imported images are marked as completed
+              status: imageStatus || 'COMPLETED', // Use provided status or default to COMPLETED
               uploadedBy: userId || null,
               notes: 'Imported from ZIP'
             };

@@ -9,6 +9,7 @@ import {
   dateFromSchema,
   dateToSchema
 } from './common.validation.js';
+import { yoloImageStatusSchema } from './common.validation.js';
 
 // Create dataset validation
 export const createDatasetSchema = Joi.object({
@@ -117,12 +118,7 @@ export const updateImageSchema = Joi.object({
     .max(500)
     .optional()
     .allow(''),
-  status: Joi.string()
-    .valid('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
-    .optional()
-    .messages({
-      'any.only': 'Trạng thái phải là một trong: PENDING, PROCESSING, COMPLETED hoặc FAILED'
-    }),
+  status: yoloImageStatusSchema.optional(),
   annotations: Joi.array()
     .items(
       Joi.object({
@@ -160,10 +156,7 @@ export const getDatasetImagesSchema = Joi.object({
   page: pageSchema,
   limit: limitSchema,
   search: searchSchema.optional(),
-  status: createMultiValueFilterSchema(
-    Joi.string().valid('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'),
-    'Trạng thái'
-  ),
+  status: createMultiValueFilterSchema(yoloImageStatusSchema, 'Trạng thái'),
   sortBy: createSortBySchema(['filename', 'createdAt', 'status', 'objectCount', 'notes', 'uploadedByUser.fullname']).optional(),
   order: sortOrderSchema.optional(),
   createdFrom: dateFromSchema,
@@ -179,6 +172,20 @@ export const datasetIdParamSchema = Joi.object({
     .messages({
       'any.required': 'ID Dataset là bắt buộc'
     })
+});
+
+export const exportTokenSchema = Joi.object({
+    expiresIn: Joi.string()
+      .optional()
+      .pattern(/^\d+[smhd]$/)
+      .messages({
+        'string.pattern.base': 'Thời gian hết hạn phải có định dạng số theo sau bởi s, m, h hoặc d (ví dụ: 30m, 1h, 2d)'
+      })
+});
+
+// Export dataset query validation
+export const exportDatasetSchema = Joi.object({
+  status: createMultiValueFilterSchema(yoloImageStatusSchema, 'Trạng thái').optional()
 });
 
 // Image ID param validation
@@ -214,4 +221,11 @@ export const importDatasetFromZipSchema = Joi.object({
     .messages({
       'string.max': 'Mô tả không được vượt quá 500 ký tự'
     })
+    ,
+    imageStatus: yoloImageStatusSchema.optional()
+});
+
+// Import images into existing dataset validation
+export const importDatasetSchema = Joi.object({
+  imageStatus: yoloImageStatusSchema.optional()
 });

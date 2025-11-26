@@ -12,7 +12,10 @@ import {
   getDatasetImagesSchema,
   datasetIdParamSchema,
   imageIdParamSchema,
-  importDatasetFromZipSchema
+  importDatasetFromZipSchema,
+  importDatasetSchema,
+  exportTokenSchema,
+  exportDatasetSchema
 } from '../../validations/yoloDataset.validation.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
@@ -62,6 +65,7 @@ const handleZipUploadError = createUploadErrorHandler('zipFile', 1000);
  *       2. Extract and read classes.txt from ZIP
  *       3. Import all images with corresponding labels
  *       4. Mark all imported images as COMPLETED
+ *       4. Mark all imported images with `imageStatus` (default COMPLETED)
  *       5. Return dataset info and import statistics
  *     tags: [YOLO Dataset]
  *     security:
@@ -87,6 +91,10 @@ const handleZipUploadError = createUploadErrorHandler('zipFile', 1000);
  *               description:
  *                 type: string
  *                 description: Optional description for the dataset
+ *               imageStatus:
+ *                 type: string
+ *                 enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *                 description: Optional status to assign to imported images. Defaults to COMPLETED if not provided.
  *     responses:
  *       201:
  *         description: Dataset created and imported successfully
@@ -138,7 +146,7 @@ router.post(
   requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
   uploadDatasetZip,
   handleZipUploadError,
-  validate(importDatasetFromZipSchema, 'body'),
+  validate(importDatasetFromZipSchema, 'fields'),
   yoloDatasetController.importDatasetFromZip
 );
 
@@ -668,6 +676,15 @@ router.get(
  * /yolo/datasets/{datasetId}/export:
  *   get:
  *     summary: Export dataset as ZIP file (YOLO format)
+ *     description: |
+ *       Export dataset images and labels as a YOLO format ZIP file.
+ *       Optionally filter by image status to include only specific statuses.
+ *       
+ *       Query Parameters:
+ *       - status: Optional, comma-separated list of statuses to include
+ *         - If not provided: exports only COMPLETED images (default behavior)
+ *         - If provided: exports images with specified statuses
+ *         - Example: ?status=COMPLETED,PROCESSING
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -677,20 +694,36 @@ router.get(
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID of the dataset to export
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by image status (support multiple values separated by comma). Example COMPLETED,PROCESSING. If not specified, exports only COMPLETED images
+ *         example: "COMPLETED,PROCESSING"
  *     responses:
  *       200:
- *         description: ZIP file download
+ *         description: ZIP file download containing images and labels in YOLO format
  *         content:
  *           application/zip:
  *             schema:
  *               type: string
  *               format: binary
+ *       400:
+ *         description: Validation error (invalid status values)
+ *       401:
+ *         description: Unauthorized or missing permission
+ *       404:
+ *         description: Dataset not found
  */
 router.get(
   '/:datasetId/export',
   authenticateToken,
   requirePermission(PERMISSIONS.YOLO.EXPORT_DATASET),
-  validate(datasetIdParamSchema, 'params'),
+  validate([
+    { schema: datasetIdParamSchema, source: 'params' },
+    { schema: exportDatasetSchema, source: 'query' }
+  ]),
   yoloDatasetController.exportDataset
 );
 
@@ -712,6 +745,12 @@ router.get(
  *         schema:
  *           type: string
  *         description: ID of the dataset to export
+ *       - in: body
+ *         name: expiresIn
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Expiration time for the token (e.g., 30m, 1h, 2d)
  *     responses:
  *       200:
  *         description: Export token created successfully
@@ -744,6 +783,7 @@ router.post(
   authenticateToken,
   requirePermission(PERMISSIONS.YOLO.MANAGE_DATASET),
   validate(datasetIdParamSchema, 'params'),
+  validate(exportTokenSchema, 'body'),
   yoloDatasetController.createExportToken
 );
 
@@ -792,7 +832,7 @@ router.post(
  *       1. Extract ZIP file
  *       2. Merge classes from ZIP with existing dataset classes
  *       3. Import all images with corresponding labels
- *       4. Mark imported images as COMPLETED
+ *       4. Mark imported images with `imageStatus` (default COMPLETED)
  *       5. Update dataset counters
  *     tags: [YOLO Dataset]
  *     security:
@@ -817,6 +857,11 @@ router.post(
  *                 type: string
  *                 format: binary
  *                 description: ZIP file containing YOLO format dataset (max 500MB)
+ *               imageStatus:
+ *                 type: string
+ *                 enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *                 description: Optional status to assign to imported images. Defaults to COMPLETED if not provided.
+ 
  *     responses:
  *       200:
  *         description: Images imported successfully into existing dataset
@@ -856,6 +901,7 @@ router.post(
   validate(datasetIdParamSchema, 'params'),
   uploadDatasetZip,
   handleZipUploadError,
+  validate(importDatasetSchema, 'fields'),
   yoloDatasetController.importDatasetToExisting
 );
 

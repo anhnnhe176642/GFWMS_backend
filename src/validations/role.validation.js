@@ -10,14 +10,13 @@ const roleFullNameSchema = Joi.string().max(15).optional().messages({
   'string.max': 'Full Name không được vượt quá 15 ký tự'
 });
 // cân nhắc sửa message
-const roleDescriptionSchema = Joi.string().max(255).optional().messages({
-  'string.max': 'Description không được vượt quá 255 ký tự'
+const roleDescriptionSchema = Joi.string().max(500).optional().messages({
+  'string.max': 'Mô tả quyền không được vượt quá 500 ký tự'
 });
 // cân nhắc sửa message
-const rolePermissionsSchema = Joi.array().items(Joi.number().integer().positive()).optional().messages({
+const rolePermissionsSchema = Joi.array().items(Joi.string().trim()).optional().messages({
   'array.base': 'Permissions phải là một mảng',
-  'number.base': 'Permission ID phải là số nguyên',
-  'number.positive': 'Permission ID phải là số dương'
+  'string.base': 'Permission key phải là chuỗi ký tự'
 });
 
 // Schema validation cho tạo role
