@@ -213,15 +213,27 @@ class YoloDatasetRepository {
   }
 
   /**
-   * Get all completed images in a dataset without pagination, filtering, or sorting
+   * Get all images in a dataset without pagination, filtering, or sorting
    * Used for export operations
+   * @param {string} datasetId - Dataset ID
+   * @param {Array<string>} statusFilter - Optional array of statuses to include. If null, returns COMPLETED images only
    */
-  async getAllDatasetImages(datasetId) {
+  async getAllDatasetImages(datasetId, statusFilter = null) {
+    const where = {
+      datasetId
+    };
+
+    // If statusFilter is provided, use it; otherwise default to COMPLETED
+    if (statusFilter && Array.isArray(statusFilter) && statusFilter.length > 0) {
+      where.status = {
+        in: statusFilter
+      };
+    } else {
+      where.status = 'COMPLETED';
+    }
+
     return prisma.yoloDatasetImage.findMany({
-      where: { 
-        datasetId,
-        status: 'COMPLETED'
-      },
+      where,
       select: {
         ...this.#imageSelectOptions
       }

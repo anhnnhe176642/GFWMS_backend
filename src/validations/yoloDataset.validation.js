@@ -190,6 +190,17 @@ export const exportTokenSchema = Joi.object({
       })
 });
 
+// Export dataset query validation
+export const exportDatasetSchema = Joi.object({
+  status: createMultiValueFilterSchema(
+    Joi.string().valid('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'),
+    'Trạng thái'
+  ).optional()
+    .messages({
+      'any.only': 'Trạng thái phải là một trong: PENDING, PROCESSING, COMPLETED hoặc FAILED'
+    })
+});
+
 // Image ID param validation
 export const imageIdParamSchema = Joi.object({
   imageId: Joi.string()

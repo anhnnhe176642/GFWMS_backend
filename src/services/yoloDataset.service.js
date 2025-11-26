@@ -315,13 +315,16 @@ class YoloDatasetService {
   /**
    * Export dataset as ZIP file (YOLO format)
    * Generates .txt label files from annotations stored in DB
+   * @param {string} datasetId - ID of dataset to export
+   * @param {string} outputPath - Path where ZIP file will be saved
+   * @param {Array<string>} statusFilter - Optional array of image statuses to include (e.g., ['COMPLETED', 'PROCESSING'])
    */
-  async exportDataset(datasetId, outputPath) {
+  async exportDataset(datasetId, outputPath, statusFilter = null) {
     // Verify dataset exists and get full info
     const dataset = await this.getDatasetById(datasetId);
     
-    // Get all images in dataset
-    const images = await yoloDatasetRepository.getAllDatasetImages(datasetId);
+    // Get all images in dataset (with optional status filter)
+    const images = await yoloDatasetRepository.getAllDatasetImages(datasetId, statusFilter);
 
     return new Promise((resolve, reject) => {
       const output = fsSync.createWriteStream(outputPath);

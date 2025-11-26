@@ -13,7 +13,8 @@ import {
   datasetIdParamSchema,
   imageIdParamSchema,
   importDatasetFromZipSchema,
-  exportTokenSchema
+  exportTokenSchema,
+  exportDatasetSchema
 } from '../../validations/yoloDataset.validation.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
@@ -669,6 +670,15 @@ router.get(
  * /yolo/datasets/{datasetId}/export:
  *   get:
  *     summary: Export dataset as ZIP file (YOLO format)
+ *     description: |
+ *       Export dataset images and labels as a YOLO format ZIP file.
+ *       Optionally filter by image status to include only specific statuses.
+ *       
+ *       Query Parameters:
+ *       - status: Optional, comma-separated list of statuses to include
+ *         - If not provided: exports only COMPLETED images (default behavior)
+ *         - If provided: exports images with specified statuses
+ *         - Example: ?status=COMPLETED,PROCESSING
  *     tags: [YOLO Dataset]
  *     security:
  *       - bearerAuth: []
@@ -678,20 +688,36 @@ router.get(
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID of the dataset to export
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by image status (support multiple values separated by comma). Example COMPLETED,PROCESSING. If not specified, exports only COMPLETED images
+ *         example: "COMPLETED,PROCESSING"
  *     responses:
  *       200:
- *         description: ZIP file download
+ *         description: ZIP file download containing images and labels in YOLO format
  *         content:
  *           application/zip:
  *             schema:
  *               type: string
  *               format: binary
+ *       400:
+ *         description: Validation error (invalid status values)
+ *       401:
+ *         description: Unauthorized or missing permission
+ *       404:
+ *         description: Dataset not found
  */
 router.get(
   '/:datasetId/export',
   authenticateToken,
   requirePermission(PERMISSIONS.YOLO.EXPORT_DATASET),
-  validate(datasetIdParamSchema, 'params'),
+  validate([
+    { schema: datasetIdParamSchema, source: 'params' },
+    { schema: exportDatasetSchema, source: 'query' }
+  ]),
   yoloDatasetController.exportDataset
 );
 

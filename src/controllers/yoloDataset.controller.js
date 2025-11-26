@@ -252,6 +252,9 @@ export const exportDataset = async (req, res, next) => {
   try {
     const dataset = await yoloDatasetService.getDatasetById(req.params.datasetId);
     
+    // Đã validate ở Joi, chỉ lấy trực tiếp statusFilter
+    const statusFilter = req.query.status;
+    
     // Create temp file for ZIP - use dataset name as filename
     const zipFilename = `${dataset.name}.zip`;
     const tempZipPath = path.join(__dirname, '../../temp', zipFilename);
@@ -262,7 +265,8 @@ export const exportDataset = async (req, res, next) => {
     // Create ZIP
     await yoloDatasetService.exportDataset(
       req.params.datasetId,
-      tempZipPath
+      tempZipPath,
+      statusFilter
     );
 
     // Send file
