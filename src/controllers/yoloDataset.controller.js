@@ -314,11 +314,13 @@ export const importDatasetFromZip = async (req, res, next) => {
     }
 
     console.log('Calling importDatasetFromZip service with name:', name);
+    const imageStatus = req.body.imageStatus;
     const result = await yoloDatasetService.importDatasetFromZip(
       req.file,
       name,
       description,
-      req.user?.id
+      req.user?.id,
+      imageStatus
     );
     console.log('Import result:', result);
 
@@ -351,10 +353,12 @@ export const importDatasetToExisting = async (req, res, next) => {
       });
     }
 
+    const imageStatus = req.body.imageStatus;
     const result = await yoloDatasetService.importDataset(
       req.params.datasetId,
       req.file,
-      req.user?.id
+      req.user?.id,
+      imageStatus
     );
 
     res.status(200).json({

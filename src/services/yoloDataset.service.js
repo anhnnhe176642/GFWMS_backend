@@ -411,7 +411,7 @@ class YoloDatasetService {
    *  - classes.txt (optional)
    *  - notes.json (optional)
    */
-  async importDatasetFromZip(zipFile, datasetName, datasetDescription, userId) {
+  async importDatasetFromZip(zipFile, datasetName, datasetDescription, userId, imageStatus = 'COMPLETED') {
     console.log('importDatasetFromZip - Starting with datasetName:', datasetName);
     console.log('importDatasetFromZip - ZIP file size:', zipFile.size, 'bytes');
     
@@ -611,7 +611,7 @@ class YoloDatasetService {
               objectCount: annotations.length,
               classes: classes, // Use classes from imported ZIP
               annotations,
-              status: 'COMPLETED', // Imported images are marked as completed
+              status: imageStatus || 'COMPLETED', // Use provided status or default to COMPLETED
               uploadedBy: userId || null,
               notes: 'Imported from ZIP'
             };
@@ -676,7 +676,7 @@ class YoloDatasetService {
    *  - labels/
    *  - classes.txt (optional - will merge)
    */
-  async importDataset(datasetId, zipFile, userId) {
+  async importDataset(datasetId, zipFile, userId, imageStatus = 'COMPLETED') {
     // Validate ZIP file format
     if (!zipFile.buffer || zipFile.buffer.length < 4) {
       throw new ValidationError('Định dạng tệp không hợp lệ: Tệp quá nhỏ hoặc trống');
@@ -820,7 +820,7 @@ class YoloDatasetService {
               objectCount: annotations.length,
               classes: updatedDataset.classes,
               annotations,
-              status: 'COMPLETED', // Imported images are marked as completed
+              status: imageStatus || 'COMPLETED', // Use provided status or default to COMPLETED
               uploadedBy: userId || null,
               notes: 'Imported from ZIP'
             };
