@@ -71,19 +71,10 @@ export const warehouseQuerySchema = querySchema.keys({
 });
 
 export const warehouseIdSchema = Joi.object({
-  id: Joi.string()
-    .required()
-    .custom((value, helpers) => {
-      if (value === '{id}' || value === '' || !value) {
-        return helpers.error('any.required');
-      }
-      if (!/^\d+$/.test(value)) {
-        return helpers.error('string.pattern.base');
-      }
-      return value;
-    })
-    .messages({
-      'any.required': 'ID kho là bắt buộc',
-      'string.pattern.base': 'ID kho phải là số nguyên dương'
-    })
+  id: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID kho phải là một số',
+    'number.integer': 'ID kho phải là một số nguyên',
+    'number.positive': 'ID kho phải là một số dương',
+    'any.required': 'ID kho là bắt buộc'
+  })
 });

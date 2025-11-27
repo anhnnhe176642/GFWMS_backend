@@ -1,4 +1,5 @@
 import { warehouseRepository } from '../repositories/warehouse.repository.js';
+import { fabricRepository } from '../repositories/fabric.repository.js';
 import { NotFoundError} from '../utils/errors.js';
 class WarehouseService {
   async getAllWarehousesAdvanced(queryOptions) {
@@ -24,6 +25,18 @@ class WarehouseService {
       throw new NotFoundError('Không tìm thấy kho');
     }
     return warehouse;
+  }
+
+  /**
+   * Lấy danh sách vải có sẵn trong kho (warehouseId) với filter/pagination
+   */
+  async getAvailableFabrics(warehouseId, queryOptions = {}) {
+    // Kiểm tra kho tồn tại
+    const warehouse = await warehouseRepository.findById(warehouseId);
+    if (!warehouse) throw new NotFoundError('Kho không tồn tại');
+
+    // Reuse repository method
+    return await fabricRepository.findAvailableFabricsInWarehouse(warehouseId, queryOptions);
   }
 
   async deleteWarehouse(id) {

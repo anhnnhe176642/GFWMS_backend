@@ -78,4 +78,27 @@ export const deleteWarehouse = async (req, res, next) => {
   }
 };
 
+export const getWarehouseFabrics = async (req, res, next) => {
+  try {
+    const warehouseId = req.params.id;
+
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['glossId', 'categoryId', 'colorId', 'supplierId'],
+      dateRangeConfig: { 
+        fromField: 'createdFrom', 
+        toField: 'createdTo', 
+        targetField: 'createdAt' 
+      }
+    });
+
+    const result = await warehouseService.getAvailableFabrics(warehouseId, queryParams);
+    res.json({
+      message: 'Lấy danh sách vải có sẵn trong kho thành công',
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
