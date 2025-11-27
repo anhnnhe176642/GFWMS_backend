@@ -74,7 +74,7 @@ export const paginationQuerySchema = Joi.object({
  * QUERY (FILTER + SORT)
  * ============================
  */
-const allowedExportFabricSortFields = ['id', 'createdAt', 'updatedAt', 'status','warehouseId','storeId'];
+const allowedExportFabricSortFields = ['id', 'createdAt', 'updatedAt', 'status','warehouse.name', 'store.name'];
 
 export const exportFabricQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedExportFabricSortFields),
