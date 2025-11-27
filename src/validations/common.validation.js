@@ -165,6 +165,13 @@ export const userStatusSchema = Joi.string()
     'any.required': 'Status là bắt buộc'
   });
 
+// YOLO image status validation - reusable across modules
+export const yoloImageStatusSchema = Joi.string()
+  .valid('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
+  .messages({
+    'any.only': 'Trạng thái hình ảnh phải là một trong: PENDING, PROCESSING, COMPLETED hoặc FAILED'
+  });
+
 // UUID validation
 export const uuidSchema = Joi.string()
   .guid({ version: ['uuidv4', 'uuidv5'] })
