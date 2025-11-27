@@ -79,7 +79,7 @@ export const updateStoreSchema = Joi.object({
 /**
  *  Store Query Schema
  */
-const allowedStoreSortFields = ['id', 'name', 'address', 'isActive', 'createdAt', 'updatedAt'];
+const allowedStoreSortFields = ['name', 'address', 'isActive', 'createdAt', 'updatedAt'];
 
 export const storeQuerySchema = querySchema.keys({
 isActive: createMultiValueFilterSchema(
