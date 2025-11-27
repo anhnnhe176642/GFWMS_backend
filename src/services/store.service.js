@@ -35,7 +35,7 @@ class StoreService {
     const fabricCount = await storeRepository.countFabricsInStore(id);
     if (fabricCount > 0) {
       throw new ConflictError(
-        `Không thể xóa cửa hàng ${store.name} vì đang cửa hàng đang hoạt động`
+        `Không thể xóa cửa hàng ${store.name} vì cửa hàng đang hoạt động`
       );
     }
 

@@ -129,7 +129,6 @@ const fabricIdFilterSchema = Joi.number().integer().positive().messages({
 
 // Fields allowed to sort
 const allowedBannerDiscountSortFields = [
-  'id',
   'code',
   'discountValue',
   'banner.title',
