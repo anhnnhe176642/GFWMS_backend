@@ -1,4 +1,5 @@
 import { warehouseService } from '../services/warehouse.service.js';
+import { shelfService } from '../services/shelf.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
 export const getAllWarehouses = async (req, res, next) => {
@@ -101,4 +102,46 @@ export const getWarehouseFabrics = async (req, res, next) => {
   }
 };
 
+/**
+ * Get shelves in a warehouse with optional grouping by fabric attributes
+ */
+export const getWarehouseShelves = async (req, res, next) => {
+  try {
+    const warehouseId = req.params.id;
+    const { groupBy, page, limit, search, sortBy, order } = req.query;
+    
+    const options = {
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 10,
+      search: search || '',
+      sortBy: sortBy || 'createdAt',
+      order: order || 'desc'
+    };
 
+    let result;
+    if (groupBy) {
+      const groupByFields = groupBy.split(',').map(f => f.trim());
+      result = await shelfService.getShelvesInWarehouseGroupedByFabric(warehouseId, groupByFields, options);
+    } else {
+      // Get simple shelf list for warehouse
+      result = await shelfService.getAllShelvesAdvanced(
+        buildQueryParams(req.query, {
+          filterFields: ['warehouseId'],
+          dateRangeConfig: {
+            fromField: 'createdFrom',
+            toField: 'createdTo',
+            targetField: 'createdAt'
+          }
+        }),
+        null
+      );
+    }
+
+    res.json({
+      message: groupBy ? 'Lấy danh sách kệ trong kho gom nhóm thành công' : 'Lấy danh sách kệ trong kho thành công',
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -13,9 +13,13 @@ export const getAllShelves = async (req, res, next) => {
       }
     });
 
-    const result = await shelfService.getAllShelvesAdvanced(queryParams);
+    // Support grouping by fabric attributes
+    const { groupBy } = req.query;
+    const groupByFields = groupBy ? (Array.isArray(groupBy) ? groupBy : groupBy.split(',').map(f => f.trim())) : null;
+
+    const result = await shelfService.getAllShelvesAdvanced(queryParams, groupByFields);
     res.json({
-      message: 'Lấy danh sách kệ thành công',
+      message: groupByFields ? 'Lấy danh sách kệ gom nhóm thành công' : 'Lấy danh sách kệ thành công',
       ...result
     });
   } catch (error) {

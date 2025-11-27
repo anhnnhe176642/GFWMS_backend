@@ -5,7 +5,8 @@ import {
   createWarehouse,
   updateWarehouse,
   deleteWarehouse,
-  getWarehouseFabrics
+  getWarehouseFabrics,
+  getWarehouseShelves
 } from '../../controllers/warehouse.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate} from '../../middlewares/validation.middleware.js';
@@ -16,6 +17,7 @@ import {
   warehouseIdSchema
 } from '../../validations/warehouse.validation.js';
 import { fabricQuerySchema } from '../../validations/fabric.validation.js';
+import { shelfQuerySchema } from '../../validations/shelf.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -158,6 +160,121 @@ router.get('/:id/fabrics',
   getWarehouseFabrics
 );
 
+/**
+ * @swagger
+ * /warehouses/{id}/shelves:
+ *   get:
+ *     summary: Lấy danh sách kệ trong kho với hỗ trợ gom nhóm theo vải
+ *     description: |
+ *       Lấy danh sách tất cả các kệ trong một kho cụ thể với các tùy chọn lọc, tìm kiếm, sắp xếp và gom nhóm theo thuộc tính vải.
+ *       Hỗ trợ GROUP BY theo categoryId, colorId, glossId, supplierId để hiển thị tổng số lượng vải có cùng thuộc tính trên các kệ.
+ *     tags: [Warehouses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của kho hàng
+ *         example: 1
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Trang hiện tại
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng bản ghi trên một trang
+ *         example: 10
+ *       - in: query
+ *         name: groupBy
+ *         schema:
+ *           type: string
+ *         description: |
+ *           Gom nhóm kết quả theo thuộc tính vải. Hỗ trợ các trường: categoryId, colorId, glossId, supplierId.
+ *           Có thể gom nhóm theo một hoặc nhiều trường cách nhau bởi dấu phẩy.
+ *           Ví dụ: "categoryId" hoặc "categoryId,colorId" hoặc "categoryId,colorId,glossId"
+ *         example: "categoryId,colorId"
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo mã kệ
+ *         example: "K001"
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Trường dùng để sắp xếp (id, code, currentQuantity, maxQuantity, createdAt, updatedAt)
+ *         example: "code"
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Thứ tự sắp xếp
+ *         example: "asc"
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách kệ trong kho thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách kệ trong kho thành công"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       currentQuantity:
+ *                         type: integer
+ *                       maxQuantity:
+ *                         type: integer
+ *                       warehouseId:
+ *                         type: integer
+ *                       totalQuantity:
+ *                         type: integer
+ *                         description: "Tổng số lượng vải trong gom nhóm (chỉ có khi sử dụng groupBy)"
+ *                       fabricGroup:
+ *                         type: object
+ *                         description: "Thông tin các thuộc tính vải được gom nhóm (chỉ có khi sử dụng groupBy)"
+ *                         properties:
+ *                           categoryId:
+ *                             type: string
+ *                           colorId:
+ *                             type: string
+ *                           glossId:
+ *                             type: integer
+ *                           supplierId:
+ *                             type: integer
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không có quyền truy cập
+ *       403:
+ *         description: Không có quyền xem danh sách kệ
+ *       500:
+ *         description: Lỗi server không mong muốn
+ */
+router.get('/:id/shelves',
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
+  validate(warehouseIdSchema, 'params'),
+  validate(shelfQuerySchema, 'query'),
+  getWarehouseShelves
+);
 
 /**
  * @swagger
