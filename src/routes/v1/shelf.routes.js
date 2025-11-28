@@ -163,39 +163,10 @@ router.use(authenticateToken);
  *                             id: "2"
  *                             name: "Cotton"
  *                           totalQuantity: 80
- *                           fabrics:
- *                             - id: 5
- *                               quantity: 30
- *                               thickness: 0.5
- *                               length: 100
- *                               width: 1.5
- *                               weight: 2.5
- *                               category:
- *                                 id: "2"
- *                                 name: "Cotton"
- *                             - id: 12
- *                               quantity: 50
- *                               thickness: 0.6
- *                               length: 120
- *                               width: 1.8
- *                               weight: 3.2
- *                               category:
- *                                 id: "2"
- *                                 name: "Cotton"
  *                         - category:
  *                             id: "3"
  *                             name: "Polyester"
  *                           totalQuantity: 70
- *                           fabrics:
- *                             - id: 15
- *                               quantity: 70
- *                               thickness: 0.7
- *                               length: 150
- *                               width: 2.0
- *                               weight: 4.0
- *                               category:
- *                                 id: "3"
- *                                 name: "Polyester"
  *                   pagination:
  *                     page: 1
  *                     limit: 10

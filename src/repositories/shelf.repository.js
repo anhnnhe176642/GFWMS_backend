@@ -215,10 +215,11 @@ export class ShelfRepository {
   }
 
   /**
-   * Helper method to format shelves with grouped fabrics
+   * Helper method to format shelves with grouped fabrics (compact format)
+   * Returns only group information + total quantity, without fabric details
    * @private
    */
-  #formatShelvesWithGroupedFabrics(shelves, groupByFields, total, page, take) {
+  #formatShelvesWithGroupedFabricsCompact(shelves, groupByFields, total, page, take) {
     const formattedData = shelves.map(shelf => {
       const fabricGroupsMap = new Map();
 
@@ -236,11 +237,10 @@ export class ShelfRepository {
 
         if (!fabricGroupsMap.has(groupKey)) {
           const groupObj = {
-            totalQuantity: 0,
-            fabrics: []
+            totalQuantity: 0
           };
 
-          // Add fabric group attributes
+          // Add fabric group attributes only
           groupByFields.forEach(field => {
             if (field === 'categoryId') groupObj.category = fs.fabric.category;
             if (field === 'colorId') groupObj.color = fs.fabric.color;
@@ -253,18 +253,6 @@ export class ShelfRepository {
 
         const group = fabricGroupsMap.get(groupKey);
         group.totalQuantity += fs.quantity;
-        group.fabrics.push({
-          id: fs.fabric.id,
-          quantity: fs.quantity,
-          thickness: fs.fabric.thickness,
-          length: fs.fabric.length,
-          width: fs.fabric.width,
-          weight: fs.fabric.weight,
-          gloss: fs.fabric.gloss,
-          category: fs.fabric.category,
-          color: fs.fabric.color,
-          supplier: fs.fabric.supplier
-        });
       });
 
       return {
@@ -382,7 +370,7 @@ export class ShelfRepository {
         prisma.shelf.count({ where })
       ]);
 
-      return this.#formatShelvesWithGroupedFabrics(shelves, groupByFields, total, page, take);
+      return this.#formatShelvesWithGroupedFabricsCompact(shelves, groupByFields, total, page, take);
     } catch (error) {
       console.error('Error in getShelvesGroupedByFabric:', error);
       throw error;
