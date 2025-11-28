@@ -5,7 +5,7 @@ import { buildQueryParams } from '../utils/filter-builder.js';
 export const getAllShelves = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
-      filterFields: ['warehouseId'], 
+      filterFields: ['warehouseId', 'fabricId'], 
       dateRangeConfig: {
         fromField: 'createdFrom',
         toField: 'createdTo',

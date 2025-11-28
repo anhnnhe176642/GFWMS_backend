@@ -67,6 +67,16 @@ export const updateShelfSchema = Joi.object({
 const allowedShelfSortFields = ['id', 'code', 'currentQuantity', 'maxQuantity', 'warehouseId', 'createdAt', 'updatedAt'];
 
 // Fabric filter schemas
+export const fabricIdSchema = createMultiValueFilterSchema(
+  Joi.number()
+    .integer()
+    .messages({
+      'number.base': 'ID vải phải là số',
+      'number.integer': 'ID vải phải là số nguyên'
+    }),
+  'ID vải'
+);
+
 export const fabricCategoryIdSchema = Joi.string()
   .optional()
   .messages({
@@ -119,6 +129,7 @@ export const groupBySchema = Joi.string()
 
 export const shelfQuerySchema = querySchema.keys({
   warehouseId: createMultiValueFilterSchema(warehouseIdSchemaForShelf, 'ID kho'),
+  fabricId: fabricIdSchema,
   sortBy: createSortBySchema(allowedShelfSortFields),
   order: sortOrderSchema,
   createdFrom: dateFromSchema,
@@ -136,19 +147,12 @@ export const getShelfFabricGroupSchema = querySchema.keys({
 });
 
 export const shelfIdSchema = Joi.object({
-  id: Joi.string()
+  id: Joi.number()
+    .integer()
     .required()
-    .custom((value, helpers) => {
-      if (value === '{id}' || value === '' || !value) {
-        return helpers.error('any.required');
-      }
-      if (!/^\d+$/.test(value)) {
-        return helpers.error('string.pattern.base');
-      }
-      return value;
-    })
     .messages({
       'any.required': 'ID kệ là bắt buộc',
-      'string.pattern.base': 'ID kệ phải là số nguyên dương'
+      'number.base': 'ID kệ phải là số',
+      'number.integer': 'ID kệ phải là số nguyên'
     })
 });

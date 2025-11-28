@@ -107,11 +107,25 @@ export class ShelfRepository {
       filters = {}
     } = queryOptions;
 
+    // Extract fabricId filter before passing to buildWhereClause
+    const { fabricId, ...otherFilters } = filters;
+
     const searchableFields = ['code'];
     const where = buildWhereClause(
-      { search, ...filters },
+      { search, ...otherFilters },
       searchableFields
     );
+
+    // Add fabricId filter if provided
+    if (fabricId && fabricId.length > 0) {
+      where.fabricShelf = {
+        some: {
+          fabricId: {
+            in: fabricId.map(id => parseInt(id))
+          }
+        }
+      };
+    }
 
     const { skip, take } = buildPagination(page, limit);
     const orderBy = buildSort(sortBy, order);
@@ -201,10 +215,84 @@ export class ShelfRepository {
   }
 
   /**
+   * Helper method to format shelves with grouped fabrics
+   * @private
+   */
+  #formatShelvesWithGroupedFabrics(shelves, groupByFields, total, page, take) {
+    const formattedData = shelves.map(shelf => {
+      const fabricGroupsMap = new Map();
+
+      shelf.fabricShelf.forEach(fs => {
+        // Create group key from fabric attributes
+        const groupKey = groupByFields
+          .map(field => {
+            if (field === 'categoryId') return `categoryId:${fs.fabric.category?.id || 'null'}`;
+            if (field === 'colorId') return `colorId:${fs.fabric.color?.id || 'null'}`;
+            if (field === 'glossId') return `glossId:${fs.fabric.gloss?.id || 'null'}`;
+            if (field === 'supplierId') return `supplierId:${fs.fabric.supplier?.id || 'null'}`;
+            return '';
+          })
+          .join('|');
+
+        if (!fabricGroupsMap.has(groupKey)) {
+          const groupObj = {
+            totalQuantity: 0,
+            fabrics: []
+          };
+
+          // Add fabric group attributes
+          groupByFields.forEach(field => {
+            if (field === 'categoryId') groupObj.category = fs.fabric.category;
+            if (field === 'colorId') groupObj.color = fs.fabric.color;
+            if (field === 'glossId') groupObj.gloss = fs.fabric.gloss;
+            if (field === 'supplierId') groupObj.supplier = fs.fabric.supplier;
+          });
+
+          fabricGroupsMap.set(groupKey, groupObj);
+        }
+
+        const group = fabricGroupsMap.get(groupKey);
+        group.totalQuantity += fs.quantity;
+        group.fabrics.push({
+          id: fs.fabric.id,
+          quantity: fs.quantity,
+          thickness: fs.fabric.thickness,
+          length: fs.fabric.length,
+          width: fs.fabric.width,
+          weight: fs.fabric.weight,
+          gloss: fs.fabric.gloss,
+          category: fs.fabric.category,
+          color: fs.fabric.color,
+          supplier: fs.fabric.supplier
+        });
+      });
+
+      return {
+        id: shelf.id,
+        code: shelf.code,
+        currentQuantity: shelf.currentQuantity,
+        maxQuantity: shelf.maxQuantity,
+        warehouseId: shelf.warehouseId,
+        createdAt: shelf.createdAt,
+        updatedAt: shelf.updatedAt,
+        fabricGroups: Array.from(fabricGroupsMap.values())
+      };
+    });
+
+    return {
+      data: formattedData,
+      pagination: { page, limit: take, total, totalPages: Math.ceil(total / take) }
+    };
+  }
+
+  /**
    * Get shelves grouped by fabric attributes
    * Trả về kệ + vải được gom nhóm theo thuộc tính + thông tin vải chi tiết
+   * @param {Object} queryOptions - Query options (page, limit, search, sortBy, order, filters)
+   * @param {Array<string>} groupByFields - Fields to group by (categoryId, colorId, glossId, supplierId)
+   * @param {number|null} warehouseId - Optional warehouse ID filter
    */
-  async getShelvesGroupedByFabric(queryOptions = {}, groupByFields = []) {
+  async getShelvesGroupedByFabric(queryOptions = {}, groupByFields = [], warehouseId = null) {
     try {
       const { 
         page = 1, 
@@ -215,16 +303,33 @@ export class ShelfRepository {
         filters = {}
       } = queryOptions;
 
+      // Extract fabricId filter before passing to buildWhereClause
+      const { fabricId, ...otherFilters } = filters;
+
       const searchableFields = ['code'];
-      const where = buildWhereClause(
-        { search, ...filters },
-        searchableFields
-      );
+      let filterParams = { search, ...otherFilters };
+      
+      // Add warehouseId filter if provided
+      if (warehouseId) {
+        filterParams.warehouseId = parseInt(warehouseId);
+      }
+
+      const where = buildWhereClause(filterParams, searchableFields);
+
+      // Add fabricId filter if provided (must be handled separately due to relationship)
+      if (fabricId && fabricId.length > 0) {
+        where.fabricShelf = {
+          some: {
+            fabricId: {
+              in: fabricId.map(id => parseInt(id))
+            }
+          }
+        };
+      }
 
       const { skip, take } = buildPagination(page, limit);
       const orderBy = buildSort(sortBy, order);
 
-      // Get all shelves matching the criteria
       const [shelves, total] = await Promise.all([
         prisma.shelf.findMany({
           where,
@@ -277,72 +382,7 @@ export class ShelfRepository {
         prisma.shelf.count({ where })
       ]);
 
-      // Group fabrics by the specified fields
-      const formattedData = shelves.map(shelf => {
-        // Create fabric groups
-        const fabricGroupsMap = new Map();
-
-        shelf.fabricShelf.forEach(fs => {
-          // Create group key from fabric attributes
-          const groupKey = groupByFields
-            .map(field => {
-              if (field === 'categoryId') return `categoryId:${fs.fabric.category?.id || 'null'}`;
-              if (field === 'colorId') return `colorId:${fs.fabric.color?.id || 'null'}`;
-              if (field === 'glossId') return `glossId:${fs.fabric.gloss?.id || 'null'}`;
-              if (field === 'supplierId') return `supplierId:${fs.fabric.supplier?.id || 'null'}`;
-              return '';
-            })
-            .join('|');
-
-          if (!fabricGroupsMap.has(groupKey)) {
-            const groupObj = {
-              totalQuantity: 0,
-              fabrics: []
-            };
-
-            // Add fabric group attributes
-            groupByFields.forEach(field => {
-              if (field === 'categoryId') groupObj.category = fs.fabric.category;
-              if (field === 'colorId') groupObj.color = fs.fabric.color;
-              if (field === 'glossId') groupObj.gloss = fs.fabric.gloss;
-              if (field === 'supplierId') groupObj.supplier = fs.fabric.supplier;
-            });
-
-            fabricGroupsMap.set(groupKey, groupObj);
-          }
-
-          const group = fabricGroupsMap.get(groupKey);
-          group.totalQuantity += fs.quantity;
-          group.fabrics.push({
-            id: fs.fabric.id,
-            quantity: fs.quantity,
-            thickness: fs.fabric.thickness,
-            length: fs.fabric.length,
-            width: fs.fabric.width,
-            weight: fs.fabric.weight,
-            gloss: fs.fabric.gloss,
-            category: fs.fabric.category,
-            color: fs.fabric.color,
-            supplier: fs.fabric.supplier
-          });
-        });
-
-        return {
-          id: shelf.id,
-          code: shelf.code,
-          currentQuantity: shelf.currentQuantity,
-          maxQuantity: shelf.maxQuantity,
-          warehouseId: shelf.warehouseId,
-          createdAt: shelf.createdAt,
-          updatedAt: shelf.updatedAt,
-          fabricGroups: Array.from(fabricGroupsMap.values())
-        };
-      });
-
-      return {
-        data: formattedData,
-        pagination: { page, limit, total, totalPages: Math.ceil(total / take) }
-      };
+      return this.#formatShelvesWithGroupedFabrics(shelves, groupByFields, total, page, take);
     } catch (error) {
       console.error('Error in getShelvesGroupedByFabric:', error);
       throw error;
@@ -350,154 +390,15 @@ export class ShelfRepository {
   }
 
   /**
-   * Get shelves in a warehouse grouped by fabric attributes
+   * Get shelves in a warehouse grouped by fabric attributes 
    * Trả về kệ + vải được gom nhóm theo thuộc tính + thông tin vải chi tiết
    * @param {number} warehouseId - ID của kho
    * @param {Array<string>} groupByFields - Fields to group by
    * @param {Object} options - Query options (page, limit, search, etc)
+   * @deprecated Use getShelvesGroupedByFabric with warehouseId parameter instead
    */
   async getShelvesInWarehouseGroupedByFabric(warehouseId, groupByFields = [], options = {}) {
-    try {
-      const {
-        page = 1,
-        limit = 10,
-        search = '',
-        sortBy = 'createdAt',
-        order = 'desc'
-      } = options;
-
-      const searchableFields = ['code'];
-      const where = buildWhereClause(
-        { search, warehouseId: parseInt(warehouseId) },
-        searchableFields
-      );
-
-      const { skip, take } = buildPagination(page, limit);
-      const orderBy = buildSort(sortBy, order);
-
-      // Get all shelves in this warehouse
-      const [shelves, total] = await Promise.all([
-        prisma.shelf.findMany({
-          where,
-          skip,
-          take,
-          select: {
-            ...this.#shelfSelectOptions,
-            fabricShelf: {
-              select: {
-                fabricId: true,
-                quantity: true,
-                fabric: {
-                  select: {
-                    id: true,
-                    thickness: true,
-                    length: true,
-                    width: true,
-                    weight: true,
-                    gloss: {
-                      select: {
-                        id: true,
-                        description: true
-                      }
-                    },
-                    category: {
-                      select: {
-                        id: true,
-                        name: true,
-                      }
-                    },
-                    color: {
-                      select: {
-                        id: true,
-                        name: true
-                      }
-                    },
-                    supplier: {
-                      select: {
-                        id: true,
-                        name: true,
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          orderBy
-        }),
-        prisma.shelf.count({ where })
-      ]);
-
-      // Group fabrics by the specified fields
-      const formattedData = shelves.map(shelf => {
-        // Create fabric groups
-        const fabricGroupsMap = new Map();
-
-        shelf.fabricShelf.forEach(fs => {
-          // Create group key from fabric attributes
-          const groupKey = groupByFields
-            .map(field => {
-              if (field === 'categoryId') return `categoryId:${fs.fabric.category?.id || 'null'}`;
-              if (field === 'colorId') return `colorId:${fs.fabric.color?.id || 'null'}`;
-              if (field === 'glossId') return `glossId:${fs.fabric.gloss?.id || 'null'}`;
-              if (field === 'supplierId') return `supplierId:${fs.fabric.supplier?.id || 'null'}`;
-              return '';
-            })
-            .join('|');
-
-          if (!fabricGroupsMap.has(groupKey)) {
-            const groupObj = {
-              totalQuantity: 0,
-              fabrics: []
-            };
-
-            // Add fabric group attributes
-            groupByFields.forEach(field => {
-              if (field === 'categoryId') groupObj.category = fs.fabric.category;
-              if (field === 'colorId') groupObj.color = fs.fabric.color;
-              if (field === 'glossId') groupObj.gloss = fs.fabric.gloss;
-              if (field === 'supplierId') groupObj.supplier = fs.fabric.supplier;
-            });
-
-            fabricGroupsMap.set(groupKey, groupObj);
-          }
-
-          const group = fabricGroupsMap.get(groupKey);
-          group.totalQuantity += fs.quantity;
-          group.fabrics.push({
-            id: fs.fabric.id,
-            quantity: fs.quantity,
-            thickness: fs.fabric.thickness,
-            length: fs.fabric.length,
-            width: fs.fabric.width,
-            weight: fs.fabric.weight,
-            gloss: fs.fabric.gloss,
-            category: fs.fabric.category,
-            color: fs.fabric.color,
-            supplier: fs.fabric.supplier
-          });
-        });
-
-        return {
-          id: shelf.id,
-          code: shelf.code,
-          currentQuantity: shelf.currentQuantity,
-          maxQuantity: shelf.maxQuantity,
-          warehouseId: shelf.warehouseId,
-          createdAt: shelf.createdAt,
-          updatedAt: shelf.updatedAt,
-          fabricGroups: Array.from(fabricGroupsMap.values())
-        };
-      });
-
-      return {
-        data: formattedData,
-        pagination: { page, limit, total, totalPages: Math.ceil(total / take) }
-      };
-    } catch (error) {
-      console.error('Error in getShelvesInWarehouseGroupedByFabric:', error);
-      throw error;
-    }
+    return await this.getShelvesGroupedByFabric(options, groupByFields, warehouseId);
   }
 
 }
