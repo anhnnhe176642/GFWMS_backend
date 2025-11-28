@@ -8,8 +8,9 @@ import { fileURLToPath } from 'url';
 import apiV1Routes from './routes/api.v1.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
-import { startCancelExpiredOrdersJob } from './jobs/cancel-expired-orders.job.js';
-
+import { cancelExpiredOrders } from './jobs/payment-expiration.job.js';
+import { reconcilePendingPayments } from './jobs/payment-reconciliation.job.js';
+import cron from 'node-cron';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,8 +46,19 @@ app.use(notFound);
 // Error handler
 app.use(errorHandler);
 
+
 if (process.env.NODE_ENV !== 'test') {
-  startCancelExpiredOrdersJob();
+  if (process.env.ENABLE_CRON === 'true') {
+    // Cancel expired orders + check PayOS - Mỗi phút
+    cron.schedule('* * * * *', () => {
+      cancelExpiredOrders();
+    });
+    
+    // Reconciliation - Mỗi 5 phút
+    cron.schedule('*/5 * * * *', () => {
+      reconcilePendingPayments();
+    });
+  }
 }
 
 export default app;
