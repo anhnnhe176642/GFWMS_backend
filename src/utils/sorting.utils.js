@@ -199,8 +199,3 @@ export function fitLineFromStats(stats) {
   const norm = Math.hypot(dirX, dirY) || 1;
   return { meanX, meanY, dirX: dirX / norm, dirY: dirY / norm };
 }
-
-// Backwards-compatible aliases for older import names
-// TODO: remove these aliases once callers are migrated to the new function names.
-export const nearestNeighborSortFromCenter = pcaRowSortFromCenter; // deprecated
-export const nearestNeighborSortFromItems = pcaRowSortFromItems; // deprecated
