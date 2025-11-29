@@ -69,6 +69,20 @@ export function nearestNeighborSortFromCenter(points, tolerancePercentage = 0.5)
 }
 
 /**
+ * Convenience wrapper: accept original item objects and a function to extract centers
+ * and return the original items sorted with `row` and `rowline` attached.
+ * This removes the need to map to centers in the controller.
+ * @param {Array<Object>} items - Original objects (e.g., detections)
+ * @param {number} tolerancePercentage
+ */
+export function nearestNeighborSortFromItems(items, tolerancePercentage = 0.5) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const centers = items.map((item, i) => ({ ...getDetectionCenter(item), originalIndex: i }));
+  const sortedCenters = nearestNeighborSortFromCenter(centers, tolerancePercentage);
+  return sortedCenters.map(c => ({ ...items[c.originalIndex], row: c.row, rowline: c.rowline }));
+}
+
+/**
  * Trích xuất tọa độ tâm và kích thước từ đối tượng detection
  * @param {Object} detection - Đối tượng detection có center hoặc bbox và dimensions
  * @returns {Object} - Tọa độ tâm {x, y, width, height}

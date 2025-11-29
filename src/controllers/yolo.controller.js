@@ -1,8 +1,7 @@
 import yoloService from '../services/yolo.service.js';
 import { AppError } from '../utils/errors.js';
 import {
-  nearestNeighborSortFromCenter,
-  getDetectionCenter
+  nearestNeighborSortFromItems,
 } from '../utils/sorting.utils.js';
 
 /**
@@ -29,20 +28,8 @@ export const detectObjects = async (req, res, next) => {
     // Sắp xếp các detection theo hàng dựa vào kích thước detection
     let sortedDetections = result.detections;
     if (sortedDetections && sortedDetections.length > 0) {
-      const centers = sortedDetections.map((detection, idx) => ({
-        ...getDetectionCenter(detection),
-        originalIndex: idx
-      }));
-      
-      // Dung sai được tính tự động dựa vào chiều cao của mỗi detection (50% mặc định)
-      const sortedCenters = nearestNeighborSortFromCenter(centers);
-      
-      // Sắp xếp các detection theo thứ tự mới và thêm chỉ số hàng
-      sortedDetections = sortedCenters.map(centerWithRow => ({
-        ...result.detections[centerWithRow.originalIndex],
-        row: centerWithRow.row,
-        rowline: centerWithRow.rowline
-      }));
+      // Dùng helper để sắp xếp và gắn trực tiếp row/rowline vào các detection
+      sortedDetections = nearestNeighborSortFromItems(sortedDetections, 0.5);
     }
 
     // Định dạng response
