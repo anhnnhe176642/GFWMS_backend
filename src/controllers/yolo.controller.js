@@ -40,7 +40,8 @@ export const detectObjects = async (req, res, next) => {
       // Sắp xếp các detection theo thứ tự mới và thêm chỉ số hàng
       sortedDetections = sortedCenters.map(centerWithRow => ({
         ...result.detections[centerWithRow.originalIndex],
-        row: centerWithRow.row
+        row: centerWithRow.row,
+        rowline: centerWithRow.rowline
       }));
     }
 
