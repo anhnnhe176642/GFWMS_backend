@@ -1,17 +1,17 @@
 /**
- * Sắp xếp các điểm theo hàng (y-coordinate), sau đó theo thứ tự trái sang phải
- * Ưu tiên các object nằm trên cùng một hàng ngang, với dung sai cho các sai lệch nhỏ
- * Thay vì dùng trung bình y để gom hàng, hàm hiện tại fit 1 đường thẳng trên mỗi row
- * và dùng khoảng cách vuông góc từ điểm candidate tới đường để quyết định membership.
- * @param {Array<Object>} points - Mảng các điểm có tọa độ {x, y, width, height}
- * @param {number} tolerancePercentage - Phần trăm chiều cao detection dùng làm dung sai (mặc định: 0.5 = 50%)
+ * Sắp xếp các điểm theo hàng (row) bằng cách fit một đường thẳng cho mỗi hàng
+ * sử dụng PCA (principal component analysis) rồi gán membership dựa vào khoảng
+ * cách vuông góc từ điểm ứng viên tới đường thẳng hàng.
+ *
+ * @param {Array<Object>} points - Mảng các tâm {x, y, width, height}
+ * @param {number} tolerancePercentage - Phần trăm chiều của detection dùng làm dung sai (mặc định: 0.5 = 50%)
  * @returns {Array<Object>} - Mảng các điểm đã sắp xếp với chỉ số hàng và `rowline` mỗi phần tử
  */
-export function nearestNeighborSortFromCenter(points, tolerancePercentage = 0.5) {
+export function pcaRowSortFromCenter(points, tolerancePercentage = 0.5) {
   if (points.length === 0) return [];
   if (points.length === 1) return [{ ...points[0], row: 1, rowline: fitLinePCA([points[0]]) }];
 
-  // Nhóm các điểm theo hàng (y-coordinate) với dung sai dựa trên chiều cao của detection
+  // sắp xếp các điểm theo hàng dọc (y-coordinate) 
   const rows = [];
   const sorted = [...points].sort((a, b) => a.y - b.y);
 
@@ -24,18 +24,9 @@ export function nearestNeighborSortFromCenter(points, tolerancePercentage = 0.5)
     // Tính tolerance dựa trên chiều cao của điểm candidate (sorted[i])
     const rowTolerance = Math.min(sorted[i].height,sorted[i].width) * tolerancePercentage;
 
-    // Nếu có >= 2 điểm trong currentRow thì fit 1 đường thẳng tốt nhất (PCA)
-    // và tính khoảng cách vuông góc từ điểm candidate tới đường thẳng đó.
-    let belongsToRow;
-    if (currentRowStats.n >= 2) {
-      const { meanX, meanY, dirX, dirY } = fitLineFromStats(currentRowStats);
-      const dist = distancePointToLine({ x: sorted[i].x, y: sorted[i].y }, { x: meanX, y: meanY }, { x: dirX, y: dirY });
-      belongsToRow = dist <= rowTolerance;
-    } else {
-      // fallback: dùng khoảng cách theo y nếu hàng có 1 phần tử
-      const yDiff = Math.abs(sorted[i].y - currentRow[0].y);
-      belongsToRow = yDiff <= rowTolerance;
-    }
+    const { meanX, meanY, dirX, dirY } = fitLineFromStats(currentRowStats);
+    const dist = distancePointToLine({ x: sorted[i].x, y: sorted[i].y }, { x: meanX, y: meanY }, { x: dirX, y: dirY });
+    const belongsToRow = dist <= rowTolerance;
 
       if (belongsToRow) {
       // Thêm vào hàng hiện tại
@@ -49,9 +40,8 @@ export function nearestNeighborSortFromCenter(points, tolerancePercentage = 0.5)
       const lineForRow = fitLineFromStats(currentRowStats);
       rows.push(...currentRow.map(p => ({ ...p, row: rowIndex, rowline: { row: rowIndex, ...lineForRow } })));
       rowIndex++;
-      // Khi bắt đầu row mới
+      // bắt đầu row mới
       currentRow = [sorted[i]];
-      // no global avgHeight to reset
       currentRowStats = createStatsFromPoint(sorted[i]);
     }
   }
@@ -75,10 +65,16 @@ export function nearestNeighborSortFromCenter(points, tolerancePercentage = 0.5)
  * @param {Array<Object>} items - Original objects (e.g., detections)
  * @param {number} tolerancePercentage
  */
-export function nearestNeighborSortFromItems(items, tolerancePercentage = 0.5) {
+/**
+ * Convenience wrapper: nhận các item gốc (ví dụ detections), trích tâm, và
+ * trả về các item đã được sắp xếp theo hàng bằng PCA và gắn thêm `row` và `rowline`.
+ * @param {Array<Object>} items - Các đối tượng phát hiện (detections)
+ * @param {number} tolerancePercentage
+ */
+export function pcaRowSortFromItems(items, tolerancePercentage = 0.5) {
   if (!Array.isArray(items) || items.length === 0) return [];
   const centers = items.map((item, i) => ({ ...getDetectionCenter(item), originalIndex: i }));
-  const sortedCenters = nearestNeighborSortFromCenter(centers, tolerancePercentage);
+  const sortedCenters = pcaRowSortFromCenter(centers, tolerancePercentage);
   return sortedCenters.map(c => ({ ...items[c.originalIndex], row: c.row, rowline: c.rowline }));
 }
 
@@ -203,3 +199,8 @@ export function fitLineFromStats(stats) {
   const norm = Math.hypot(dirX, dirY) || 1;
   return { meanX, meanY, dirX: dirX / norm, dirY: dirY / norm };
 }
+
+// Backwards-compatible aliases for older import names
+// TODO: remove these aliases once callers are migrated to the new function names.
+export const nearestNeighborSortFromCenter = pcaRowSortFromCenter; // deprecated
+export const nearestNeighborSortFromItems = pcaRowSortFromItems; // deprecated

@@ -1,7 +1,7 @@
 import yoloService from '../services/yolo.service.js';
 import { AppError } from '../utils/errors.js';
 import {
-  nearestNeighborSortFromItems,
+  pcaRowSortFromItems,
 } from '../utils/sorting.utils.js';
 
 /**
@@ -28,8 +28,8 @@ export const detectObjects = async (req, res, next) => {
     // Sắp xếp các detection theo hàng dựa vào kích thước detection
     let sortedDetections = result.detections;
     if (sortedDetections && sortedDetections.length > 0) {
-      // Dùng helper để sắp xếp và gắn trực tiếp row/rowline vào các detection
-      sortedDetections = nearestNeighborSortFromItems(sortedDetections, 0.5);
+      // Dùng helper PCA để sắp xếp theo hàng và gắn trực tiếp row/rowline vào các detection
+      sortedDetections = pcaRowSortFromItems(sortedDetections, 0.5);
     }
 
     // Định dạng response
