@@ -27,7 +27,7 @@ export function pcaRowSortFromCenter(points, tolerancePercentage = 0.5) {
     const { meanX, meanY, dirX, dirY } = fitLineFromStats(currentRowStats);
     const dist = distancePointToLine({ x: sorted[i].x, y: sorted[i].y }, { x: meanX, y: meanY }, { x: dirX, y: dirY });
     const belongsToRow = dist <= rowTolerance;
-
+      //console.log(`Point ${i} at (${sorted[i].x.toFixed(1)},${sorted[i].y.toFixed(1)}) dist to row ${rowIndex} line = ${dist.toFixed(2)} (tolerance ${rowTolerance.toFixed(2)}) => ${belongsToRow ? 'belongs' : 'new row'}`);
       if (belongsToRow) {
       // Thêm vào hàng hiện tại
       currentRow.push(sorted[i]);
