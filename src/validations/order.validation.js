@@ -103,12 +103,7 @@ export const createOfflineOrderSchema = Joi.object({
     })
 });
 
-// SIMULATE PAYMENT (for testing)
-export const simulatePaymentSchema = Joi.object({
-  success: Joi.boolean().default(true).messages({
-    'boolean.base': 'success phải là true hoặc false'
-  })
-});
+
 
 //order id
 export const orderIdParamSchema = Joi.object({

@@ -25,6 +25,7 @@
   "type": "module",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "@payos/node": "^1.0.10",
     "@prisma/client": "^6.17.0",
     "archiver": "^7.0.1",
     "bcryptjs": "^3.0.2",
@@ -40,6 +41,7 @@
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.9",
+    "qrcode": "^1.5.4",
     "sharp": "^0.34.5",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

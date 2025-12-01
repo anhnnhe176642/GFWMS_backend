@@ -1,7 +1,6 @@
 import express from 'express';
 import {
   createOrder,
-  simulatePayment,
   createOfflineOrder,
   checkCustomerCredit,
   getAllOrders,       
@@ -12,7 +11,6 @@ import { authenticateToken, requirePermission } from '../../middlewares/auth.mid
 import { validate } from '../../middlewares/validation.middleware.js';
 import {
   createOrderSchema,
-  simulatePaymentSchema,
   createOfflineOrderSchema,
   orderIdParamSchema,
   getAllOrdersQuerySchema,   
@@ -293,82 +291,6 @@ router.get('/my',
   getMyOrders
 );
 
-/**
- * @swagger
- * /orders/{orderId}/simulate-payment:
- *   post:
- *     summary: Giả lập thanh toán (để test)
- *     description: API giả lập để test thanh toán, thay thế payment gateway
- *     tags: [Orders]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: orderId
- *         required: true
- *         schema:
- *         description: ID đơn hàng cần thanh toán
- *         example: "1"
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               success:
- *                 type: boolean
- *                 default: true
- *                 description: true = thanh toán thành công, false = thất bại
- *           examples:
- *             success:
- *               summary: Thanh toán thành công
- *               value:
- *                 success: true
- *             failed:
- *               summary: Thanh toán thất bại
- *               value:
- *                 success: false
- *     responses:
- *       200:
- *         description: Giả lập thanh toán thành công
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example:  Giả lập thanh toán thành công
- *                 data:
- *                   $ref: '#/components/schemas/Order'
- *       400:
- *         description: Đơn hàng không hợp lệ hoặc quá hạn
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Giả lập thanh toán thất bại
- *                 data:
- *                   type: object
- *                   properties:
- *                     orderId:
- *                       type: integer
- *                     status:
- *                       type: string
- *                       example: FAILED
- *       404:
- *         $ref: '#/components/responses/NotFound'
- */
-router.post(
-  '/:orderId/simulate-payment',
-  authenticateToken,
-  validate(orderIdParamSchema, 'params'),
-  validate(simulatePaymentSchema),
-  simulatePayment
-);
 
 /**
  * @swagger

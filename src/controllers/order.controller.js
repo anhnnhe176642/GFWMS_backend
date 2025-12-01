@@ -21,7 +21,7 @@ export const createOrder = async (req, res, next) => {
           deadline: order.paymentDeadline,
           testPayment: {
             method: 'POST',
-            url: `/api/v1/orders/${order.id}/simulate-payment`,
+            url: `/api/v1/orders/${order.id}/payment/qr-code`,
             body: { success: true }
           }
         }
