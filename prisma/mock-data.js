@@ -9,6 +9,289 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 
+// =============================================
+// VIETNAMESE DATA ARRAYS
+// =============================================
+
+// Họ người Việt
+const hoViet = [
+  'Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng',
+  'Bùi', 'Đỗ', 'Hồ', 'Ngô', 'Dương', 'Lý', 'Đinh', 'Trịnh', 'Mai', 'Tô',
+  'Lương', 'Châu', 'Tăng', 'Đoàn', 'Lâm', 'Hà', 'Cao', 'Thái', 'Kiều', 'Quách'
+];
+
+// Tên đệm người Việt
+const tenDem = [
+  'Văn', 'Thị', 'Hữu', 'Đức', 'Minh', 'Quốc', 'Thanh', 'Ngọc', 'Hoàng', 'Kim',
+  'Xuân', 'Thu', 'Hà', 'Phương', 'Anh', 'Bảo', 'Gia', 'Hải', 'Thiên', 'Tường'
+];
+
+// Tên người Việt
+const tenViet = [
+  'An', 'Bình', 'Cường', 'Dũng', 'Em', 'Phúc', 'Giang', 'Hạnh', 'Hùng', 'Kiên',
+  'Lan', 'Long', 'Mai', 'Nam', 'Oanh', 'Phong', 'Quang', 'Sơn', 'Tâm', 'Trung',
+  'Tú', 'Uyên', 'Việt', 'Xuân', 'Yến', 'Hoa', 'Linh', 'Thảo', 'Hiếu', 'Đạt',
+  'Tuấn', 'Hưng', 'Duy', 'Khoa', 'Thành', 'Nhung', 'Hương', 'Trang', 'Nhật', 'Khánh'
+];
+
+// Tên đường
+const tenDuong = [
+  'Nguyễn Huệ', 'Lê Lợi', 'Trần Hưng Đạo', 'Hai Bà Trưng', 'Lý Thường Kiệt',
+  'Đinh Tiên Hoàng', 'Ngô Quyền', 'Quang Trung', 'Lê Đại Hành', 'Trần Phú',
+  'Nguyễn Trãi', 'Lê Văn Sỹ', 'Cách Mạng Tháng 8', 'Võ Văn Tần', 'Nam Kỳ Khởi Nghĩa',
+  'Pasteur', 'Nguyễn Thị Minh Khai', 'Điện Biên Phủ', 'Nguyễn Văn Trỗi', 'Phan Xích Long',
+  'Hoàng Văn Thụ', 'Cộng Hòa', 'Trường Chinh', 'Lạc Long Quân', 'Âu Cơ',
+  'Tô Hiến Thành', 'Ba Tháng Hai', 'Lý Tự Trọng', 'Phạm Ngũ Lão', 'Bùi Viện'
+];
+
+// Tên quận/huyện
+const tenQuan = [
+  'Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8',
+  'Quận 9', 'Quận 10', 'Quận 11', 'Quận 12', 'Quận Bình Thạnh', 'Quận Gò Vấp',
+  'Quận Tân Bình', 'Quận Tân Phú', 'Quận Phú Nhuận', 'Quận Thủ Đức',
+  'Quận Hoàn Kiếm', 'Quận Ba Đình', 'Quận Đống Đa', 'Quận Cầu Giấy',
+  'Quận Thanh Xuân', 'Quận Hai Bà Trưng', 'Quận Long Biên', 'Quận Hà Đông',
+  'Quận Hải Châu', 'Quận Thanh Khê', 'Quận Sơn Trà', 'Quận Ngũ Hành Sơn'
+];
+
+// Tên thành phố
+const tenThanhPho = [
+  'TP. Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ',
+  'Biên Hòa', 'Nha Trang', 'Huế', 'Buôn Ma Thuột', 'Quy Nhơn',
+  'Vũng Tàu', 'Thái Nguyên', 'Nam Định', 'Thanh Hóa', 'Vinh',
+  'Đà Lạt', 'Phan Thiết', 'Rạch Giá', 'Long Xuyên', 'Mỹ Tho'
+];
+
+// Tên công ty vải
+const tenCongTyVai = [
+  'Dệt May Việt Tiến', 'Vải Phong Phú', 'Dệt Thành Công', 'Vải Đông Á', 'Dệt Nam Định',
+  'Vải Hòa Thọ', 'Dệt Việt Thắng', 'Vải Sài Gòn', 'Dệt An Phước', 'Vải Bình Minh',
+  'Dệt May 10', 'Vải Việt Nam', 'Dệt Đông Xuân', 'Vải Hà Nội', 'Dệt Nhà Bè',
+  'Vải Thiên Long', 'Dệt Phước Long', 'Vải Tân Tiến', 'Dệt Minh Hưng', 'Vải Kim Cương'
+];
+
+// Loại hình công ty
+const loaiCongTy = ['TNHH', 'Cổ Phần', 'Tư Nhân', 'Liên Doanh', 'Xuất Nhập Khẩu'];
+
+// Tên loại vải tiếng Việt
+const tenLoaiVai = [
+  'Vải Cotton', 'Vải Lụa', 'Vải Polyester', 'Vải Kaki', 'Vải Denim',
+  'Vải Len', 'Vải Kate', 'Vải Thun', 'Vải Linen', 'Vải Nhung',
+  'Vải Chiffon', 'Vải Ren', 'Vải Satin', 'Vải Tweed', 'Vải Velvet',
+  'Vải Organza', 'Vải Taffeta', 'Vải Crepe', 'Vải Jersey', 'Vải Flannel',
+  'Vải Canvas', 'Vải Corduroy', 'Vải Chambray', 'Vải Oxford', 'Vải Poplin',
+  'Vải Voile', 'Vải Tulle', 'Vải Brocade', 'Vải Jacquard', 'Vải Fleece',
+  'Vải Nỉ', 'Vải Cotton Pha', 'Vải Kẻ Sọc', 'Vải Caro', 'Vải Hoa',
+  'Vải Trơn', 'Vải In Họa Tiết', 'Vải Dệt Kim', 'Vải Dệt Thoi', 'Vải Tơ Tằm'
+];
+
+// Đặc điểm vải
+const dacDiemVai = [
+  'Cao cấp', 'Mềm mịn', 'Thoáng mát', 'Co giãn', 'Chống nhăn',
+  'Thấm hút tốt', 'Bền màu', 'Dễ giặt', 'Nhẹ nhàng', 'Sang trọng',
+  'Chống nước', 'Chống tĩnh điện', 'Thân thiện môi trường', 'Organic', 'Premium'
+];
+
+// Màu sắc tiếng Việt
+const tenMauSac = [
+  'Đỏ', 'Xanh Dương', 'Xanh Lá', 'Vàng', 'Cam', 'Tím', 'Hồng', 'Nâu',
+  'Xám', 'Đen', 'Trắng', 'Be', 'Navy', 'Olive', 'Burgundy', 'Kem',
+  'Xanh Ngọc', 'Xanh Mint', 'Hồng Nhạt', 'Xanh Pastel', 'Tím Than',
+  'Nâu Đất', 'Xám Khói', 'Trắng Ngà', 'Đỏ Đô', 'Xanh Cổ Vịt',
+  'Vàng Đồng', 'Bạc', 'Vàng Kim', 'Hồng Sen', 'Xanh Biển',
+  'Xanh Rêu', 'Nâu Chocolate', 'Cam Đất', 'Tím Lavender', 'Xanh Cobalt',
+  'Đỏ Rượu', 'Xám Đậm', 'Trắng Tinh', 'Đen Tuyền', 'Be Sáng'
+];
+
+// Độ bóng
+const doBong = [
+  'Mờ hoàn toàn', 'Mờ nhẹ', 'Bán mờ', 'Bóng nhẹ', 'Bóng vừa',
+  'Bóng cao', 'Siêu bóng', 'Satin', 'Ánh kim', 'Lì',
+  'Nhũ nhẹ', 'Lấp lánh', 'Matte', 'Semi-gloss', 'High-gloss'
+];
+
+// Tên kho
+const tenKho = [
+  'Kho Trung Tâm', 'Kho Miền Bắc', 'Kho Miền Nam', 'Kho Miền Trung', 'Kho Dự Phòng',
+  'Kho Bình Dương', 'Kho Long An', 'Kho Đồng Nai', 'Kho Hà Nội', 'Kho Hải Phòng',
+  'Kho Đà Nẵng', 'Kho Cần Thơ', 'Kho Vũng Tàu', 'Kho Nha Trang', 'Kho Huế',
+  'Kho Quảng Ninh', 'Kho Thanh Hóa', 'Kho Nghệ An', 'Kho Bình Định', 'Kho Gia Lai'
+];
+
+// Khu vực kho
+const khuVucKho = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+// Tên cửa hàng
+const tenCuaHang = [
+  'Cửa hàng Vải Sài Gòn', 'Cửa hàng Vải Hà Nội', 'Cửa hàng Vải Đà Nẵng',
+  'Cửa hàng Vải Cần Thơ', 'Cửa hàng Vải Hải Phòng', 'Cửa hàng Vải Nha Trang',
+  'Cửa hàng Vải Huế', 'Cửa hàng Vải Vũng Tàu', 'Cửa hàng Vải Biên Hòa',
+  'Cửa hàng Vải Đà Lạt', 'Cửa hàng Vải Quy Nhơn', 'Cửa hàng Vải Phan Thiết',
+  'Cửa hàng Vải Buôn Ma Thuột', 'Cửa hàng Vải Thái Nguyên', 'Cửa hàng Vải Nam Định'
+];
+
+// Loại cửa hàng
+const loaiCuaHang = ['Chi nhánh', 'Đại lý', 'Showroom', 'Outlet'];
+
+// Mô tả sản phẩm vải
+const moTaVai = [
+  'Chất liệu cao cấp, phù hợp may áo sơ mi, váy đầm',
+  'Vải mềm mịn, thoáng mát, thích hợp cho mùa hè',
+  'Độ bền cao, màu sắc tươi sáng, không phai màu',
+  'Vải co giãn tốt, thoải mái khi vận động',
+  'Chất liệu tự nhiên, thân thiện với môi trường',
+  'Phù hợp may đồ công sở, lịch sự và sang trọng',
+  'Vải dày dặn, giữ ấm tốt cho mùa đông',
+  'Họa tiết độc đáo, phong cách thời trang',
+  'Dễ giặt ủi, không nhăn, tiết kiệm thời gian',
+  'Vải nhẹ nhàng, thoáng khí, chống tia UV'
+];
+
+// Ghi chú đơn hàng
+const ghiChuDonHang = [
+  'Giao hàng trong giờ hành chính',
+  'Gọi điện trước khi giao',
+  'Giao hàng sau 17h',
+  'Kiểm tra hàng trước khi nhận',
+  'Đóng gói cẩn thận',
+  'Giao hàng gấp',
+  'Liên hệ trước 1 tiếng',
+  'Giao tại cổng bảo vệ',
+  'Yêu cầu hóa đơn VAT',
+  'Khách hàng VIP - ưu tiên giao'
+];
+
+// Ghi chú xuất kho
+const ghiChuXuatKho = [
+  'Xuất hàng theo yêu cầu cửa hàng',
+  'Bổ sung hàng thiếu',
+  'Chuyển kho nội bộ',
+  'Xuất hàng khuyến mãi',
+  'Xuất hàng trưng bày',
+  'Xuất hàng theo đơn đặt',
+  'Xuất hàng mẫu',
+  'Xuất hàng đổi trả',
+  'Xuất hàng theo hợp đồng',
+  'Xuất hàng thanh lý'
+];
+
+// =============================================
+// HELPER FUNCTIONS
+// =============================================
+
+// Hàm tạo tên người Việt
+function taoTenNguoiViet() {
+  const ho = faker.helpers.arrayElement(hoViet);
+  const dem = faker.helpers.arrayElement(tenDem);
+  const ten = faker.helpers.arrayElement(tenViet);
+  return `${ho} ${dem} ${ten}`;
+}
+
+// Hàm tạo username từ tên tiếng Việt
+function taoUsername(fullname) {
+  const removeVietnamese = (str) => {
+    return str.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase()
+      .replace(/\s+/g, '');
+  };
+  return removeVietnamese(fullname) + faker.number.int({ min: 1, max: 999 });
+}
+
+// Hàm tạo địa chỉ Việt Nam
+function taoDiaChiVietNam() {
+  const soNha = faker.number.int({ min: 1, max: 500 });
+  const duong = faker.helpers.arrayElement(tenDuong);
+  const quan = faker.helpers.arrayElement(tenQuan);
+  const thanhPho = faker.helpers.arrayElement(tenThanhPho);
+  return `${soNha} ${duong}, ${quan}, ${thanhPho}`;
+}
+
+// Hàm tạo tên công ty nhà cung cấp
+function taoTenNhaCungCap() {
+  const ten = faker.helpers.arrayElement(tenCongTyVai);
+  const loai = faker.helpers.arrayElement(loaiCongTy);
+  return `Công ty ${loai} ${ten}`;
+}
+
+// Hàm tạo tên loại vải có đặc điểm
+function taoTenLoaiVai(index) {
+  if (index < tenLoaiVai.length) {
+    return tenLoaiVai[index];
+  }
+  const loai = faker.helpers.arrayElement(tenLoaiVai);
+  const dacDiem = faker.helpers.arrayElement(dacDiemVai);
+  return `${loai} ${dacDiem}`;
+}
+
+// Hàm tạo tên màu sắc
+function taoTenMauSac(index) {
+  if (index < tenMauSac.length) {
+    return tenMauSac[index];
+  }
+  const mau = faker.helpers.arrayElement(tenMauSac);
+  const shade = faker.helpers.arrayElement(['Nhạt', 'Đậm', 'Pastel', 'Neon', 'Vintage']);
+  return `${mau} ${shade}`;
+}
+
+// Hàm tạo tên kho
+function taoTenKho(index) {
+  if (index < tenKho.length) {
+    return tenKho[index];
+  }
+  const ten = faker.helpers.arrayElement(tenKho.slice(0, 5));
+  const khuVuc = faker.helpers.arrayElement(khuVucKho);
+  return `${ten} - Khu ${khuVuc}${faker.number.int({ min: 1, max: 9 })}`;
+}
+
+// Hàm tạo tên cửa hàng
+function taoTenCuaHang(index) {
+  if (index < tenCuaHang.length) {
+    return tenCuaHang[index];
+  }
+  const ten = faker.helpers.arrayElement(tenCuaHang.slice(0, 5));
+  const loai = faker.helpers.arrayElement(loaiCuaHang);
+  const soThuTu = index - tenCuaHang.length + 1;
+  return `${ten} - ${loai} ${soThuTu}`;
+}
+
+// Hàm tạo mô tả vải
+function taoMoTaVai() {
+  return faker.helpers.arrayElement(moTaVai);
+}
+
+// Hàm tạo ghi chú đơn hàng
+function taoGhiChuDonHang() {
+  return faker.helpers.arrayElement(ghiChuDonHang);
+}
+
+// Hàm tạo ghi chú xuất kho
+function taoGhiChuXuatKho() {
+  return faker.helpers.arrayElement(ghiChuXuatKho);
+}
+
+// =============================================
+// BATCH PROCESSING HELPER
+// =============================================
+
+// Hàm xử lý batch updates để tránh cạn kiệt connection pool
+async function batchUpdate(updates, batchSize = 50, description = '') {
+  let completed = 0;
+  for (let i = 0; i < updates.length; i += batchSize) {
+    const batch = updates.slice(i, i + batchSize);
+    await Promise.all(batch);
+    completed += batch.length;
+    if (description) {
+      process.stdout.write(`\r  Processing ${description}: ${completed}/${updates.length}`);
+    }
+  }
+  if (description) {
+    console.log(); // New line after progress
+  }
+}
+
 // Cấu hình số lượng bản ghi cho mỗi bảng từ environment variables
 // Sử dụng giá trị mặc định nếu không có trong .env
 const CONFIG = {
@@ -63,8 +346,9 @@ async function main() {
   
   const usersToCreate = [];
   for (let i = 0; i < CONFIG.USERS; i++) {
-    const username = faker.person.fullName().toLowerCase().replace(/ /g, '');
-    const email = faker.internet.email();
+    const fullname = taoTenNguoiViet();
+    const username = taoUsername(fullname);
+    const email = `${username}@gmail.com`;
     const phone = `09${String(10000000 + i).padStart(8, '0')}`;
     
     if (!existingUsernames.has(username) && !existingEmails.has(email) && !existingPhones.has(phone)) {
@@ -73,9 +357,9 @@ async function main() {
         password: hashedPassword,
         email,
         phone,
-        fullname: faker.person.fullName(),
+        fullname,
         gender: faker.helpers.arrayElement(['MALE', 'FEMALE']),
-        address: faker.location.streetAddress(true),
+        address: taoDiaChiVietNam(),
         dob: faker.date.birthdate({ min: 18, max: 65, mode: 'age' }),
         status: faker.helpers.arrayElement(['ACTIVE', 'INACTIVE', 'SUSPENDED']),
         emailVerified: faker.datatype.boolean(0.8),
@@ -97,23 +381,16 @@ async function main() {
   const existingCategories = await prisma.fabricCategory.findMany({ select: { name: true } });
   const existingCategoryNames = new Set(existingCategories.map(c => c.name));
   
-  const categoryNames = [
-    'Vải Cotton', 'Vải Lụa', 'Vải Polyester', 'Vải Kaki', 'Vải Denim', 
-    'Vải Len', 'Vải Kate', 'Vải Thun', 'Vải Linen', 'Vải Nhung'
-  ];
-  
   const categoriesToCreate = [];
   for (let i = 0; i < CONFIG.FABRIC_CATEGORIES; i++) {
-    const name = i < categoryNames.length 
-      ? categoryNames[i] 
-      : `${faker.commerce.productMaterial()} Fabric ${faker.string.alphanumeric(3)}`;
+    const name = taoTenLoaiVai(i);
     
     if (!existingCategoryNames.has(name)) {
       categoriesToCreate.push({
         name,
         sellingPricePerMeter: faker.number.float({ min: 50000, max: 300000, multipleOf: 1000 }),
         sellingPricePerRoll: faker.number.float({ min: 500000, max: 3000000, multipleOf: 10000 }),
-        description: faker.commerce.productDescription(),
+        description: taoMoTaVai(),
       });
       existingCategoryNames.add(name);
     }
@@ -128,17 +405,10 @@ async function main() {
   const existingColors = await prisma.fabricColor.findMany({ select: { id: true, name: true } });
   const existingColorNames = new Set(existingColors.map(c => c.name));
   
-  const colorNames = [
-    'Đỏ', 'Xanh dương', 'Xanh lá', 'Vàng', 'Cam', 'Tím', 'Hồng', 'Nâu', 
-    'Xám', 'Đen', 'Trắng', 'Be', 'Navy', 'Olive', 'Burgundy'
-  ];
-  
   const colorsToCreate = [];
   for (let i = 0; i < CONFIG.FABRIC_COLORS; i++) {
-    const colorId = `CLR${faker.string.alphanumeric(3)}`;
-    const name = i < colorNames.length 
-      ? colorNames[i] 
-      : `${faker.color.human()} ${faker.string.alphanumeric(3)}`;
+    const colorId = `MAU${String(i + 1).padStart(3, '0')}`;
+    const name = taoTenMauSac(i);
     
     if (!existingColorNames.has(name)) {
       colorsToCreate.push({ id: colorId, name });
@@ -155,16 +425,11 @@ async function main() {
   const existingGlosses = await prisma.fabricGloss.findMany({ select: { description: true } });
   const existingGlossDescs = new Set(existingGlosses.map(g => g.description));
   
-  const glossDescriptions = [
-    'Mờ', 'Bóng nhẹ', 'Bóng vừa', 'Bóng cao',
-    'Matte', 'Semi-gloss', 'High gloss', 'Satin'
-  ];
-  
   const glossesToCreate = [];
   for (let i = 0; i < CONFIG.FABRIC_GLOSS; i++) {
-    const description = i < glossDescriptions.length 
-      ? glossDescriptions[i] 
-      : `Gloss Level ${faker.string.alphanumeric(3)}`;
+    const description = i < doBong.length 
+      ? doBong[i] 
+      : `${faker.helpers.arrayElement(doBong)} ${faker.number.int({ min: 1, max: 5 })}`;
     
     if (!existingGlossDescs.has(description)) {
       glossesToCreate.push({ description });
@@ -187,8 +452,8 @@ async function main() {
     
     if (!existingSupplierPhones.has(phone)) {
       suppliersToCreate.push({
-        name: faker.company.name(),
-        address: faker.location.streetAddress(true),
+        name: taoTenNhaCungCap(),
+        address: taoDiaChiVietNam(),
         phone,
         isActive: faker.datatype.boolean(0.9),
       });
@@ -205,21 +470,14 @@ async function main() {
   const existingWarehouses = await prisma.warehouse.findMany({ select: { name: true } });
   const existingWarehouseNames = new Set(existingWarehouses.map(w => w.name));
   
-  const warehouseNames = [
-    'Kho Miền Bắc', 'Kho Miền Nam', 'Kho Miền Trung',
-    'Kho Trung Tâm', 'Kho Dự Phòng'
-  ];
-  
   const warehousesToCreate = [];
   for (let i = 0; i < CONFIG.WAREHOUSES; i++) {
-    const name = i < warehouseNames.length 
-      ? warehouseNames[i] 
-      : `Warehouse ${faker.location.city()} ${faker.string.alphanumeric(3)}`;
+    const name = taoTenKho(i);
     
     if (!existingWarehouseNames.has(name)) {
       warehousesToCreate.push({
         name,
-        address: faker.location.streetAddress(true),
+        address: taoDiaChiVietNam(),
         status: faker.helpers.arrayElement(['ACTIVE', 'INACTIVE']),
       });
       existingWarehouseNames.add(name);
@@ -232,21 +490,14 @@ async function main() {
 
   // 7. TẠO STORES
   console.log('\n📝 Preparing stores...');
-  const storeNames = [
-    'Cửa hàng Quận 1', 'Cửa hàng Quận 2', 'Cửa hàng Hà Nội',
-    'Cửa hàng Đà Nẵng', 'Cửa hàng Cần Thơ', 'Cửa hàng Hải Phòng',
-    'Cửa hàng Nha Trang', 'Cửa hàng Vũng Tàu'
-  ];
   
   const storesToCreate = [];
   for (let i = 0; i < CONFIG.STORES; i++) {
-    const name = i < storeNames.length 
-      ? storeNames[i] 
-      : `Store ${faker.location.city()} ${faker.string.alphanumeric(3)}`;
+    const name = taoTenCuaHang(i);
     
     storesToCreate.push({
       name,
-      address: faker.location.streetAddress(true),
+      address: taoDiaChiVietNam(),
       isActive: faker.datatype.boolean(0.9),
     });
   }
@@ -262,8 +513,18 @@ async function main() {
   
   const shelvesToCreate = [];
   for (const warehouse of allWarehouses) {
+    // Lấy chữ cái đầu của tên kho (bỏ dấu)
+    const warehouseCode = warehouse.name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .substring(0, 3)
+      .toUpperCase();
+    
     for (let i = 0; i < CONFIG.SHELVES_PER_WAREHOUSE; i++) {
-      const code = `${warehouse.name.substring(0, 3).toUpperCase()}-SHF-${String(i + 1).padStart(4, '0')}`;
+      const khuVuc = faker.helpers.arrayElement(khuVucKho);
+      const code = `${warehouseCode}-${khuVuc}${String(i + 1).padStart(3, '0')}`;
       
       if (!existingShelfCodes.has(code)) {
         shelvesToCreate.push({
@@ -562,7 +823,7 @@ async function main() {
         })
       );
     }
-    await Promise.all(maxQtyUpdates);
+    await batchUpdate(maxQtyUpdates, 50, 'expanding shelves');
     console.log(`✅ Expanded ${maxQtyUpdates.length} shelf capacities`);
   }
   
@@ -584,7 +845,7 @@ async function main() {
       })
     );
   }
-  await Promise.all(shelfUpdates);
+  await batchUpdate(shelfUpdates, 50, 'updating shelf quantities');
   console.log(`✅ Updated ${shelfUpdates.length} shelf quantities`);
   
   // Cập nhật quantityInStock cho các vải
@@ -598,7 +859,7 @@ async function main() {
       })
     );
   }
-  await Promise.all(fabricUpdates);
+  await batchUpdate(fabricUpdates, 50, 'updating fabric quantities');
   console.log(`✅ Updated ${fabricUpdates.length} fabric stock quantities`);
   
   // Cập nhật status của ImportFabricItem thành STORED
@@ -617,7 +878,7 @@ async function main() {
       })
     );
   }
-  await Promise.all(itemStatusUpdates);
+  await batchUpdate(itemStatusUpdates, 50, 'marking items as STORED');
   console.log(`✅ Marked ${itemStatusUpdates.length} import items as STORED`);
   
   // Cập nhật status của ImportFabric thành COMPLETED
@@ -631,7 +892,7 @@ async function main() {
       })
     );
   }
-  await Promise.all(importStatusUpdates);
+  await batchUpdate(importStatusUpdates, 50, 'marking imports as COMPLETED');
   console.log(`✅ Marked ${importStatusUpdates.length} imports as COMPLETED`);
 
   // 13. TẠO FABRIC STORES
@@ -696,7 +957,7 @@ async function main() {
       storeId: faker.helpers.arrayElement(allStores).id,
       createdById: faker.helpers.arrayElement(allUsers).id,
       status: status,
-      note: faker.datatype.boolean(0.7) ? faker.lorem.sentence() : null,
+      note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
     };
     
     if (status === 'APPROVED') {
@@ -750,7 +1011,7 @@ async function main() {
       orderDate,
       status: faker.helpers.arrayElement(orderStatuses),
       totalAmount: 0, // Will be calculated based on order items
-      notes: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.3 }),
+      notes: faker.helpers.maybe(() => taoGhiChuDonHang(), { probability: 0.3 }),
     });
   }
   
@@ -808,7 +1069,7 @@ async function main() {
       })
     );
   }
-  await Promise.all(orderUpdatePromises);
+  await batchUpdate(orderUpdatePromises, 50, 'updating order totals');
   console.log(`✅ Updated ${orderUpdatePromises.length} order totals`);
 
   // 20. TẠO INVOICES (90% của orders)
@@ -820,6 +1081,20 @@ async function main() {
     Math.floor(allOrders.length * CONFIG.INVOICE_PERCENTAGE)
   );
   
+  // Ghi chú hóa đơn tiếng Việt
+  const ghiChuHoaDon = [
+    'Thanh toán trước khi giao hàng',
+    'Khách hàng thanh toán qua chuyển khoản',
+    'Đã nhận thanh toán tiền mặt',
+    'Ghi nợ theo thỏa thuận',
+    'Thanh toán khi nhận hàng',
+    'Đã thanh toán qua ví điện tử',
+    'Chiết khấu 5% cho khách VIP',
+    'Giảm giá theo chương trình khuyến mãi',
+    'Thanh toán theo đợt',
+    'Hóa đơn VAT đã xuất'
+  ];
+  
   for (const order of ordersWithInvoices) {
     const invoiceDate = new Date(order.orderDate);
     const dueDate = faker.date.soon({ days: 30, refDate: invoiceDate });
@@ -830,7 +1105,7 @@ async function main() {
       dueDate,
       invoiceStatus: faker.helpers.arrayElement(invoiceStatuses),
       totalAmount: order.totalAmount,
-      notes: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.3 }),
+      notes: faker.helpers.maybe(() => faker.helpers.arrayElement(ghiChuHoaDon), { probability: 0.3 }),
     });
   }
   
@@ -849,6 +1124,20 @@ async function main() {
     Math.floor(allInvoices.length * CONFIG.PAYMENT_PERCENTAGE)
   );
   
+  // Ghi chú thanh toán tiếng Việt
+  const ghiChuThanhToan = [
+    'Thanh toán đầy đủ',
+    'Thanh toán trước 50%',
+    'Thanh toán đợt cuối',
+    'Khách hàng chuyển khoản',
+    'Thu tiền mặt tại quầy',
+    'Thanh toán qua Momo',
+    'Thanh toán qua ZaloPay',
+    'Thanh toán qua VNPay',
+    'Thanh toán qua thẻ Visa',
+    'Thanh toán qua thẻ MasterCard'
+  ];
+  
   for (const invoice of invoicesWithPayments) {
     const paymentDate = faker.date.between({ 
       from: invoice.invoiceDate, 
@@ -865,10 +1154,10 @@ async function main() {
       }),
       paymentMethod: faker.helpers.arrayElement(paymentMethods),
       transactionId: faker.helpers.maybe(() => 
-        `TXN-${faker.string.alphanumeric(12).toUpperCase()}`, 
+        `GD-${faker.string.numeric(12)}`, 
         { probability: 0.7 }
       ),
-      notes: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.3 }),
+      notes: faker.helpers.maybe(() => faker.helpers.arrayElement(ghiChuThanhToan), { probability: 0.3 }),
     });
   }
   
