@@ -16,51 +16,71 @@ export class ShelfRepository {
   };
 
   async findById(id) {
-    return await prisma.shelf.findUnique({
+    const shelf = await prisma.shelf.findUnique({
       where: { id: parseInt(id) },
+      select: this.#shelfSelectOptions
+    });
+
+    if (!shelf) {
+      return null;
+    }
+
+    // Query grouped fabricShelf by fabricId with sum of quantities
+    const groupedFabricShelf = await prisma.fabricShelf.groupBy({
+      by: ['fabricId'],
+      where: { shelfId: parseInt(id) },
+      _sum: { quantity: true }
+    });
+
+    // Fetch fabric details for each grouped record
+    const fabricIds = groupedFabricShelf.map(fs => fs.fabricId);
+    const fabrics = await prisma.fabric.findMany({
+      where: { id: { in: fabricIds } },
       select: {
-        ...this.#shelfSelectOptions,
-        fabricShelf: {
+        id: true,
+        thickness: true,
+        length: true,
+        width: true,
+        weight: true,
+        gloss: {
           select: {
-            fabricId: true,
-            quantity: true,
-            fabric: {
-              select: {
-                id: true,
-                thickness: true,
-                length: true,
-                width: true,
-                weight: true,
-                gloss: {
-                  select: {
-                    id: true,
-                    description: true
-                  }
-                },
-                category: {
-                  select: {
-                    id: true,
-                    name: true,
-                  }
-                },
-                color: {
-                  select: {
-                    id: true,
-                    name: true
-                  }
-                },
-                supplier: {
-                  select: {
-                    id: true,
-                    name: true,
-                  }
-                }
-              }
-            }
+            id: true,
+            description: true
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
+        color: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        supplier: {
+          select: {
+            id: true,
+            name: true,
           }
         }
       }
     });
+
+    // Combine grouped quantities with fabric details
+    const fabricMap = new Map(fabrics.map(f => [f.id, f]));
+    const fabricShelfWithDetails = groupedFabricShelf.map(fs => ({
+      fabricId: fs.fabricId,
+      quantity: fs._sum.quantity,
+      fabric: fabricMap.get(fs.fabricId)
+    }));
+
+    return {
+      ...shelf,
+      fabricShelf: fabricShelfWithDetails
+    };
   }
 
 

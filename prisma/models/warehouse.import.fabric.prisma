@@ -11,4 +11,5 @@ model ImportFabric {
     warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
     importUser    User      @relation("Importer", fields: [importer], references: [id])
     importItems   ImportFabricItem[]
+    importShelves FabricShelf[]
 }
