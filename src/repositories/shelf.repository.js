@@ -202,7 +202,16 @@ export class ShelfRepository {
       prisma.shelf.count({ where })
     ]);
 
-    return formatPaginatedResponse(shelves, total, page, take);
+    // Group fabricShelf by fabricId for each shelf
+    const formattedShelves = shelves.map(shelf => {
+      const groupedFabricShelf = this.#groupFabricShelfByFabricId(shelf.fabricShelf);
+      return {
+        ...shelf,
+        fabricShelf: groupedFabricShelf
+      };
+    });
+
+    return formatPaginatedResponse(formattedShelves, total, page, take);
   }
 
 
@@ -407,6 +416,32 @@ export class ShelfRepository {
    */
   async getShelvesInWarehouseGroupedByFabric(warehouseId, groupByFields = [], options = {}) {
     return await this.getShelvesGroupedByFabric(options, groupByFields, warehouseId);
+  }
+
+  /**
+   * Helper method to group fabricShelf records by fabricId and sum quantities
+   * Removes importId from results, combining all imports of same fabric on same shelf
+   * @private
+   */
+  #groupFabricShelfByFabricId(fabricShelfRecords) {
+    const groupedMap = new Map();
+
+    fabricShelfRecords.forEach(record => {
+      const fabricId = record.fabricId;
+      
+      if (!groupedMap.has(fabricId)) {
+        groupedMap.set(fabricId, {
+          fabricId: record.fabricId,
+          quantity: 0,
+          fabric: record.fabric
+        });
+      }
+
+      const grouped = groupedMap.get(fabricId);
+      grouped.quantity += record.quantity;
+    });
+
+    return Array.from(groupedMap.values());
   }
 
 }
