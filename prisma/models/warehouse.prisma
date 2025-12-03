@@ -10,4 +10,5 @@ model Warehouse {
     warehouseManages WarehouseManage[]
     importFabrics    ImportFabric[] 
     exportFabrics    ExportFabric[]  
+    fabricStocks     WarehouseFabricStock[]
 }

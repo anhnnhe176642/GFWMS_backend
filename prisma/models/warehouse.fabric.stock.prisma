@@ -1,0 +1,13 @@
+model WarehouseFabricStock {
+    warehouseId Int
+    fabricId    Int
+    warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+    fabric      Fabric    @relation(fields: [fabricId], references: [id])
+    currentStock Int      @default(0)
+
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    @@id([warehouseId, fabricId])
+    @@map("warehouse_fabric_stock")
+}
