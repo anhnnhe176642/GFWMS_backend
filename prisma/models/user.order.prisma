@@ -1,7 +1,7 @@
 model Order {
     id          Int       @id @default(autoincrement())
     userId      String
-    user        User      @relation(fields: [userId], references: [id])
+    user        User      @relation("CustomerOrders", fields: [userId], references: [id])
     orderDate   DateTime  @default(now())
     status      OrderStatus @default(PENDING)
     totalAmount Float     
@@ -13,6 +13,9 @@ model Order {
     paymentDeadline   DateTime?
     creditAmount      Float        @default(0)
     paidAmount        Float         @default(0)
+
+    storeId           Int?        
+    store             Store?       @relation("StoreOrders", fields: [storeId], references: [id])
 
 //offline
     isOffline         Boolean       @default(false)
