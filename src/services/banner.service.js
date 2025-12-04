@@ -30,7 +30,7 @@ export const getBannerById = async (id) => {
   const banner = await bannerRepository.findById(id);
 
   if (!banner) {
-    throw new NotFoundError('Banner không tồn tại trong hệ thống');
+    throw new NotFoundError('Không tìm thấy Banner');
   }
 
   return banner;
@@ -50,14 +50,14 @@ export const updateBanner = async (id, data) => {
 export const deleteBanner = async (id) => {
   const existingBanner = await bannerRepository.findById(id);
   if (!existingBanner) {
-    throw new NotFoundError('Banner không tồn tại');
+    throw new NotFoundError('Banner cần xóa không tồn tại');
   }
 
   // Kiểm tra ràng buộc nếu cần (ví dụ BannerDiscount)
   const discountCount = await bannerRepository.countDiscountsInBanner(id);
   if (discountCount > 0) {
     throw new ConflictError(
-      `Không thể xóa banner "${existingBanner.title}" vì đang có ${discountCount} discount liên kết`
+      `Không thể xóa banner vì có dữ liệu khác đang tham chiếu đến bản ghi này`
     );
   }
 
