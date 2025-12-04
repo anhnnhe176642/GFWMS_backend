@@ -22,7 +22,7 @@ model User {
   warehouseManages WarehouseManage[]
   assignedWarehouses WarehouseManage[] @relation("AssignedBy")
   importFabrics      ImportFabric[]    @relation("Importer")
-  orders     Order[]
+  orders     Order[]  @relation("CustomerOrders")
   createdOrders       Order[]             @relation("OrderCreatedByStaff")
   userNotifications UserNotification[]
   notifications  Notification[]
@@ -31,6 +31,9 @@ model User {
   createdExports     ExportFabric[]    @relation("CreatedExportFabric")
   receivedExports    ExportFabric[]    @relation("ReceivedExportFabric")
   uploadedYoloModels YoloModel[]
+
+  storeId   Int? 
+  store     Store?    @relation("UserWorkAtStore", fields: [storeId], references: [id])
 
   YoloDatasetImage YoloDatasetImage[]
 }

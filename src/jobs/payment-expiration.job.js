@@ -113,7 +113,7 @@ export const cancelExpiredOrders = async () => {
           }
         }
         
-        // BƯỚC 2: HỦY ĐƠN HÀNG 
+        // BƯỚC 2: HỦY ĐƠN HÀNG  
         console.log(`Cancelling order #${orderId}...`);
         
         await prisma.$transaction(async (tx) => {
@@ -150,7 +150,7 @@ export const cancelExpiredOrders = async () => {
               });
             } else if (item. saleUnit === 'METER') {
               // Hoàn mét về cửa hàng (store ID = 1)
-              await tx. fabricStore.update({
+              await tx.fabricStore.update({
                 where: {
                   fabricId_storeId: {
                     fabricId: item.fabricId,
