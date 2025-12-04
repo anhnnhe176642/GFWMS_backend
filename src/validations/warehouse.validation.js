@@ -78,3 +78,34 @@ export const warehouseIdSchema = Joi.object({
     'any.required': 'ID kho là bắt buộc'
   })
 });
+
+export const warehouseIdWithFabricIdSchema = Joi.object({
+  id: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID kho phải là một số',
+    'number.integer': 'ID kho phải là một số nguyên',
+    'number.positive': 'ID kho phải là một số dương',
+    'any.required': 'ID kho là bắt buộc'
+  }),
+  fabricId: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID vải phải là một số',
+    'number.integer': 'ID vải phải là một số nguyên',
+    'number.positive': 'ID vải phải là một số dương',
+    'any.required': 'ID vải là bắt buộc'
+  })
+});
+
+// Schema cho query params của API tính toán lấy hàng tối ưu
+export const fabricPickupQuerySchema = Joi.object({
+  quantity: Joi.number().integer().positive().required().messages({
+    'number.base': 'Số lượng cần lấy phải là một số',
+    'number.integer': 'Số lượng cần lấy phải là một số nguyên',
+    'number.positive': 'Số lượng cần lấy phải là một số dương',
+    'any.required': 'Số lượng cần lấy là bắt buộc'
+  }),
+  priority: Joi.string()
+    .valid('NEWEST_FIRST', 'OLDEST_FIRST', 'LOWEST_PRICE', 'HIGHEST_PRICE', 'FEWEST_SHELVES')
+    .default('NEWEST_FIRST')
+    .messages({
+      'any.only': 'Ưu tiên phải là: NEWEST_FIRST, OLDEST_FIRST, LOWEST_PRICE, HIGHEST_PRICE hoặc FEWEST_SHELVES'
+    })
+});

@@ -104,6 +104,269 @@ export class WarehouseRepository {
       })
     );
 }
+
+  /**
+   * Lấy danh sách kệ trong kho theo fabricId với chi tiết từng lô import
+   * Trả về các kệ có chứa loại vải đó, chi tiết từng lô: ngày import, giá import, số lượng hiện tại
+   * @param {number} warehouseId - ID kho
+   * @param {number} fabricId - ID loại vải
+   * @returns {Object} Object chứa fabric info và danh sách kệ
+   */
+  async findShelvesByFabricId(warehouseId, fabricId) {
+    // Get all fabricShelf records for this warehouse and fabric with import details
+    const fabricShelfRecords = await prisma.fabricShelf.findMany({
+      where: {
+        fabricId: parseInt(fabricId),
+        shelf: {
+          warehouseId: parseInt(warehouseId)
+        },
+        quantity: {
+          gt: 0
+        }
+      },
+      select: {
+        shelfId: true,
+        fabricId: true,
+        quantity: true,
+        importId: true,
+        createdAt: true,
+        updatedAt: true,
+        shelf: {
+          select: {
+            id: true,
+            code: true,
+            currentQuantity: true,
+            maxQuantity: true,
+          }
+        },
+        import: {
+          select: {
+            id: true,
+            importDate: true,
+            importer: true,
+            status: true,
+            importItems: {
+              where: {
+                fabricId: parseInt(fabricId)
+              },
+              select: {
+                price: true,
+                quantity: true,
+                status: true
+              }
+            },
+            importUser: {
+              select: {
+                id: true,
+                fullname: true,
+                email: true
+              }
+            }
+          }
+        },
+        fabric: {
+          select: {
+            id: true,
+            thickness: true,
+            length: true,
+            width: true,
+            weight: true,
+            sellingPrice: true,
+            categoryId: true,
+            colorId: true,
+            supplierId: true,
+            category: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
+            color: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
+            supplier: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
+            gloss: {
+              select: {
+                id: true,
+                description: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: [
+        { shelfId: 'asc' },
+        { import: { importDate: 'desc' } }
+      ]
+    });
+
+    // Extract fabric info (lấy từ record đầu tiên, tất cả đều giống nhau)
+    let fabricInfo = null;
+    
+    // Group by shelfId and include import batch details
+    const shelfMap = new Map();
+    fabricShelfRecords.forEach(record => {
+      // Lưu fabric info từ record đầu tiên
+      if (!fabricInfo) {
+        fabricInfo = record.fabric;
+      }
+      
+      const shelfId = record.shelfId;
+      
+      // Get import price for this fabric from importItems
+      const importItem = record.import.importItems[0];
+      const importPrice = importItem ? importItem.price : null;
+      
+      const batchDetail = {
+        importId: record.importId,
+        importDate: record.import.importDate,
+        importStatus: record.import.status,
+        importPrice: importPrice,
+        currentQuantity: record.quantity,
+        originalQuantity: importItem ? importItem.quantity : null,
+        importedBy: record.import.importUser,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt
+      };
+
+      if (!shelfMap.has(shelfId)) {
+        shelfMap.set(shelfId, {
+          ...record.shelf,
+          totalFabricQuantity: 0,
+          batches: []
+        });
+      }
+      
+      const shelfData = shelfMap.get(shelfId);
+      shelfData.totalFabricQuantity += record.quantity;
+      shelfData.batches.push(batchDetail);
+    });
+
+    return {
+      fabric: fabricInfo,
+      shelves: Array.from(shelfMap.values())
+    };
+  }
+
+  /**
+   * Lấy danh sách tất cả các lô vải trong kho theo fabricId (flatten - không group theo shelf)
+   * Dùng để tính toán phân bổ lấy hàng tối ưu
+   * @param {number} warehouseId - ID kho
+   * @param {number} fabricId - ID loại vải
+   * @returns {Array} Danh sách các lô vải với thông tin kệ
+   */
+  async findAllBatchesByFabricId(warehouseId, fabricId) {
+    const fabricShelfRecords = await prisma.fabricShelf.findMany({
+      where: {
+        fabricId: parseInt(fabricId),
+        shelf: {
+          warehouseId: parseInt(warehouseId)
+        },
+        quantity: {
+          gt: 0
+        }
+      },
+      select: {
+        shelfId: true,
+        fabricId: true,
+        quantity: true,
+        importId: true,
+        createdAt: true,
+        shelf: {
+          select: {
+            id: true,
+            code: true,
+            currentQuantity: true,
+            maxQuantity: true,
+          }
+        },
+        import: {
+          select: {
+            id: true,
+            importDate: true,
+            importItems: {
+              where: {
+                fabricId: parseInt(fabricId)
+              },
+              select: {
+                price: true,
+                quantity: true
+              }
+            }
+          }
+        },
+        fabric: {
+          select: {
+            id: true,
+            thickness: true,
+            length: true,
+            width: true,
+            weight: true,
+            sellingPrice: true,
+            category: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
+            color: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
+            supplier: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
+            gloss: {
+              select: {
+                id: true,
+                description: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Flatten thành danh sách các lô
+    let fabricInfo = null;
+    const batches = fabricShelfRecords.map(record => {
+      if (!fabricInfo) {
+        fabricInfo = record.fabric;
+      }
+      
+      const importItem = record.import.importItems[0];
+      return {
+        shelfId: record.shelfId,
+        shelfCode: record.shelf.code,
+        shelfCurrentQuantity: record.shelf.currentQuantity,
+        shelfMaxQuantity: record.shelf.maxQuantity,
+        importId: record.importId,
+        importDate: record.import.importDate,
+        importPrice: importItem ? importItem.price : null,
+        availableQuantity: record.quantity,
+        createdAt: record.createdAt
+      };
+    });
+
+    return {
+      fabric: fabricInfo,
+      batches,
+      totalAvailable: batches.reduce((sum, b) => sum + b.availableQuantity, 0)
+    };
+  }
 }
 
 export const warehouseRepository = new WarehouseRepository();

@@ -145,3 +145,46 @@ export const getWarehouseShelves = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Get shelves in a warehouse by fabricId - returns shelves containing that fabric with quantities
+ */
+export const getWarehouseShelvesByFabric = async (req, res, next) => {
+  try {
+    const { id: warehouseId, fabricId } = req.params;
+    
+    const result = await warehouseService.getShelvesByFabricId(warehouseId, fabricId);
+    
+    res.json({
+      message: 'Lấy danh sách kệ theo loại vải thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Calculate optimal pickup allocation for fabric from warehouse
+ * Returns optimal distribution of picking from shelves/batches based on priority
+ */
+export const calculateFabricPickup = async (req, res, next) => {
+  try {
+    const { id: warehouseId, fabricId } = req.params;
+    const { quantity, priority } = req.query;
+    
+    const result = await warehouseService.calculateOptimalPickup(
+      warehouseId, 
+      fabricId, 
+      parseInt(quantity),
+      priority || 'NEWEST_FIRST'
+    );
+    
+    res.json({
+      message: 'Tính toán phân bổ lấy hàng thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

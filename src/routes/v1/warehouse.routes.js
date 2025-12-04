@@ -6,7 +6,9 @@ import {
   updateWarehouse,
   deleteWarehouse,
   getWarehouseFabrics,
-  getWarehouseShelves
+  getWarehouseShelves,
+  getWarehouseShelvesByFabric,
+  calculateFabricPickup
 } from '../../controllers/warehouse.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate} from '../../middlewares/validation.middleware.js';
@@ -14,7 +16,9 @@ import {
   createWarehouseSchema, 
   updateWarehouseSchema, 
   warehouseQuerySchema,
-  warehouseIdSchema
+  warehouseIdSchema,
+  warehouseIdWithFabricIdSchema,
+  fabricPickupQuerySchema
 } from '../../validations/warehouse.validation.js';
 import { fabricQuerySchema } from '../../validations/fabric.validation.js';
 import { shelfQuerySchema } from '../../validations/shelf.validation.js';
@@ -274,6 +278,376 @@ router.get('/:id/shelves',
   validate(warehouseIdSchema, 'params'),
   validate(shelfQuerySchema, 'query'),
   getWarehouseShelves
+);
+
+/**
+ * @swagger
+ * /warehouses/{id}/fabrics/{fabricId}/shelves:
+ *   get:
+ *     summary: Lấy danh sách kệ theo loại vải trong kho với chi tiết từng lô import
+ *     description: |
+ *       Lấy danh sách các kệ trong kho có chứa loại vải cụ thể.
+ *       Bao gồm chi tiết từng lô nhập (batch): ngày import, giá import, số lượng hiện tại,
+ *       thông tin người nhập kho.
+ *       Thông tin vải được trả về 1 lần ở mức root data, không lặp lại trong mỗi kệ.
+ *     tags: [Warehouses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của kho hàng
+ *         example: 1
+ *       - in: path
+ *         name: fabricId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của loại vải
+ *         example: 5
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách kệ theo loại vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách kệ theo loại vải thành công"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     warehouseId:
+ *                       type: integer
+ *                       example: 1
+ *                     fabricId:
+ *                       type: integer
+ *                       example: 5
+ *                     totalShelves:
+ *                       type: integer
+ *                       description: Tổng số kệ chứa loại vải này
+ *                       example: 3
+ *                     totalBatches:
+ *                       type: integer
+ *                       description: Tổng số lô (batches) import trên tất cả các kệ
+ *                       example: 5
+ *                     totalQuantity:
+ *                       type: integer
+ *                       description: Tổng số lượng vải trên tất cả các kệ
+ *                       example: 150
+ *                     fabric:
+ *                       type: object
+ *                       description: Thông tin loại vải (chỉ trả về 1 lần)
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 5
+ *                         thickness:
+ *                           type: number
+ *                           example: 0.5
+ *                         length:
+ *                           type: number
+ *                           example: 100
+ *                         width:
+ *                           type: number
+ *                           example: 150
+ *                         weight:
+ *                           type: number
+ *                           example: 2.5
+ *                         sellingPrice:
+ *                           type: number
+ *                           example: 200000
+ *                         category:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: integer
+ *                             name:
+ *                               type: string
+ *                               example: "Cotton"
+ *                         color:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             name:
+ *                               type: string
+ *                               example: "Đỏ"
+ *                         supplier:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: integer
+ *                             name:
+ *                               type: string
+ *                               example: "Nhà cung cấp A"
+ *                         gloss:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: integer
+ *                             description:
+ *                               type: string
+ *                               example: "Bóng"
+ *                     shelves:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           code:
+ *                             type: string
+ *                             example: "K001"
+ *                           currentQuantity:
+ *                             type: integer
+ *                             description: Tổng số cuộn vải hiện có trên kệ (tất cả loại)
+ *                             example: 45
+ *                           maxQuantity:
+ *                             type: integer
+ *                             description: Sức chứa tối đa của kệ
+ *                             example: 50
+ *                           totalFabricQuantity:
+ *                             type: integer
+ *                             description: Tổng số lượng của loại vải này trên kệ (tổng từ tất cả các lô)
+ *                             example: 30
+ *                           batches:
+ *                             type: array
+ *                             description: Chi tiết từng lô import trên kệ
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 importId:
+ *                                   type: integer
+ *                                   description: ID của phiếu nhập kho
+ *                                   example: 10
+ *                                 importDate:
+ *                                   type: string
+ *                                   format: date-time
+ *                                   description: Ngày nhập kho
+ *                                   example: "2025-01-15T08:30:00Z"
+ *                                 importStatus:
+ *                                   type: string
+ *                                   description: Trạng thái phiếu nhập
+ *                                   example: "COMPLETED"
+ *                                 importPrice:
+ *                                   type: number
+ *                                   description: Giá nhập kho (đơn giá)
+ *                                   example: 150000
+ *                                 currentQuantity:
+ *                                   type: integer
+ *                                   description: Số lượng còn lại của lô này trên kệ
+ *                                   example: 15
+ *                                 originalQuantity:
+ *                                   type: integer
+ *                                   description: Số lượng ban đầu khi nhập kho
+ *                                   example: 20
+ *                                 importedBy:
+ *                                   type: object
+ *                                   description: Thông tin người nhập kho
+ *                                   properties:
+ *                                     id:
+ *                                       type: string
+ *                                       example: "user123"
+ *                                     fullName:
+ *                                       type: string
+ *                                       example: "Nguyễn Văn A"
+ *                                     email:
+ *                                       type: string
+ *                                       example: "nguyenvana@example.com"
+ *                                 createdAt:
+ *                                   type: string
+ *                                   format: date-time
+ *                                   example: "2025-01-15T08:30:00Z"
+ *                                 updatedAt:
+ *                                   type: string
+ *                                   format: date-time
+ *                                   example: "2025-01-20T10:00:00Z"
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không có quyền truy cập
+ *       403:
+ *         description: Không có quyền xem chi tiết kho
+ *       404:
+ *         description: Không tìm thấy kho hoặc vải
+ *       500:
+ *         description: Lỗi server không mong muốn
+ */
+router.get('/:id/fabrics/:fabricId/shelves',
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
+  validate(warehouseIdWithFabricIdSchema, 'params'),
+  getWarehouseShelvesByFabric
+);
+
+/**
+ * @swagger
+ * /warehouses/{id}/fabrics/{fabricId}/pickup:
+ *   get:
+ *     summary: Tính toán phân bổ lấy vải tối ưu từ các kệ/lô
+ *     description: |
+ *       Tính toán cách lấy vải từ các kệ/lô theo tiêu chí ưu tiên.
+ *       
+ *       Các giá trị priority:
+ *       - NEWEST_FIRST: Ưu tiên lấy lô nhập mới nhất trước
+ *       - OLDEST_FIRST: Ưu tiên lấy lô nhập cũ nhất trước (FIFO)
+ *       - LOWEST_PRICE: Ưu tiên lấy lô có giá nhập thấp nhất trước
+ *       - HIGHEST_PRICE: Ưu tiên lấy lô có giá nhập cao nhất trước
+ *       - FEWEST_SHELVES: Ưu tiên lấy ít kệ nhất (lấy từ kệ có nhiều hàng trước)
+ *     tags: [Warehouses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của kho hàng
+ *         example: 1
+ *       - in: path
+ *         name: fabricId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của loại vải
+ *         example: 5
+ *       - in: query
+ *         name: quantity
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Số lượng vải cần lấy
+ *         example: 50
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [NEWEST_FIRST, OLDEST_FIRST, LOWEST_PRICE, HIGHEST_PRICE, FEWEST_SHELVES]
+ *           default: NEWEST_FIRST
+ *         description: Tiêu chí ưu tiên khi lấy hàng
+ *         example: "NEWEST_FIRST"
+ *     responses:
+ *       200:
+ *         description: Tính toán phân bổ lấy hàng thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Tính toán phân bổ lấy hàng thành công"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     warehouseId:
+ *                       type: integer
+ *                       example: 1
+ *                     fabricId:
+ *                       type: integer
+ *                       example: 5
+ *                     fabric:
+ *                       type: object
+ *                       description: Thông tin loại vải
+ *                     requiredQuantity:
+ *                       type: integer
+ *                       description: Số lượng yêu cầu
+ *                       example: 50
+ *                     totalAvailable:
+ *                       type: integer
+ *                       description: Tổng số lượng có sẵn trong kho
+ *                       example: 150
+ *                     priority:
+ *                       type: string
+ *                       description: Tiêu chí ưu tiên đã sử dụng
+ *                       example: "NEWEST_FIRST"
+ *                     summary:
+ *                       type: object
+ *                       description: Tóm tắt kết quả phân bổ
+ *                       properties:
+ *                         totalShelvesUsed:
+ *                           type: integer
+ *                           description: Số kệ cần lấy
+ *                           example: 2
+ *                         totalBatchesUsed:
+ *                           type: integer
+ *                           description: Số lô cần lấy
+ *                           example: 3
+ *                         totalPickQuantity:
+ *                           type: integer
+ *                           description: Tổng số lượng lấy
+ *                           example: 50
+ *                         totalCost:
+ *                           type: number
+ *                           description: Tổng chi phí (giá nhập)
+ *                           example: 7500000
+ *                         averageCostPerUnit:
+ *                           type: number
+ *                           description: Chi phí trung bình mỗi đơn vị
+ *                           example: 150000
+ *                     shelves:
+ *                       type: array
+ *                       description: Danh sách các kệ cần lấy
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           shelfId:
+ *                             type: integer
+ *                             example: 1
+ *                           shelfCode:
+ *                             type: string
+ *                             example: "K001"
+ *                           totalPickQuantity:
+ *                             type: integer
+ *                             description: Tổng số lượng lấy từ kệ này
+ *                             example: 30
+ *                           batches:
+ *                             type: array
+ *                             description: Chi tiết từng lô cần lấy
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 importId:
+ *                                   type: integer
+ *                                   example: 10
+ *                                 importDate:
+ *                                   type: string
+ *                                   format: date-time
+ *                                   example: "2025-01-15T08:30:00Z"
+ *                                 importPrice:
+ *                                   type: number
+ *                                   example: 150000
+ *                                 availableQuantity:
+ *                                   type: integer
+ *                                   description: Số lượng có sẵn trong lô
+ *                                   example: 20
+ *                                 pickQuantity:
+ *                                   type: integer
+ *                                   description: Số lượng cần lấy từ lô này
+ *                                   example: 15
+ *       400:
+ *         description: Dữ liệu không hợp lệ hoặc số lượng yêu cầu vượt quá có sẵn
+ *       401:
+ *         description: Không có quyền truy cập
+ *       403:
+ *         description: Không có quyền xem chi tiết kho
+ *       404:
+ *         description: Không tìm thấy kho hoặc vải
+ *       500:
+ *         description: Lỗi server không mong muốn
+ */
+router.get('/:id/fabrics/:fabricId/pickup',
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
+  validate(warehouseIdWithFabricIdSchema, 'params'),
+  validate(fabricPickupQuerySchema, 'query'),
+  calculateFabricPickup
 );
 
 /**
