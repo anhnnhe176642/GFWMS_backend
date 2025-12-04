@@ -42,17 +42,16 @@ const router = express.Router();
  *         name: discountType
  *         schema:
  *           type: string
- *           enum: [PERCENTAGE, FIXED]
  *         description: Filter by discount type
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Items per page
  *       - in: query
  *         name: sortBy
@@ -63,7 +62,6 @@ const router = express.Router();
  *         name: order
  *         schema:
  *           type: string
- *           enum: [asc, desc]
  *         description: Sort order
  *     responses:
  *       200:
