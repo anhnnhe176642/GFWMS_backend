@@ -13,6 +13,9 @@ model ExportFabric {
   receivedById    String?
   receivedBy      User?         @relation("ReceivedExportFabric", fields: [receivedById], references: [id])
 
+  // Nhóm các ExportFabric cùng 1 lần tạo (để tracking)
+  batchId         Int?
+
   warehouse       Warehouse     @relation(fields: [warehouseId], references: [id])
   store           Store         @relation(fields: [storeId], references: [id])
   exportItems     ExportFabricItem[]

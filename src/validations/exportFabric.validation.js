@@ -125,6 +125,50 @@ export const createExportFabricSchema = Joi.object({
 
 /**
  * ============================
+ * PREVIEW INVENTORY
+ * ============================
+ */
+export const previewInventorySchema = Joi.object({
+  fabricItems: Joi.array().items(exportFabricItemSchema).min(1).required().messages({
+    'array.base': 'Danh sách vải (fabricItems) phải là mảng',
+    'array.min': 'Phải có ít nhất 1 loại vải',
+    'any.required': 'Danh sách vải (fabricItems) là bắt buộc'
+  })
+});
+
+/**
+ * ============================
+ * CREATE BATCH EXPORT FABRIC
+ * ============================
+ */
+const warehouseAllocationSchema = Joi.object({
+  warehouseId: Joi.number().integer().positive().required().messages({
+    'number.base': 'Mã kho phải là số',
+    'number.integer': 'Mã kho phải là số nguyên',
+    'number.positive': 'Mã kho phải lớn hơn 0',
+    'any.required': 'Vui lòng chọn kho'
+  }),
+  items: Joi.array().items(exportFabricItemSchema).min(1).required().messages({
+    'array.base': 'Danh sách vải (items) phải là mảng',
+    'array.min': 'Mỗi phân bổ kho phải có ít nhất 1 loại vải',
+    'any.required': 'Danh sách vải (items) là bắt buộc'
+  })
+});
+
+export const createBatchExportFabricSchema = Joi.object({
+  storeId: exportStoreIdSchema,
+  note: Joi.string().max(255).allow(null, '').messages({
+    'string.max': 'Ghi chú tối đa 255 ký tự'
+  }),
+  warehouseAllocations: Joi.array().items(warehouseAllocationSchema).min(1).required().messages({
+    'array.base': 'Danh sách phân bổ kho (warehouseAllocations) phải là mảng',
+    'array.min': 'Phải có ít nhất 1 phân bổ kho',
+    'any.required': 'Danh sách phân bổ kho (warehouseAllocations) là bắt buộc'
+  })
+});
+
+/**
+ * ============================
  * APPROVE / REJECT EXPORT FABRIC
  * ============================
  */

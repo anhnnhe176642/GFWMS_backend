@@ -127,7 +127,7 @@ export class ExportFabricRepository {
   }
 
   async create(data) {
-    const { warehouseId, storeId, note, createdById, exportItems } = data;
+    const { warehouseId, storeId, note, createdById, exportItems, batchId } = data;
 
     // Tạo phiếu xuất và nested exportItems cùng lúc
     const newExport = await prisma.exportFabric.create({
@@ -137,6 +137,7 @@ export class ExportFabricRepository {
         note,
         status: 'PENDING',
         createdById,
+        batchId,
         exportItems: {
           create: exportItems.map(item => ({
             fabricId: item.fabricId,
@@ -148,6 +149,109 @@ export class ExportFabricRepository {
     });
 
     return newExport;
+  }
+
+  /**
+   * Tạo batch nhiều ExportFabric (1 per warehouse) trong 1 transaction
+   * batchId = id của phiếu xuất đầu tiên
+   * @param {Object} params
+   * @param {number} params.storeId
+   * @param {string} params.note
+   * @param {string} params.createdById
+   * @param {Array<{warehouseId: number, items: Array<{fabricId: number, quantity: number}>}>} params.warehouseAllocations
+   * @returns {Promise<{batchId: number, exports: Array}>}
+   */
+  async createBatch({ storeId, note, createdById, warehouseAllocations }) {
+    return await prisma.$transaction(async (tx) => {
+      const createdExports = [];
+      let batchId = null;
+      
+      // Tính tổng số lượng cần trừ theo fabricId
+      const fabricQuantities = new Map();
+      for (const allocation of warehouseAllocations) {
+        for (const item of allocation.items) {
+          const current = fabricQuantities.get(item.fabricId) || 0;
+          fabricQuantities.set(item.fabricId, current + item.quantity);
+        }
+      }
+      
+      // Trừ quantityInStock cho mỗi fabric
+      for (const [fabricId, totalQuantity] of fabricQuantities) {
+        await tx.fabric.update({
+          where: { id: fabricId },
+          data: { quantityInStock: { decrement: totalQuantity } }
+        });
+      }
+      
+      // Tạo các ExportFabric
+      for (const allocation of warehouseAllocations) {
+        const newExport = await tx.exportFabric.create({
+          data: {
+            warehouseId: allocation.warehouseId,
+            storeId,
+            note,
+            status: 'PENDING',
+            createdById,
+            batchId, // Null khi tạo lần đầu, sẽ update sau
+            exportItems: {
+              create: allocation.items.map(item => ({
+                fabricId: item.fabricId,
+                quantity: item.quantity
+              }))
+            }
+          },
+          select: this.#exportFabricDetailSelect
+        });
+        
+        // Set batchId = id của phiếu xuất đầu tiên
+        if (batchId === null) {
+          batchId = newExport.id;
+          // Update tất cả các phiếu trong batch có batchId = id phiếu đầu tiên
+          await tx.exportFabric.update({
+            where: { id: newExport.id },
+            data: { batchId }
+          });
+        } else {
+          // Update các phiếu sau cùng batchId
+          await tx.exportFabric.update({
+            where: { id: newExport.id },
+            data: { batchId }
+          });
+        }
+        
+        // Fetch lại để có đầy đủ dữ liệu
+        const updatedExport = await tx.exportFabric.findUnique({
+          where: { id: newExport.id },
+          select: this.#exportFabricDetailSelect
+        });
+        createdExports.push(updatedExport);
+      }
+      
+      return { batchId, exports: createdExports };
+    });
+  }
+
+  /**
+   * Hoàn trả quantityInStock khi REJECTED
+   */
+  async restoreQuantityForExport(exportFabricId) {
+    const exportFabric = await prisma.exportFabric.findUnique({
+      where: { id: exportFabricId },
+      include: { exportItems: true }
+    });
+
+    if (!exportFabric) return null;
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of exportFabric.exportItems) {
+        await tx.fabric.update({
+          where: { id: item.fabricId },
+          data: { quantityInStock: { increment: item.quantity } }
+        });
+      }
+    });
+
+    return exportFabric;
   }
 
   async updateStatus(id, status, approvedById, itemShelfSelections = []) {

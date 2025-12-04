@@ -66,6 +66,66 @@ export const getExportFabricDetailForStore = async (req, res, next) => {
   }
 };
 
+/**
+ * Preview inventory - Xem tồn kho theo warehouse cho danh sách fabric
+ */
+export const previewInventory = async (req, res, next) => {
+  try {
+    const { fabricItems } = req.body;
+
+    const result = await exportFabricService.previewInventory(fabricItems);
+
+    res.json({
+      message: 'Lấy thông tin tồn kho thành công',
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Suggest optimal allocation - Gợi ý phân bổ tối ưu (Greedy)
+ */
+export const suggestAllocation = async (req, res, next) => {
+  try {
+    const { fabricItems } = req.body;
+
+    const suggestions = await exportFabricService.suggestOptimalAllocation(fabricItems);
+
+    res.json({
+      message: 'Gợi ý phân bổ thành công',
+      warehouseAllocations: suggestions
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create batch export fabrics - Tạo nhiều phiếu xuất (1 per warehouse)
+ */
+export const createBatchExportFabric = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { storeId, note, warehouseAllocations } = req.body;
+
+    const result = await exportFabricService.createBatchExportFabric({
+      storeId,
+      note,
+      createdById: userId,
+      warehouseAllocations
+    });
+
+    res.status(201).json({
+      message: 'Tạo phiếu xuất vải thành công',
+      batchId: result.batchId,
+      exports: result.exports
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const createExportFabric = async (req, res, next) => {
   try {
