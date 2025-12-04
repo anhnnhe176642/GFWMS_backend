@@ -33,7 +33,7 @@ export class FabricGlossRepository {
         select: this.#selectOptions
       }),
       {
-        fabric_gloss_description_key: 'Độ bóng này đã tồn tại trong hệ thống'
+        description: 'Độ bóng này đã tồn tại trong hệ thống'
       }
     );
   }
@@ -46,12 +46,24 @@ export class FabricGlossRepository {
         select: this.#selectOptions
       }),
       {
-        fabric_gloss_description_key: 'Độ bóng này đã tồn tại trong hệ thống'
+        description: 'Độ bóng này đã tồn tại trong hệ thống'
       }
     );
   }
 
+  async deleteById(id) {
+    return withPrismaErrorHandling(() =>
+      prisma.fabricGloss.delete({
+        where: { id: parseInt(id) }
+      })
+    );
+  }
 
+  async countFabricsWithGloss(glossId) {
+    return await prisma.fabric.count({
+      where: {glossId  } 
+    });
+  }
   async count() {
     return await prisma.fabricGloss.count();
   }

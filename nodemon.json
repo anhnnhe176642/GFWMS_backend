@@ -1,0 +1,28 @@
+{
+  "watch": [
+    "src/app.js",
+    "src/server.js",
+    "src/controllers",
+    "src/routes",
+    "src/services",
+    "src/middlewares",
+    "src/utils",
+    "src/validations",
+    "src/repositories",
+    "src/constants",
+    "src/config"
+  ],
+  "ignore": [
+    "src/datasets/**",
+    "src/python/**",
+    "temp/**",
+    "node_modules/**",
+    "**/*.log",
+    "**/.env*"
+  ],
+  "ext": "js,mjs",
+  "delay": 1000,
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

@@ -1,7 +1,7 @@
 import * as invoiceService from '../services/invoice.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-/** 🔹 Lấy danh sách Invoice (hỗ trợ filter, sort, pagination) */
+/**  Lấy danh sách Invoice (hỗ trợ filter, sort, pagination) */
 export const getAllInvoices = async (req, res, next) => {
   try {
     console.log('>>> req.query:', req.query);
@@ -29,7 +29,7 @@ export const getAllInvoices = async (req, res, next) => {
 };
 
 
-/** 🔹 Lấy Invoice theo ID */
+/**  Lấy Invoice theo ID */
 export const getInvoiceById = async (req, res, next) => {
   try {
     const { id } = req.params;

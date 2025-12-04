@@ -7,6 +7,22 @@ model Payment {
     paymentMethod String    @db.VarChar(50)
     transactionId String?   @db.VarChar(100) @unique
     notes         String?   @db.VarChar(255)
+
+    status        PaymentStatus @default(PENDING)
+
+    // Biết payment được xử lý từ đâu (để debug/monitoring)
+    processedViaWebhook         Boolean @default(false)
+    processedViaReconciliation  Boolean @default(false)
+    processedViaCronCheck       Boolean @default(false)
+
+    // Lưu toàn bộ response từ PayOS (dạng JSON)
+    gatewayResponse Json?
+
+    //Lưu lỗi khi thanh toán thất bại
+    // Debug và support khách hàng
+    errorCode       String?  @db.VarChar(50)
+    errorMessage    String?  @db.VarChar(500)
+
     createdAt     DateTime  @default(now())
     updatedAt     DateTime  @updatedAt
 }

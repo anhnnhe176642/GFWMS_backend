@@ -1,0 +1,4 @@
+enum YoloDatasetStatus {
+  ACTIVE
+  ARCHIVED
+}

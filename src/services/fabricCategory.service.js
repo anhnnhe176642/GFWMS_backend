@@ -1,22 +1,29 @@
 import { NotFoundError } from '../utils/errors.js';
 import fabricCategoryRepository from '../repositories/fabricCategory.repository.js';
-
-/** 🔹 Lấy tất cả FabricCategory với phân trang cơ bản */
+import { ConflictError } from '../utils/errors.js';
+/**  Lấy tất cả FabricCategory với phân trang cơ bản */
 export const getAllFabricCategories = async (page, limit) => {
   return await fabricCategoryRepository.findWithPagination(page, limit);
 };
 
-/** 🔹 Lấy tất cả FabricCategory với filter/search/sort/pagination nâng cao */
+/**  Lấy tất cả FabricCategory với filter/search/sort/pagination nâng cao */
 export const getAllFabricCategoriesAdvanced = async (queryOptions) => {
   return await fabricCategoryRepository.findWithAdvancedQuery(queryOptions);
 };
 
-/** 🔹 Tạo mới FabricCategory */
+/**  Tạo mới FabricCategory */
 export const createFabricCategory = async (data) => {
-  return await fabricCategoryRepository.create(data);
+  const { name, description, sellingPricePerMeter, sellingPricePerRoll } = data;
+
+  return await fabricCategoryRepository.create({
+    name,
+    description,
+    sellingPricePerMeter,
+    sellingPricePerRoll
+  });
 };
 
-/** 🔹 Lấy FabricCategory theo ID */
+/**  Lấy FabricCategory theo ID */
 export const getFabricCategoryById = async (id) => {
   const category = await fabricCategoryRepository.findById(id);
 
@@ -27,7 +34,7 @@ export const getFabricCategoryById = async (id) => {
   return category;
 };
 
-/** 🔹 Cập nhật FabricCategory */
+/**  Cập nhật FabricCategory */
 export const updateFabricCategory = async (id, data) => {
   const existing = await fabricCategoryRepository.findById(id);
   if (!existing) {
@@ -35,4 +42,22 @@ export const updateFabricCategory = async (id, data) => {
   }
 
   return await fabricCategoryRepository.updateById(id, data);
+};
+
+/** Xóa FabricCategory theo ID */
+export const deleteFabricCategory = async (id) => {
+  const existingCategory = await fabricCategoryRepository.findById(id);
+  if (!existingCategory) {
+    throw new NotFoundError('Loại vải không tồn tại');
+  }
+
+  // Kiểm tra xem có Fabric nào thuộc category này không
+  const fabricCount = await fabricCategoryRepository.countFabricsInCategory(id);
+  if (fabricCount > 0) {
+    throw new ConflictError(
+      `Không thể xóa  ${existingCategory.name} vì đang có ${fabricCount} mẫu vải tham chiếu đến`
+    );
+  }
+
+  return await fabricCategoryRepository.deleteById(id);
 };

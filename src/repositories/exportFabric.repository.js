@@ -1,68 +1,70 @@
-// src/repositories/exportFabric.repository.js
 import { PrismaClient } from '@prisma/client';
-import { normalizeEnumFilters } from '../utils/normalize-enum-filters.js';
 import { buildWhereClause, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
 
 export class ExportFabricRepository {
-  // 🔹 Chỉ định các field cần lấy, bao gồm quan hệ liên quan
-  #exportFabricSelectOptions = {
+  //  Select rút gọn cho danh sách (get all)
+  #exportFabricListSelect = {
     id: true,
-    warehouseId: true,
     warehouse: { select: { id: true, name: true } },
     store: { select: { id: true, name: true } },
     status: true,
     note: true,
     createdAt: true,
-    updatedAt: true,
-    createdBy: { select: { id: true, username: true, email: true } },
-    receivedBy: { select: { id: true, username: true, email: true } },
-    exportItems: {
-      select: {
-        exportFabricId: true,
-        fabricId: true,
-        quantity: true,
-        price: true,
-        createdAt: true,
-        updatedAt: true,
-        fabric: {
-          select: {
-            id: true,
-            colorId: true,
-            categoryId: true,
-            sellingPrice: true,
-            supplierId: true
-          }
+    createdBy: { select: { username: true } },
+  };
+
+  //  Select chi tiết (get detail)
+  #exportFabricDetailSelect = {
+  id: true,
+  warehouseId: true,
+  warehouse: { select: { name: true } }, 
+  store: { select: { name: true } }, 
+  status: true,
+  note: true,
+  createdAt: true,
+  updatedAt: true,
+  createdById: true,
+  createdBy: { select: { username: true, email: true } }, 
+  receivedById: true,
+  receivedBy: { select: { username: true, email: true } }, 
+
+  exportItems: {
+    select: {
+      fabricId: true,
+      quantity: true,
+      price: true,      
+      fabric: {
+        select: {
+          id: true,
+          colorId: true,
+          categoryId: true,
+          sellingPrice: true,
+          supplierId: true
         }
       }
     }
-  };
+  }
+};
 
-  /** 🔹 Lấy tất cả ExportFabric */
+  /**  Lấy tất cả (ít trường, không chi tiết exportItems) */
   async findAll() {
     return await prisma.exportFabric.findMany({
-      select: this.#exportFabricSelectOptions,
+      select: this.#exportFabricListSelect,
       orderBy: { createdAt: 'desc' }
     });
   }
 
-  /** 🔹 Lấy ExportFabric theo ID */
+  /**  Lấy chi tiết theo ID (đầy đủ quan hệ) */
   async findById(id) {
     return await prisma.exportFabric.findUnique({
       where: { id },
-      select: this.#exportFabricSelectOptions
+      select: this.#exportFabricDetailSelect
     });
   }
 
-  /** 🔹 Đếm tổng số ExportFabric */
-  async count(filters = {}) {
-    return await prisma.exportFabric.count({
-      where: filters
-    });
-  }
-
-  /** 🔹 Lấy danh sách có phân trang cơ bản */
+  /**  Lấy danh sách có phân trang (dùng select rút gọn) */
   async findWithPagination(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
@@ -70,7 +72,7 @@ export class ExportFabricRepository {
       prisma.exportFabric.findMany({
         skip,
         take: limit,
-        select: this.#exportFabricSelectOptions,
+        select: this.#exportFabricListSelect,
         orderBy: { createdAt: 'desc' }
       }),
       prisma.exportFabric.count()
@@ -87,7 +89,7 @@ export class ExportFabricRepository {
     };
   }
 
-  /** 🔹 Lấy danh sách nâng cao (lọc, sắp xếp, tìm kiếm, phân trang) */
+  /**  Lấy danh sách nâng cao (lọc, tìm kiếm, sắp xếp, phân trang) */
   async findWithAdvancedQuery(queryOptions = {}) {
     const {
       page = 1,
@@ -98,18 +100,22 @@ export class ExportFabricRepository {
       filters = {}
     } = queryOptions;
 
-    const normalizedFilters = normalizeEnumFilters(filters, ['status']);
+    const searchableFields = [
+      'note',
+      'warehouse.name',
+      'store.name',
+      'createdBy.username',
+      'receivedBy.username'
+    ];
 
-    const searchableFields = ['warehouse.name', 'store.name', 'createdBy.username', 'receivedBy.username'];
-    const where = buildWhereClause({ search, ...normalizedFilters }, searchableFields);
-
+    const where = buildWhereClause({ search, ...filters }, searchableFields);
     const skip = (page - 1) * limit;
     const orderBy = buildSort(sortBy, order);
 
     const [exportFabrics, total] = await Promise.all([
       prisma.exportFabric.findMany({
         where,
-        select: this.#exportFabricSelectOptions,
+        select: this.#exportFabricListSelect,
         skip,
         take: limit,
         orderBy
@@ -118,6 +124,49 @@ export class ExportFabricRepository {
     ]);
 
     return formatPaginatedResponse(exportFabrics, total, page, limit);
+  }
+
+  async create(data) {
+    const { warehouseId, storeId, note, createdById, exportItems } = data;
+
+    // Tạo phiếu xuất và nested exportItems cùng lúc
+    const newExport = await prisma.exportFabric.create({
+      data: {
+        warehouseId,
+        storeId,
+        note,
+        status: 'PENDING',
+        createdById,
+        exportItems: {
+          create: exportItems.map(item => ({
+            fabricId: item.fabricId,
+            quantity: item.quantity
+          }))
+        }
+      },
+      select: this.#exportFabricDetailSelect  
+    });
+
+    return newExport;
+  }
+
+  async updateStatus(id, status, approvedById, itemShelfSelections = []) {
+    const updatedExport = await prisma.exportFabric.update({
+      where: { id },
+      data: {
+        status,
+        receivedById: approvedById,
+        exportItems: {
+          updateMany: itemShelfSelections.map(item => ({
+            where: { exportFabricId: id, fabricId: item.fabricId },
+            data: {}
+          }))
+        }
+      },
+      select: this.#exportFabricDetailSelect
+    });
+
+    return updatedExport;
   }
 }
 

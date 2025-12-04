@@ -36,9 +36,6 @@ import Joi from 'joi';
  * });
  */
 export const createMultiValueFilterSchema = (singleValueSchema, fieldName) => {
-  // Kiểm tra xem schema có phải là kiểu number/integer không
-  const isNumberType = singleValueSchema.type === 'number';
-  
   return Joi.string()
     .pattern(/^[^,]+(,\s*[^,]+)*$/) // Check format: không rỗng và có dấu phẩy hợp lệ
     .optional()
@@ -47,32 +44,21 @@ export const createMultiValueFilterSchema = (singleValueSchema, fieldName) => {
       const values = value.split(',').map(v => v.trim());
       const result = [];
       
-      // Validate và convert từng giá trị
+      // Validate và transform từng giá trị
       for (const val of values) {
-        // Nếu là number type, convert sang số trước khi validate
-        let processedValue = val;
-        if (isNumberType) {
-          processedValue = Number(val);
-          // Kiểm tra nếu convert thất bại
-          if (isNaN(processedValue)) {
-            return helpers.error('any.invalid', { 
-              message: `Giá trị "${val}" không phải là số hợp lệ` 
-            });
-          }
-        }
-        
-        // Validate giá trị đã được xử lý
-        const { error } = singleValueSchema.validate(processedValue);
+        // Validate và lấy giá trị đã được transform (uppercase/lowercase/number conversion)
+        const { error, value: transformedValue } = singleValueSchema.validate(val);
         if (error) {
           return helpers.error('any.invalid', { 
             message: error.details[0].message 
           });
         }
         
-        result.push(processedValue);
+        // Sử dụng transformedValue đã được Joi transform tự động
+        result.push(transformedValue);
       }
       
-      // Trả về mảng đã được validate và convert
+      // Trả về mảng đã được validate và transform
       return result;
     })
     .messages({
@@ -136,10 +122,10 @@ export const fullnameSchema = Joi.string()
 
 // Gender validation
 export const genderSchema = Joi.string()
-  .valid('MALE', 'FEMALE', 'OTHER')
+  .valid('MALE', 'FEMALE')
   .allow(null)
   .messages({
-    'any.only': 'Giới tính phải là MALE, FEMALE hoặc OTHER'
+    'any.only': 'Giới tính phải là MALE hoặc FEMALE'
   });
 
 // Address validation
@@ -160,9 +146,9 @@ export const dobSchema = Joi.date()
 
 // Role validation
 export const roleSchema = Joi.string()
-  .max(50)
+  .max(10)
   .messages({
-    'string.max': 'Role name không được vượt quá 50 ký tự',
+    'string.max': 'Role name không được vượt quá 10 ký tự',
     'any.required': 'Role là bắt buộc'
   }).uppercase();
 
@@ -179,12 +165,21 @@ export const userStatusSchema = Joi.string()
     'any.required': 'Status là bắt buộc'
   });
 
+// YOLO image status validation - reusable across modules
+export const yoloImageStatusSchema = Joi.string()
+  .valid('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
+  .messages({
+    'any.only': 'Trạng thái hình ảnh phải là một trong: PENDING, PROCESSING, COMPLETED hoặc FAILED'
+  });
+
 // UUID validation
 export const uuidSchema = Joi.string()
-  .uuid()
+  .guid({ version: ['uuidv4', 'uuidv5'] })
+  .required()
   .messages({
-    'string.uuid': 'ID phải là UUID hợp lệ',
-    'any.required': 'ID là bắt buộc'
+    'string.guid': 'ID phải là UUID hợp lệ',
+    'any.required': 'ID là bắt buộc',
+    'string.base': 'ID phải là chuỗi hợp lệ'
   });
 
 // Pagination validation
@@ -193,6 +188,7 @@ export const pageSchema = Joi.number()
   .min(1)
   .default(1)
   .messages({
+    'number.base': 'Page không phải là số hợp lệ',
     'number.integer': 'Page phải là số nguyên',
     'number.min': 'Page phải lớn hơn 0'
   });
@@ -203,6 +199,7 @@ export const limitSchema = Joi.number()
   .max(100)
   .default(10)
   .messages({
+    'number.base': 'Limit không phải là số hợp lệ',
     'number.integer': 'Limit phải là số nguyên',
     'number.min': 'Limit phải lớn hơn 0',
     'number.max': 'Limit không được vượt quá 100'
@@ -218,11 +215,13 @@ export const searchSchema = Joi.string()
   });
 
 // Sort validation - support multiple fields (comma-separated)
+// Allow nested fields using dot notation (e.g., "category.name")
 export const sortBySchema = Joi.string()
-  .pattern(/^[a-zA-Z_]+(,[a-zA-Z_]+)*$/)
+  // allow letters, numbers, underscore and dot for nested relations; multiple fields separated by commas
+  .pattern(/^[a-zA-Z0-9_.]+(,[a-zA-Z0-9_.]+)*$/)
   .messages({
     'string.base': 'Sort by phải là string',
-    'string.pattern.base': 'Sort by phải là tên field hợp lệ hoặc các field cách nhau bởi dấu phẩy (vd: field1,field2)'
+    'string.pattern.base': 'Sort by phải là tên field hợp lệ (hỗ trợ nested với dấu ".") hoặc các field cách nhau bởi dấu phẩy (vd: field1,field2 hoặc category.name,createdAt)'
   });
 
 /**

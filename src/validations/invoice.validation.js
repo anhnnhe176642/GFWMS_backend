@@ -17,12 +17,11 @@ import {
  */
 
 const invoiceStatusSchema = Joi.string()
-  .uppercase()
   .valid('UNPAID','PAID','OVERDUE','CREDIT','REFUNDED','CANCELED')
   .trim()
   .messages({
     'string.base': 'Trạng thái hóa đơn phải là chuỗi',
-    'any.only': 'Trạng thái hóa đơn chỉ có thể là PAID, UNPAID, OVERDUE, CREDIT,REFUNDED hoặc CANCELED'
+    'any.only': 'Chỉ có thể là PAID, UNPAID, OVERDUE, CREDIT,REFUNDED hoặc CANCELED'
   });
 
 
@@ -66,11 +65,11 @@ export const invoiceQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedInvoiceSortFields),
   order: sortOrderSchema.optional(),
 
-  invoiceStatus: createMultiValueFilterSchema(invoiceStatusSchema, 'invoiceStatus').optional(),
+  invoiceStatus: createMultiValueFilterSchema(invoiceStatusSchema, 'Trạng thái hóa đơn').optional(),
 
   createdFrom: dateFromSchema,
   createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({
-    'date.min': 'createdTo phải lớn hơn hoặc bằng createdFrom'
+    'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày tạo'
   })
 });
 

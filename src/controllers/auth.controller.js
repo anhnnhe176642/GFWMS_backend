@@ -67,10 +67,24 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const updateData = req.body;
+    const updateData = req.body;   
     const user = await authService.updateUserProfile(req.user.id, updateData);
     res.json({
       message: 'Cập nhật profile thành công',
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const uploadAvatar = async (req, res, next) => {
+  try {
+    const avatarFile = req.file;
+    
+    const user = await authService.updateUserAvatar(req.user.id, avatarFile);
+    res.json({
+      message: 'Cập nhật avatar thành công',
       user
     });
   } catch (error) {
@@ -118,6 +132,18 @@ export const setNewPassword = async (req, res, next) => {
     const { email, pin, newPassword } = req.body;
     const result = await authService.setNewPasswordWithVerifiedPin(email, pin, newPassword);
     res.json({ message: result.message });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMe = async (req, res, next) => {
+  try {
+    const user = await authService.getCurrentUserWithPermissions(req.user.id);
+    res.json({
+      message: 'Lấy thông tin user thành công',
+      user
+    });
   } catch (error) {
     next(error);
   }

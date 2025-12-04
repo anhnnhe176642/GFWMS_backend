@@ -1,7 +1,7 @@
 import * as fabricGlossService from '../services/fabricgloss.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-/** 🔹 Lấy danh sách FabricGloss (hỗ trợ filter, sort, pagination) */
+/**  Lấy danh sách FabricGloss (hỗ trợ filter, sort, pagination) */
 export const getAllFabricGlosses = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
@@ -16,7 +16,7 @@ export const getAllFabricGlosses = async (req, res, next) => {
     const result = await fabricGlossService.getAllFabricGlossesAdvanced(queryParams);
 
     res.json({
-      message: 'Lấy danh sách fabric gloss thành công',
+      message: 'Lấy danh sách độ bóng thành công',
       ...result
     });
   } catch (error) {
@@ -24,18 +24,18 @@ export const getAllFabricGlosses = async (req, res, next) => {
   }
 };
 
-/** 🔹 Lấy FabricGloss theo ID */
+/**  Lấy FabricGloss theo ID */
 export const getFabricGlossById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const fabricGloss = await fabricGlossService.getFabricGlossById(parseInt(id));
 
     if (!fabricGloss) {
-      return res.status(404).json({ message: 'Không tìm thấy fabric gloss' });
+      return res.status(404).json({ message: 'Không tìm thấy độ bóng' });
     }
 
     res.json({
-      message: 'Lấy thông tin fabric gloss thành công',
+      message: 'Lấy thông tin độ bóng thành công',
       fabricGloss
     });
   } catch (error) {
@@ -43,14 +43,14 @@ export const getFabricGlossById = async (req, res, next) => {
   }
 };
 
-/** 🔹 Tạo mới FabricGloss */
+/** Tạo mới FabricGloss */
 export const createFabricGloss = async (req, res, next) => {
   try {
     const glossData = req.body;
     const fabricGloss = await fabricGlossService.createFabricGloss(glossData);
 
     res.status(201).json({
-      message: 'Tạo fabric gloss thành công',
+      message: 'Tạo độ bóng thành công',
       fabricGloss
     });
   } catch (error) {
@@ -58,7 +58,7 @@ export const createFabricGloss = async (req, res, next) => {
   }
 };
 
-/** 🔹 Cập nhật FabricGloss */
+/**  Cập nhật FabricGloss */
 export const updateFabricGloss = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -67,8 +67,24 @@ export const updateFabricGloss = async (req, res, next) => {
     const updatedFabricGloss = await fabricGlossService.updateFabricGloss(parseInt(id), glossData);
 
     res.json({
-      message: 'Cập nhật fabric gloss thành công',
+      message: 'Cập nhật độ bóng thành công',
       fabricGloss: updatedFabricGloss
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteFabricGloss  = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const result = await fabricGlossService.deleteFabricGloss(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Xóa độ bóng vải thành công',
+      data: result
     });
   } catch (error) {
     next(error);

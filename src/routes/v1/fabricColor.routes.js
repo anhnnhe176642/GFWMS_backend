@@ -4,6 +4,7 @@ import {
   getFabricColorById, 
   createFabricColor, 
   updateFabricColor, 
+  deleteFabricColor
 } from '../../controllers/fabricColor.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { requirePermission } from '../../middlewares/permission.middleware.js';
@@ -18,7 +19,6 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateToken);
 
 /**
  * @swagger
@@ -79,7 +79,6 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(fabricColorQuerySchema, 'query'),
   getAllFabricColors
 );
@@ -122,6 +121,7 @@ router.get(
  */
 router.get(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(fabricColorIdParamSchema, 'params'),
   getFabricColorById
@@ -171,6 +171,7 @@ router.get(
  */
 router.post(
   '/',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(createFabricColorSchema, 'body'),
   createFabricColor
@@ -225,10 +226,56 @@ router.post(
  */
 router.put(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
   validate(fabricColorIdParamSchema, 'params'),
   validate(updateFabricColorSchema, 'body'),
   updateFabricColor
+);
+
+/**
+ * @swagger
+ * /fabric-color/{id}:
+ *   delete:
+ *     summary: Xóa màu vải
+ *     tags: [FabricColor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID màu vải cần xóa
+ *     responses:
+ *       200:
+ *         description: Xóa màu vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Xóa màu vải thành công
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       409:
+ *         $ref: '#/components/responses/ConflictError'
+ */
+router.delete(
+  '/:id',
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
+  validate(fabricColorIdParamSchema, 'params'),
+  deleteFabricColor
 );
 
 export default router;

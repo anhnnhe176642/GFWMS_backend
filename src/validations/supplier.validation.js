@@ -72,12 +72,12 @@ export const supplierIdParamSchema = Joi.object({
 });
 
 // ===== SCHEMA CHO QUERY =====
-const allowedSupplierSortFields = ['name', 'address', 'phone', 'createdAt', 'updatedAt'];
+const allowedSupplierSortFields = ['name', 'address', 'phone', 'isActive', 'createdAt', 'updatedAt'];
 
 export const supplierQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedSupplierSortFields),
   order: sortOrderSchema.optional(),
-  search: Joi.string().allow('').optional().messages({
+  search: Joi.string().trim().allow('').optional().messages({
     'string.base': 'Từ khóa tìm kiếm phải là chuỗi'
   })
 });

@@ -1,8 +1,9 @@
 import express from 'express';
-import { register, login, getProfile, updateProfile, changePassword, verifyEmail, resendVerification } from '../../controllers/auth.controller.js';
+import { register, login, getProfile, updateProfile, uploadAvatar, changePassword, verifyEmail, resendVerification, getMe } from '../../controllers/auth.controller.js';
 import { requestPasswordReset, verifyResetPin, setNewPassword } from '../../controllers/auth.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
+import { uploadAvatar as multerUploadAvatar, handleUploadError } from '../../middlewares/upload.middleware.js';
 import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema, requestPasswordResetSchema, verifyResetPinSchema, setNewPasswordSchema } from '../../validations/auth.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
@@ -243,6 +244,59 @@ router.post('/set-new-password', validate(setNewPasswordSchema), setNewPassword)
 
 /**
  * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current authenticated user information with permissions
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - message
+ *                 - user
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin user thành công
+ *                 user:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/User'
+ *                     - type: object
+ *                       properties:
+ *                         permissionKeys:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           description: Array of user permission keys
+ *                           example: ["users:view_list", "users:view_detail"]
+ *       401:
+ *         description: Unauthorized - Invalid or expired token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Account inactive or suspended
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/me', 
+  authenticateToken, 
+  getMe
+);
+
+/**
+ * @swagger
  * /auth/login:
  *   post:
  *     summary: Login user with username or email
@@ -354,7 +408,7 @@ router.get('/profile',
  * @swagger
  * /auth/profile:
  *   put:
- *     summary: Update current user profile
+ *     summary: Update current user profile (without avatar)
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
@@ -385,10 +439,6 @@ router.get('/profile',
  *                 type: string
  *                 description: Address
  *                 example: "123 Main St, City"
- *               avatar:
- *                 type: string
- *                 description: Avatar URL
- *                 example: "https://example.com/avatar.jpg"
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -419,6 +469,86 @@ router.put('/profile',
   requirePermission(PERMISSIONS.USERS.UPDATE_OWN_PROFILE),
   validate(updateProfileSchema), 
   updateProfile
+);
+
+/**
+ * @swagger
+ * /auth/avatar:
+ *   put:
+ *     summary: Upload or update user avatar
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - avatar
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *                 description: Avatar image file (max 5MB, JPEG/PNG/GIF/WEBP)
+ *     responses:
+ *       200:
+ *         description: Avatar updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - message
+ *                 - user
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Cập nhật avatar thành công
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Validation error or file error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ *             examples:
+ *               noFile:
+ *                 summary: No file uploaded
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: avatar
+ *                       message: Avatar file là bắt buộc
+ *               invalidFileType:
+ *                 summary: Invalid file type
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: avatar
+ *                       message: Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WEBP)
+ *               fileTooLarge:
+ *                 summary: File size exceeds limit
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: avatar
+ *                       message: Kích thước file không được vượt quá 5MB
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.put('/avatar', 
+  authenticateToken, 
+  requirePermission(PERMISSIONS.USERS.UPDATE_OWN_PROFILE),
+  multerUploadAvatar,
+  handleUploadError,
+  uploadAvatar
 );
 
 /**

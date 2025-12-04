@@ -1,9 +1,10 @@
 import express from 'express';
-import { 
+import {
   getAllFabricCategories,
   getFabricCategoryById,
   createFabricCategory,
-  updateFabricCategory
+  updateFabricCategory,
+  deleteFabricCategory
 } from '../../controllers/fabricCategory.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { requirePermission } from '../../middlewares/permission.middleware.js';
@@ -18,7 +19,6 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateToken);
 
 /**
  * @swagger
@@ -32,12 +32,12 @@ router.use(authenticateToken);
  *       - in: query
  *         name: page
  *         schema:
- *           type: string
+ *           type: integer
  *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
- *           type: string
+ *           type: integer
  *         description: Items per page
  *       - in: query
  *         name: search
@@ -48,29 +48,15 @@ router.use(authenticateToken);
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Field(s) to sort by. Single or comma-separated
+ *         description: Field(s) to sort by
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
- *         description: Sort order (asc or desc)
+ *         description: Sort order
  *     responses:
  *       200:
  *         description: Fabric categories retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Lấy danh sách fabric category thành công
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/FabricCategory'
- *                 pagination:
- *                   $ref: '#/components/schemas/PaginationMeta'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -78,7 +64,6 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryQuerySchema, 'query'),
   getAllFabricCategories
 );
@@ -87,38 +72,26 @@ router.get(
  * @swagger
  * /fabric-category/{id}:
  *   get:
- *     summary: Get fabric category by id
+ *     summary: Get fabric category by ID
  *     tags: [FabricCategory]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
  *         description: FabricCategory ID
  *     responses:
  *       200:
  *         description: Fabric category retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Lấy thông tin fabric category thành công
- *                 data:
- *                   $ref: '#/components/schemas/FabricCategory'
- *       400:
- *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryIdParamSchema, 'params'),
   getFabricCategoryById
@@ -133,41 +106,37 @@ router.get(
  *     security:
  *       - bearerAuth: []
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
  *               name:
- *                 description: Fabric category name
+ *                 type: string
  *                 example: Shirt Fabric
  *               description:
- *                 description: Optional description
+ *                 type: string
  *                 example: Suitable for shirts
+ *               sellingPricePerMeter:
+ *                 type: number
+ *                 format: float
+ *                 example: 50.0
+ *               sellingPricePerRoll:
+ *                 type: number
+ *                 format: float
+ *                 example: 3000.0
  *     responses:
  *       201:
  *         description: Fabric category created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Tạo fabric category thành công
- *                 data:
- *                   $ref: '#/components/schemas/FabricCategory'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
  *       409:
  *         $ref: '#/components/responses/ConflictError'
  */
 router.post(
   '/',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(createFabricCategorySchema, 'body'),
   createFabricCategory
@@ -177,45 +146,41 @@ router.post(
  * @swagger
  * /fabric-category/{id}:
  *   put:
- *     summary: Update fabric category
+ *     summary: Update a fabric category
  *     tags: [FabricCategory]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
  *         description: FabricCategory ID
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
  *               name:
- *                 description: Fabric category name
+ *                 type: string
  *                 example: Shirt Fabric
  *               description:
- *                 description: Optional description
+ *                 type: string
  *                 example: Suitable for shirts
+ *               sellingPricePerMeter:
+ *                 type: number
+ *                 format: float
+ *                 example: 45.5
+ *               sellingPricePerRoll:
+ *                 type: number
+ *                 format: float
+ *                 example: 2700.0
  *     responses:
  *       200:
  *         description: Fabric category updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Cập nhật fabric category thành công
- *                 data:
- *                   $ref: '#/components/schemas/FabricCategory'
- *       400:
- *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  *       409:
@@ -223,10 +188,55 @@ router.post(
  */
 router.put(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
   validate(fabricCategoryIdParamSchema, 'params'),
   validate(updateFabricCategorySchema, 'body'),
   updateFabricCategory
+);
+
+/**
+ * @swagger
+ * /fabric-category/{id}:
+ *   delete:
+ *     summary: Xóa loại vải
+ *     tags: [FabricCategory]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: FabricCategory ID
+ *     responses:
+ *       200:
+ *         description: Xóa loại vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Xóa loại vải thành công"
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Bad Request - Loại vải đang được sử dụng hoặc có ràng buộc dữ liệu
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.delete(
+  '/:id',
+  authenticateToken,
+  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
+  validate(fabricCategoryIdParamSchema, 'params'),
+  deleteFabricCategory
 );
 
 export default router;

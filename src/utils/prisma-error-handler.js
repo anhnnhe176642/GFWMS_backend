@@ -2,46 +2,82 @@ import { ConflictError, NotFoundError, ValidationError, InternalServerError } fr
 import { Prisma } from '@prisma/client';
 
 /**
- * Extract field name from Prisma constraint name using DMMF
- * @param {string} constraintName - Constraint name like "User_email_key"
- * @returns {string} - Field name like "email"
+ * Lấy primary key field names từ model
+ * @param {Object} model - Prisma DMMF model
+ * @returns {string} - Field name hoặc composite field names
  */
-const extractFieldFromConstraint = (constraintName) => {
-  if (typeof constraintName !== 'string') return constraintName;
+const getPrimaryKeyFields = (model) => {
+  // Ưu tiên lấy từ primaryKey
+  if (model.primaryKey?.fields) {
+    return model.primaryKey.fields.length === 1
+      ? model.primaryKey.fields[0]
+      : model.primaryKey.fields.join('_');
+  }
+  
+  // Fallback: tìm field có isId = true
+  const idField = model.fields.find(field => field.isId);
+  return idField?.name || 'id';
+};
+
+/**
+ * Constraint name pattern: {table}_{column}_key
+ * @param {string} constraintName - Constraint name từ error
+ * @param {string} tableName - Table name (model.dbName hoặc model.name)
+ * @param {string} columnName - Column name trong DB (field.dbName hoặc field.name)
+ * @returns {boolean}
+ */
+const matchesUniqueConstraint = (constraintName, tableName, columnName) => {
+  return constraintName === `${tableName}_${columnName}_key`;
+};
+
+/**
+ * Extract field name from Prisma constraint name using DMMF
+ * @param {string} constraintName - Constraint name like "User_email_key" or "PRIMARY"
+ * @param {string} modelName - Model name from error.meta (required)
+ * @returns {string} - Field name like "email" or "id"
+ */
+const extractFieldFromConstraint = (constraintName, modelName) => {
+  if (typeof constraintName !== 'string' || !modelName) {
+    return constraintName;
+  }
   
   try {
-    // Lấy DMMF từ Prisma 
     const dmmf = Prisma.dmmf;
+    const model = dmmf.datamodel.models.find(m => m.name === modelName);
     
-    // Duyệt qua tất cả models
-    for (const model of dmmf.datamodel.models) {
-      // 1. Kiểm tra single field unique constraints (@unique)
-      for (const field of model.fields) {
-        if (field.isUnique) {
-          const expectedConstraintName = `${model.name}_${field.name}_key`;
-          if (expectedConstraintName === constraintName) {
-            return field.name;
-          }
-        }
-      }
-      
-      // 2. Kiểm tra composite unique constraints (@@unique)
-      if (model.uniqueIndexes) {
-        for (const uniqueIndex of model.uniqueIndexes) {
-          if (uniqueIndex.name === constraintName) {
-            return uniqueIndex.fields.length === 1 
-              ? uniqueIndex.fields[0] 
-              : uniqueIndex.fields.join('_');
-          }
-        }
-      }
-      
-      // 3. Kiểm tra primary key constraints (@@id)
-      if (model.primaryKey && model.primaryKey.name === constraintName) {
-        return model.primaryKey.fields.length === 1
-          ? model.primaryKey.fields[0]
-          : model.primaryKey.fields.join('_');
-      }
+    if (!model) {
+      console.warn(`Model "${modelName}" not found in DMMF`);
+      return constraintName;
+    }
+    
+    // 1. Xử lý PRIMARY KEY constraint (MySQL)
+    if (constraintName === 'PRIMARY') {
+      return getPrimaryKeyFields(model);
+    }
+    
+    // 2. Kiểm tra primary key với tên cụ thể (@@id([name: "custom_pk"]))
+    if (model.primaryKey?.name === constraintName) {
+      return getPrimaryKeyFields(model);
+    }
+    
+    // 3. Kiểm tra composite unique constraints (@@unique)
+    const uniqueIndex = model.uniqueIndexes?.find(idx => idx.name === constraintName);
+    if (uniqueIndex) {
+      return uniqueIndex.fields.length === 1
+        ? uniqueIndex.fields[0]
+        : uniqueIndex.fields.join('_');
+    }
+    
+    // 4. Kiểm tra single field unique constraints (@unique)
+    const tableName = model.dbName || model.name;
+    const uniqueField = model.fields.find(field => {
+      if (!field.isUnique) return false;
+      const columnName = field.dbName || field.name;
+      return matchesUniqueConstraint(constraintName, tableName, columnName);
+    });
+    
+    if (uniqueField) {
+      return uniqueField.name;
     }
     
   } catch (error) {
@@ -67,7 +103,8 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
     case 'P2002': {
       // Unique constraint violation
       const target = error.meta?.target;
-      
+      const modelName = error.meta?.modelName || error.meta?.model_name;
+      console.log('P2002 Error Meta:', JSON.stringify(error.meta, null, 2));
       const targetFields = Array.isArray(target) ? target : [target];
       
       for (const constraintName of targetFields) {
@@ -77,14 +114,14 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
         }
         
         // Nếu không có, thử extract field name và match
-        const fieldName = extractFieldFromConstraint(constraintName);
+        const fieldName = extractFieldFromConstraint(constraintName, modelName);
         if (fieldMappings[fieldName]) {
           throw new ConflictError(fieldMappings[fieldName], fieldName);
         }
       }
       
       // Default message nếu không có mapping
-      const fieldName = extractFieldFromConstraint(targetFields[0]) || 'dữ liệu';
+      const fieldName = extractFieldFromConstraint(targetFields[0], modelName) || 'dữ liệu';
       throw new ConflictError(`${fieldName} đã tồn tại`, fieldName);
     }
     
@@ -120,8 +157,7 @@ export const handlePrismaError = (error, fieldMappings = {}) => {
       const errorMessage = error.message || '';
       
       // Trường hợp 1: Xóa khi có bản ghi tham chiếu (delete operation)
-      if (errorMessage.includes('delete') || 
-          errorMessage.includes('Foreign key constraint violated')) {
+      if (errorMessage.includes('delete')) {
         
         // Kiểm tra fieldMappings trước
         const customMessage = fieldMappings[fieldName];

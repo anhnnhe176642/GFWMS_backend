@@ -1,10 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { NotFoundError } from '../utils/errors.js';
+import { UserStatus } from '@prisma/client';
 import { userRepository } from '../repositories/user.repository.js';
-
-export const getAllUsers = async (page, limit) => {
-  return await userRepository.findWithPagination(page, limit);
-};
 
 export const createUser = async (data) => {
   // Hash password if provided
@@ -41,7 +38,7 @@ export const deleteUser = async (id) => {
     throw new NotFoundError('User không tồn tại');
   }
   
-  if (existingUser.status === 'DELETED') {
+  if (existingUser.status === UserStatus.DELETED) {
     throw new Error('User đã bị xóa trước đó');
   }
   return await userRepository.softDelete(id);

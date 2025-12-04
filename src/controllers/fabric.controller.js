@@ -1,7 +1,7 @@
 import * as fabricService from '../services/fabric.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-/** 🔹 Lấy danh sách Fabric (hỗ trợ filter, sort, pagination) */
+/**  Lấy danh sách Fabric (hỗ trợ filter, sort, pagination) */
 export const getAllFabrics = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
@@ -24,7 +24,7 @@ export const getAllFabrics = async (req, res, next) => {
   }
 };
 
-/** 🔹 Lấy Fabric theo ID */
+/**  Lấy Fabric theo ID */
 export const getFabricById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -42,5 +42,24 @@ export const getFabricById = async (req, res, next) => {
     next(error);
   }
 };
+
+
+//Lấy thông tin tồn kho vải theo kho
+
+export const getFabricInventoryByWarehouse = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await fabricService.getFabricInventoryByWarehouse(parseInt(id));
+
+    res.json({
+      message: 'Lấy thông tin tồn kho vải theo kho thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 
 

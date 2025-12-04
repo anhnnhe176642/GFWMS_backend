@@ -33,8 +33,8 @@ async create(colorData) {
       select: this.#selectOptions
     }),
     {
-      PRIMARY: 'ID màu đã tồn tại',
-      fabric_color_name_key: 'Tên màu đã tồn tại',
+      id: 'ID màu đã tồn tại',
+      name: 'Tên màu đã tồn tại',
     }
   );
 }
@@ -48,10 +48,25 @@ async create(colorData) {
         select: this.#selectOptions
       }),
       {
-        fabric_color_name_key: 'Tên màu đã tồn tại',
+        name: 'Tên màu đã tồn tại',
       }
     );
   }
+
+  async deleteById(id) {
+    return withPrismaErrorHandling(() =>
+      prisma.fabricColor.delete({
+        where: { id}
+      })
+    );
+  }
+
+  async countFabricsWithColor(colorId) {
+    return await prisma.fabric.count({
+      where: { colorId } 
+    });
+  }
+
 
   async count(where = {}) {
     return await prisma.fabricColor.count({ where });

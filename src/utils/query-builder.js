@@ -163,7 +163,30 @@ export const buildPagination = (page = 1, limit = 10) => {
 };
 
 /**
- * Build sort options - support multiple fields
+ * Build nested sort condition cho relation fields
+ * @param {string} path - Nested path (e.g., 'category.name', 'supplier.name')
+ * @param {string} order - Sort order ('asc' or 'desc')
+ * @returns {Object} Nested sort object
+ * 
+ * @example
+ * buildNestedSort('category.name', 'asc') => { category: { name: 'asc' } }
+ * buildNestedSort('supplier.name', 'desc') => { supplier: { name: 'desc' } }
+ */
+export const buildNestedSort = (path, order = 'desc') => {
+  const parts = path.split('.');
+  const sortOrder = order.toLowerCase() === 'asc' ? 'asc' : 'desc';
+  
+  // Build nested object từ bên phải sang trái
+  let result = sortOrder;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    result = { [parts[i]]: result };
+  }
+  
+  return result;
+};
+
+/**
+ * Build sort options - support multiple fields including nested fields
  * @param {string|array} sortBy - Field(s) to sort by (comma-separated string or array)
  * @param {string|array} order - Sort order(s) (comma-separated string or array)
  * @param {Object} sortMapping - Mapping cho sort fields
@@ -172,6 +195,8 @@ export const buildPagination = (page = 1, limit = 10) => {
  * @example
  * - Single: buildSort('createdAt', 'desc') => { createdAt: 'desc' }
  * - Multiple: buildSort('status,createdAt', 'asc,desc') => [{ status: 'asc' }, { createdAt: 'desc' }]
+ * - Nested single: buildSort('category.name', 'asc') => { category: { name: 'asc' } }
+ * - Nested multiple: buildSort('category.name,createdAt', 'asc,desc') => [{ category: { name: 'asc' } }, { createdAt: 'desc' }]
  * - Multiple: buildSort(['status', 'createdAt'], ['asc', 'desc']) => [{ status: 'asc' }, { createdAt: 'desc' }]
  */
 export const buildSort = (sortBy = 'createdAt', order = 'desc', sortMapping = {}) => {
@@ -185,6 +210,12 @@ export const buildSort = (sortBy = 'createdAt', order = 'desc', sortMapping = {}
     return sortFields.map((field, index) => {
       const mappedField = sortMapping[field] || field;
       const sortOrder = (orders[index] || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+      
+      // Check if nested field (contains dot)
+      if (mappedField.includes('.')) {
+        return buildNestedSort(mappedField, sortOrder);
+      }
+      
       return { [mappedField]: sortOrder };
     });
   }
@@ -193,6 +224,11 @@ export const buildSort = (sortBy = 'createdAt', order = 'desc', sortMapping = {}
   const field = Array.isArray(sortFields) ? sortFields[0] : sortFields;
   const mappedField = sortMapping[field] || field;
   const sortOrder = (Array.isArray(orderFields) ? orderFields[0] : orderFields).toLowerCase() === 'asc' ? 'asc' : 'desc';
+  
+  // Check if nested field (contains dot)
+  if (mappedField.includes('.')) {
+    return buildNestedSort(mappedField, sortOrder);
+  }
   
   return {
     [mappedField]: sortOrder

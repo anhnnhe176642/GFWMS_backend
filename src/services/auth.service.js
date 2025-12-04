@@ -2,19 +2,21 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import process from 'process';
 import { AuthenticationError, NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
+import { UserStatus } from '@prisma/client';
 import { userRepository } from '../repositories/user.repository.js';
 import { emailVerificationRepository } from '../repositories/emailVerification.repository.js';
 import { hashPin, generateNumericPin } from '../utils/hash.js';
 import { sendVerificationCodeEmail } from './email.service.js';
 import { passwordResetPinRepository } from '../repositories/passwordResetPin.repository.js';
 import { sendPasswordResetPin } from '../utils/mailer.js';
+import { uploadSingleImage } from './upload.service.js';
 
 export const registerUser = async (userData) => {
   // If email already exists and is verified -> conflict
   const existing = await userRepository.findByEmail(userData.email);
   if (existing) {
     if (existing.emailVerified) {
-      throw new ConflictError('Email đã được sử dụng');
+      throw new ConflictError('Email đã được sử dụng', 'email');
     }
 
     await emailVerificationRepository.invalidatePinsForUser(existing.id);
@@ -53,17 +55,17 @@ export const verifyEmailPin = async (email, pin) => {
   const user = await userRepository.findByEmail(email);
 
   if (!user) {
-    throw new NotFoundError('User không tồn tại');
+    throw new NotFoundError('User không tồn tại',"email");
   }
 
   if (user.emailVerified) {
-    throw new ValidationError('Email đã được xác thực');
+    throw new ValidationError('Email đã được xác thực', 'email');
   }
 
   // Find the latest active pin for user
   const latestPin = await emailVerificationRepository.findLatestActiveByUser(user.id);
   if (!latestPin) {
-    throw new AuthenticationError('Mã xác thực không hợp lệ hoặc đã hết hạn');
+    throw new AuthenticationError('Mã xác thực không hợp lệ hoặc đã hết hạn', "pin");
   }
 
   const providedHash = hashPin(pin);
@@ -90,27 +92,27 @@ export const verifyEmailPin = async (email, pin) => {
   const MAX_ATTEMPTS = parseInt(process.env.VERIFY_PIN_MAX_ATTEMPTS || '5');
   if ((latestPin.attempts || 0) + 1 >= MAX_ATTEMPTS) {
     await emailVerificationRepository.markUsed(latestPin.id);
-    throw new AuthenticationError('Quá nhiều lần thử. Mã xác thực đã bị hủy. Vui lòng yêu cầu mã mới.');
+    throw new AuthenticationError('Quá nhiều lần thử. Mã xác thực đã bị hủy. Vui lòng yêu cầu mã mới.', "pin");
   }
 
-  throw new AuthenticationError('Mã xác thực không hợp lệ');
+  throw new AuthenticationError('Mã xác thực không hợp lệ', "pin");
 };
 
 export const resendVerificationPin = async (email) => {
   const user = await userRepository.findByEmail(email);
   if (!user) {
-    throw new NotFoundError('User không tồn tại');
+    throw new NotFoundError('User không tồn tại', "email");
   }
 
   if (user.emailVerified) {
-    throw new ValidationError('Email đã được xác thực');
+    throw new ValidationError('Email đã được xác thực', 'email');
   }
 
   // Check cooldown for resending
   const lastPin = await emailVerificationRepository.findLatestActiveByUser(user.id);
   const cooldownSeconds = parseInt(process.env.VERIFY_PIN_RESEND_COOLDOWN_SECONDS || '60');
   if (lastPin && (new Date() - new Date(lastPin.createdAt)) / 1000 < cooldownSeconds) {
-    throw new ValidationError('Vui lòng đợi trước khi gửi lại mã xác thực');
+    throw new ValidationError('Vui lòng đợi trước khi gửi lại mã xác thực', "email");
   }
 
   // Invalidate previous pins and create a new one
@@ -121,7 +123,7 @@ export const resendVerificationPin = async (email) => {
   const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
   await emailVerificationRepository.createPin({ userId: user.id, pinHash, expiresAt });
-  await sendVerificationCodeEmail(user.email, pin, expiresInMinutes);
+  sendVerificationCodeEmail(user.email, pin, expiresInMinutes);
   return { message: 'Mã xác thực đã được gửi lại' };
 };
 
@@ -140,8 +142,12 @@ export const loginUser = async (usernameOrEmail, password) => {
   }
 
   // Check user status
-  if (user.status === 'INACTIVE') {
+  if (user.status === UserStatus.INACTIVE) {
     throw new AuthenticationError('Tài khoản chưa được kích hoạt');
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AuthenticationError('Tài khoản đã bị khóa');
   }
 
   // Generate JWT token
@@ -172,6 +178,31 @@ export const getUserProfile = async (userId) => {
 
 export const updateUserProfile = async (userId, updateData) => {
   const user = await userRepository.updateById(userId, updateData);
+  return user;
+};
+
+export const updateUserAvatar = async (userId, avatarFile) => {
+  if (!avatarFile) {
+    throw new ValidationError('Avatar file là bắt buộc', 'avatar');
+  }
+
+  // Get current user to get old avatar publicId
+  const currentUser = await userRepository.findById(userId);
+  
+  // Upload new avatar and auto-delete old one
+  const result = await uploadSingleImage(avatarFile, {
+    folder: 'avatars',
+    preset: 'avatar',
+    oldPublicId: currentUser?.avatarPublicId,
+    fieldName: 'avatar'
+  });
+  
+  // Update user with new avatar URL and publicId
+  const user = await userRepository.updateById(userId, {
+    avatar: result.url,
+    avatarPublicId: result.publicId
+  });
+  
   return user;
 };
 
@@ -269,5 +300,26 @@ export const setNewPasswordWithVerifiedPin = async (email, pin, newPassword) => 
   await userRepository.updateById(user.id, { password: hashedNewPassword });
   await passwordResetPinRepository.markUsed(latestPin.id);
   return { message: 'Mật khẩu đã được đặt lại thành công' };
+};
+
+export const getCurrentUserWithPermissions = async (userId) => {
+  const user = await userRepository.findById(userId);
+  
+  if (!user) {
+    throw new NotFoundError('User không tồn tại');
+  }
+
+  // Check user status
+  if (user.status === UserStatus.INACTIVE) {
+    throw new AuthenticationError('Tài khoản chưa được kích hoạt');
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AuthenticationError('Tài khoản đã bị khóa');
+  }
+
+  user.permissionKeys = await userRepository.getUserPermissionKeys(user.id);
+  
+  return user;
 };
 

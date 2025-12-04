@@ -16,14 +16,14 @@ export class SupplierRepository {
     updatedAt: true,
   };
 
-  /** 🔹 Lấy tất cả Supplier */
+  /**  Lấy tất cả Supplier */
   async findAll() {
     return await prisma.supplier.findMany({
       select: this.#selectOptions
     });
   }
 
-  /** 🔹 Tìm Supplier theo ID */
+  /**  Tìm Supplier theo ID */
   async findById(id) {
     return await prisma.supplier.findUnique({
       where: { id },
@@ -31,7 +31,7 @@ export class SupplierRepository {
     });
   }
 
-  /** 🔹 Tạo mới Supplier */
+  /**  Tạo mới Supplier */
   async create(supplierData) {
     return await withPrismaErrorHandling(
       () => prisma.supplier.create({
@@ -39,12 +39,13 @@ export class SupplierRepository {
         select: this.#selectOptions
       }),
       {
-        name: 'Tên nhà cung cấp đã tồn tại'
+        name: 'Tên nhà cung cấp đã tồn tại',
+        phone: 'Số điện thoại đã tồn tại',
       }
     );
   }
 
-  /** 🔹 Cập nhật Supplier theo ID */
+  /**  Cập nhật Supplier theo ID */
   async updateById(id, supplierData) {
     return await withPrismaErrorHandling(
       () => prisma.supplier.update({
@@ -53,18 +54,31 @@ export class SupplierRepository {
         select: this.#selectOptions
       }),
       {
-        name: 'Tên nhà cung cấp đã tồn tại'
+        name: 'Tên nhà cung cấp đã tồn tại',
+        phone: 'Số điện thoại đã tồn tại',
       }
     );
   }
 
+  async countFabricsWithSupplier(supplierId) {
+    return await prisma.fabric.count({
+      where: { supplierId },
+    });
+  }
 
-  /** 🔹 Đếm tổng số Supplier */
+  async deleteById(id) {
+    return await prisma.supplier.delete({
+      where: { id },
+    });
+  }
+
+
+  /**  Đếm tổng số Supplier */
   async count(where = {}) {
     return await prisma.supplier.count({ where });
   }
 
-  /** 🔹 Phân trang cơ bản */
+  /**  Phân trang cơ bản */
   async findWithPagination(page = 1, limit = 10) {
     const { skip, take } = buildPagination(page, limit);
 
@@ -81,7 +95,7 @@ export class SupplierRepository {
     return formatPaginatedResponse(items, total, page, take);
   }
 
-  /** 🔹 Truy vấn nâng cao: search, sort, pagination, filter */
+  /**  Truy vấn nâng cao: search, sort, pagination, filter */
   async findWithAdvancedQuery(queryOptions = {}) {
     const {
       page = 1,
