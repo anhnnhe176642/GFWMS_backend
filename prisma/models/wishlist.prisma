@@ -1,0 +1,12 @@
+model Wishlist {
+    id          Int      @id @default(autoincrement())
+    userId      String
+    fabricId    Int
+    user        User     @relation(fields: [userId], references: [id])
+    fabric      Fabric   @relation(fields: [fabricId], references: [id])
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@unique([userId, fabricId])
+    @@map("wishlist")
+}
