@@ -1,0 +1,16 @@
+model CreditInvoice{
+    id          Int       @id @default(autoincrement())
+    
+    totalCreditAmount Float 
+    creditPaidAmount Float @default(0)
+
+    dueDate     DateTime
+
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    creditId    Int
+    credit CreditRegistration @relation(fields: [creditId],references: [id])
+
+    invoice Invoice[]
+}

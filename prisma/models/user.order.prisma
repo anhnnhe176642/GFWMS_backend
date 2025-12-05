@@ -9,10 +9,6 @@ model Order {
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
 
-    paymentType       PaymentType  @default(CASH)
-    paymentDeadline   DateTime?
-    creditAmount      Float        @default(0)
-    paidAmount        Float         @default(0)
 
 //offline
     isOffline         Boolean       @default(false)
@@ -20,6 +16,6 @@ model Order {
     customerPhone     String?  
     createdByStaff    User?         @relation("OrderCreatedByStaff", fields: [createdByStaffId], references: [id])
 
-    orderItems        OrderItem[]     
+    orderItems        OrderItem[]    
     invoice     Invoice?
 }
