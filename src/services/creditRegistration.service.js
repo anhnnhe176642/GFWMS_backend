@@ -4,16 +4,31 @@ import { creditRegistrationRepository } from '../repositories/creditRegistration
 import { invoiceRepository } from '../repositories/invoice.repository.js';
 
 export const createCreditRegistration = async (data) => {
+  // Lấy đơn mới nhất của user (nếu có)
+  const latest = await creditRegistrationRepository.findLatestByUserId(data.userId);
+
+  if (latest) {
+    if (latest.status === RegistrationStatus.PENDING) {
+      throw new BadRequestError("Bạn đã gửi đơn và đang chờ duyệt.");
+    }
+    if (latest.status === RegistrationStatus.APPROVED) {
+      throw new BadRequestError("Bạn đã được duyệt ghi nợ, không thể gửi lại.");
+    }
+
+  }
+
   return await creditRegistrationRepository.create({
     userId: data.userId,
     note: data.note,
+    status: RegistrationStatus.PENDING
   });
 };
 
 
+
 export const getCreditRegistrationById = async (id) => {
   const record = await creditRegistrationRepository.findById(id);
-  if (!record) throw new NotFoundError('Credit Registration không tồn tại');
+  if (!record) throw new NotFoundError('Đơn đăng ký không tồn tại');
   return record;
 };
 
@@ -23,7 +38,7 @@ export const getAllCreditRegistrations = async (queryOptions) => {
 
 export const updateCreditRegistrationStatus = async (id, data) => {
   const existing = await creditRegistrationRepository.findById(id);
-  if (!existing) throw new NotFoundError('Credit Registration không tồn tại');
+  if (!existing) throw new NotFoundError('Đơn đăng ký không tồn tại');
 
   if (existing.status !== RegistrationStatus.PENDING) {
     throw new BadRequestError('Đơn đăng ký này đã được xử lý, không thể cập nhật');
@@ -38,7 +53,7 @@ export const updateCreditRegistrationStatus = async (id, data) => {
 
   if (data.status === RegistrationStatus.APPROVED) {
     if (!data.creditLimit || data.creditLimit <= 0) {
-      throw new BadRequestError('creditLimit là bắt buộc và phải lớn hơn 0 khi duyệt đơn');
+      throw new BadRequestError('Hạn mức được nợ là bắt buộc và phải lớn hơn 0 khi duyệt đơn');
     }
 
     updateData.creditLimit = data.creditLimit;

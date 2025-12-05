@@ -157,6 +157,14 @@ class CreditRegistrationRepository {
     });
   }
 
+  async findLatestByUserId(userId) {
+  return prisma.creditRegistration.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "desc" }
+  });
+}
+
+
   async getOrdersByUser(userId) {
     return prisma.order.findMany({
       where: { userId },
