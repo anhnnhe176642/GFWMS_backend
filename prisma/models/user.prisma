@@ -35,5 +35,6 @@ model User {
   storeId   Int? 
   store     Store?    @relation("UserWorkAtStore", fields: [storeId], references: [id])
 
+  wishlist Wishlist[]
   YoloDatasetImage YoloDatasetImage[]
 }
