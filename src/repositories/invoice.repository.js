@@ -202,6 +202,18 @@ export class InvoiceRepository {
 
     return formatPaginatedResponse(invoices, total, page, limit);
   }
+
+  async findByUserId(userId) {
+  return await prisma.invoice.findMany({
+    where: {
+      order: {
+        userId
+      }
+    },
+    select: this.#invoiceDetailSelectOptions,
+    orderBy: { invoiceDate: 'desc' }
+  });
+}
 }
 
 export const invoiceRepository = new InvoiceRepository();

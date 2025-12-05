@@ -158,6 +158,13 @@ export const PERMISSIONS = {
     UPDATE:       { key: 'banner_discount:update',       description: 'Cập nhật thông tin banner_discount' },
     DELETE:       { key: 'banner_discount:delete',       description: 'Xóa banner_discount (soft delete)' },
   },
+
+  CREDIT_REGISTRATION: {
+    VIEW_LIST:           { key: 'creadit_registration:view_list',           description: 'Xem danh sách đơn đăng ký' },
+    VIEW_DETAIL:         { key: 'creadit_registration:view_detail',         description: 'Xem chi tiết đơn đăng ký' },
+    CREATE:              { key: 'creadit_registration:create',              description: 'Tạo đơn đăng ký mới' },
+    CHANGE_STATUS:       { key: 'creadit_registration:change_status',       description: 'Cập nhật trạng thái đơn đăng ký' },
+  },
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)
