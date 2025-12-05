@@ -14,6 +14,10 @@ import supplierRouters from './v1/supplier.routes.js';
 
 import importFabricRoutes from './v1/importFabric.routes.js';
 import invoiceRouters from './v1/invoice.routes.js';
+
+import customerRoutes from './v1/customer.routes.js';
+import wishlistRoutes from './v1/wishlist.routes.js';
+
 import exportFabricRouters from './v1/exportFabric.routes.js';
 import storeRouters from './v1/store.routes.js';
 import fabricShelfRouters from './v1/fabricShelf.route.js';
@@ -40,6 +44,10 @@ router.use('/fabric-category', fabricCategoryRouters);
 router.use('/supplier', supplierRouters);
 router.use('/import-fabrics', importFabricRoutes);
 router.use('/invoices', invoiceRouters);
+
+router.use('/customers', customerRoutes);
+router.use('/wishlist', wishlistRoutes);
+
 router.use('/export-fabrics', exportFabricRouters);
 router.use('/stores', storeRouters);
 router.use('/fabric-shelf', fabricShelfRouters);

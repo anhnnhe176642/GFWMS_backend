@@ -45,6 +45,7 @@ export const orderItemSchema = Joi.object({
 
 //CREATE ORDER (ONLINE - Customer)
 export const createOrderSchema = Joi.object({
+  storeId: positiveIntegerSchema,
   orderItems: Joi.array()
     .items(orderItemSchema)
     .min(1)

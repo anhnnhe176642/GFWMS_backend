@@ -25,9 +25,9 @@ const processRollPurchase = async (fabric, quantity) => {
 };
 
 // Xử lý mua theo MÉT
-const processMeterPurchase = async (fabric, meters) => {
+const processMeterPurchase = async (fabric, meters, storeId) => {
   //Lấy số mét vải còn trong cửa hàng
-  const fabricStore = await orderRepository.getStoreStock(fabric.id);
+  const fabricStore = await orderRepository.getStoreStock(fabric.id, storeId);
   const availableMeters = fabricStore?.quantity || 0;
   // tính số mét 
   const shortage = meters - availableMeters;
@@ -61,13 +61,14 @@ const processMeterPurchase = async (fabric, meters) => {
       metersToDeduct: meters,
       needsExport,
       rollsToExport,
-      metersToExport
+      metersToExport,
+      storeId  
     }
   };
 };
 
 // Xử lý tất cả items
-const processOrderItems = async (orderItems, fabricMap) => {
+const processOrderItems = async (orderItems, fabricMap, storeId) => {
   const processedItems = [];
 
   for (const item of orderItems) {
@@ -80,7 +81,7 @@ const processOrderItems = async (orderItems, fabricMap) => {
     if (item.saleUnit === 'ROLL') {
       processed = await processRollPurchase(fabric, item.quantity);
     } else if (item.saleUnit === 'METER') {
-      processed = await processMeterPurchase(fabric, item.quantity);
+      processed = await processMeterPurchase(fabric, item.quantity, storeId);
     } else {
       throw new BadRequestError('Đơn vị bán phải là ROLL hoặc METER');
     }
@@ -105,11 +106,12 @@ const createDeductStockCallback = (items) => {
       if (item.saleUnit === 'ROLL') {
         await orderRepository.decrementFabricStock(item.fabricId, stockOperation.rollsToDeduct, tx);
       } else if (item.saleUnit === 'METER') {
+        const storeId = stockOperation.storeId;
         if (stockOperation.needsExport) {
           await orderRepository.decrementFabricStock(item.fabricId, stockOperation.rollsToExport, tx);
-          await orderRepository.incrementStoreStock(item.fabricId, stockOperation.metersToExport, tx);
+          await orderRepository.incrementStoreStock(item.fabricId, stockOperation.metersToExport, storeId, tx);
         }
-        await orderRepository.decrementStoreStock(item.fabricId, stockOperation.metersToDeduct, tx);
+        await orderRepository.decrementStoreStock(item.fabricId, stockOperation.metersToDeduct,storeId, tx);
       }
     }
   };
@@ -143,10 +145,19 @@ const calculateCreditSplit = (totalAmount, creditLimit) => {
 //A. TẠO ĐƠN HÀNG ONLINE (Customer)
 
 export const createOrder = async (orderData, userId) => {
-  const { orderItems, notes, paymentType } = orderData;
+  const { orderItems, notes, paymentType, storeId } = orderData;
 
   if (!orderItems || orderItems.length === 0) {
     throw new BadRequestError('Đơn hàng phải có ít nhất 1 sản phẩm');
+  }
+  // Kiểm tra cửa hàng tồn 
+  const store = await orderRepository.findStoreById(storeId);
+  if (!store) {
+    throw new NotFoundError(`Không tìm thấy cửa hàng với ID ${storeId}`);
+  }
+  
+  if (! store.isActive) {
+    throw new BadRequestError(`Cửa hàng "${store.name}" hiện không hoạt động`);
   }
 
   // Lấy fabric
@@ -155,18 +166,18 @@ export const createOrder = async (orderData, userId) => {
   const fabricMap = new Map(fabrics.map(f => [f.id, f]));
 
   // Xử lý items
-  const processedItems = await processOrderItems(orderItems, fabricMap);
+  const processedItems = await processOrderItems(orderItems, fabricMap, storeId);
   const totalAmount = calculateTotalAmount(processedItems);
 
   if (paymentType === 'CASH') {
-    return await createCashOrder(userId, processedItems, totalAmount, notes);
+    return await createCashOrder(userId, processedItems, totalAmount, notes,storeId);
   } else {
-    return await createCreditOrder(userId, processedItems, totalAmount, notes);
+    return await createCreditOrder(userId, processedItems, totalAmount, notes, storeId);
   }
 };
 
 // A1. CASH
-const createCashOrder = async (userId, items, totalAmount, notes) => {
+const createCashOrder = async (userId, items, totalAmount, notes, storeId) => {
   const paymentDeadline = new Date(Date.now() + 15 * 60 * 1000);
 
   const order = await orderRepository.createOrderWithTransaction(
@@ -178,6 +189,7 @@ const createCashOrder = async (userId, items, totalAmount, notes) => {
       paidAmount: 0,
       creditAmount: 0,
       paymentDeadline,
+      storeId,
       notes
     },
     items.map(item => ({
@@ -202,19 +214,19 @@ const createCashOrder = async (userId, items, totalAmount, notes) => {
 };
 
 // A2. CREDIT
-const createCreditOrder = async (userId, items, totalAmount, notes) => {
+const createCreditOrder = async (userId, items, totalAmount, notes, storeId) => {
   const credit = await checkCreditEligibility(userId);
   const { creditAmount, excessAmount, requiresPayment } = calculateCreditSplit(totalAmount, credit.creditLimit);
   
   if (requiresPayment) {
-    return await createCreditOrderWithExcess(userId, items, totalAmount, creditAmount, excessAmount, notes);
+    return await createCreditOrderWithExcess(userId, items, totalAmount, creditAmount, excessAmount, notes, storeId);
   } else {
-    return await createFullCreditOrder(userId, items, totalAmount, creditAmount, notes);
+    return await createFullCreditOrder(userId, items, totalAmount, creditAmount, notes, storeId);
   }
 };
 
 // A2.1: Trong hạn mức
-const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, notes) => {
+const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, notes, storeId) => {
   const creditDueDate = new Date();
   creditDueDate.setDate(creditDueDate.getDate() + 15);
 
@@ -226,6 +238,7 @@ const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, n
       totalAmount,
       paidAmount: 0,
       creditAmount,
+      storeId,
       notes: notes || 'Đơn ghi nợ - Tự động duyệt'
     },
     items.map(item => ({
@@ -250,7 +263,7 @@ const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, n
 };
 
 // A2.2: Vượt hạn mức
-const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmount, excessAmount, notes) => {
+const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmount, excessAmount, notes, storeId) => {
   const paymentDeadline = new Date(Date.now() + 15 * 60 * 1000);
 
   const order = await orderRepository.createOrderWithTransaction(
@@ -262,6 +275,7 @@ const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmo
       paidAmount: 0,
       creditAmount,
       paymentDeadline,
+      storeId,
       notes: notes || `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Cần thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
     },
     items.map(item => ({
@@ -283,14 +297,6 @@ const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmo
   );
 
   return { order, requiresPayment: true, excessAmount };
-};
-
-
-export const simulatePayment = async (orderId, success = true) => {
-  if (!success) {
-    return { success: false, message: 'Giả lập thanh toán thất bại' };
-  }
-  return await confirmPayment(orderId);
 };
 
 // XÁC NHẬN THANH TOÁN
@@ -334,6 +340,17 @@ export const confirmPayment = async (orderId) => {
 export const createOfflineOrder = async (orderData, staffId) => {
   const { customerPhone, orderItems, paymentType, payExcessAmount, notes } = orderData;
 
+  const staff = await orderRepository.findUserById(staffId);
+  if (!staff) {
+    throw new NotFoundError('Không tìm thấy nhân viên');
+  }
+  
+  if (!staff.storeId) {
+    throw new BadRequestError('Nhân viên chưa được phân công cửa hàng');
+  }
+  
+  const storeId = staff.storeId;
+
   const customer = await orderRepository.findUserByPhone(customerPhone);
   if (!customer) {
     throw new NotFoundError(`Không tìm thấy khách hàng với SĐT ${customerPhone}`);
@@ -343,18 +360,18 @@ export const createOfflineOrder = async (orderData, staffId) => {
   const fabrics = await orderRepository.getFabricsForOrder(fabricIds);
   const fabricMap = new Map(fabrics.map(f => [f.id, f]));
 
-  const processedItems = await processOrderItems(orderItems, fabricMap);
+  const processedItems = await processOrderItems(orderItems, fabricMap, storeId);
   const totalAmount = calculateTotalAmount(processedItems);
 
   if (paymentType === 'CASH') {
-    return await createOfflineCashOrder(customer.id, staffId, processedItems, totalAmount, customerPhone, notes);
+    return await createOfflineCashOrder(customer.id, staffId, processedItems, totalAmount, customerPhone, notes, storeId);
   } else {
-    return await createOfflineCreditOrder(customer, staffId, processedItems, totalAmount, customerPhone, payExcessAmount, notes);
+    return await createOfflineCreditOrder(customer, staffId, processedItems, totalAmount, customerPhone, payExcessAmount, notes, storeId);
   }
 };
 
 // Offline - CASH
-const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, customerPhone, notes) => {
+const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, customerPhone, notes, storeId) => {
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId: customerId,
@@ -366,6 +383,7 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
+      storeId,
       notes: notes || 'Mua tại cửa hàng - Trả tiền ngay'
     },
     items.map(item => ({
@@ -393,7 +411,7 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
 };
 
 // Offline - CREDIT
-const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, customerPhone, payExcessAmount, notes) => {
+const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, customerPhone, payExcessAmount, notes, storeId) => {
   if (!customer.creditRegistration || customer.creditRegistration.status !== 'APPROVED') {
     throw new BadRequestError('Khách hàng không được phép mua nợ');
   }
@@ -405,14 +423,14 @@ const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, c
     if (!payExcessAmount) {
       throw new BadRequestError(`Đơn hàng vượt hạn mức ${excessAmount.toLocaleString('vi-VN')}đ. Khách cần thanh toán phần vượt.`);
     }
-    return await createOfflineCreditOrderWithExcess(customer.id, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes);
+    return await createOfflineCreditOrderWithExcess(customer.id, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId);
   } else {
-    return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount, customerPhone, notes);
+    return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount, customerPhone, notes, storeId);
   }
 };
 
 // Offline - CREDIT trong hạn mức
-const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmount, customerPhone, notes) => {
+const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmount, customerPhone, notes, storeId) => {
   const creditDueDate = new Date();
   creditDueDate.setDate(creditDueDate.getDate() + 15);
 
@@ -427,6 +445,7 @@ const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmo
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
+      storeId,
       notes: notes || 'Mua tại cửa hàng - Ghi nợ'
     },
     items.map(item => ({
@@ -454,7 +473,7 @@ const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmo
 };
 
 // Offline - CREDIT vượt hạn mức
-const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes) => {
+const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId) => {
   const creditDueDate = new Date();
   creditDueDate.setDate(creditDueDate.getDate() + 15);
 
@@ -469,6 +488,7 @@ const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, to
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
+      storeId,
       notes: notes || `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Đã thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
     },
     items.map(item => ({

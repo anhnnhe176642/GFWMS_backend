@@ -29,6 +29,14 @@ export class OrderRepository {
     isOffline: true,
     customerPhone: true,
     notes: true,
+    storeId: true,
+    store: {
+      select: {
+        id: true,
+        name: true,
+        address: true
+      }
+    },
     createdAt: true,
     updatedAt: true,
     orderItems: {
@@ -170,13 +178,13 @@ export class OrderRepository {
     return await this.#updateQuantity('fabric', { id: fabricId }, 'quantityInStock', quantity, false, tx);
   }
 
-  async decrementStoreStock(fabricId, meters, tx = prisma) {
+  async decrementStoreStock(fabricId, meters, storeId, tx = prisma) {
     return await withPrismaErrorHandling(
       () => tx.fabricStore.update({
         where: { 
           fabricId_storeId: {  
             fabricId,
-            storeId: 1  // Hardcode storeId = 1
+            storeId
           }
         },
         data: { quantity: { decrement: meters } }
@@ -185,19 +193,19 @@ export class OrderRepository {
   }
 
   // CỘNG TỒN KHO CỬA HÀNG
-  async incrementStoreStock(fabricId, meters, tx = prisma) {
+  async incrementStoreStock(fabricId, meters, storeId, tx = prisma) {
     return await withPrismaErrorHandling(
       () => tx.fabricStore.upsert({
         where: { 
           fabricId_storeId: {  
             fabricId,
-            storeId: 1  
+            storeId
           }
         },
         update: { quantity: { increment: meters } },
         create: { 
           fabricId, 
-          storeId: 1,  
+          storeId,  
           quantity: meters 
         }
       })
@@ -212,12 +220,12 @@ export class OrderRepository {
     });
   }
 
-  async getStoreStock(fabricId) {
+  async getStoreStock(fabricId, storeId) {
     return await prisma.fabricStore.findUnique({
       where: { 
         fabricId_storeId: {  
           fabricId,
-          storeId: 1 // storeId = 1 chính
+          storeId
         }
       },
       select: {
@@ -254,6 +262,43 @@ export class OrderRepository {
             creditLimit: true
           }
         }
+      }
+    });
+  }
+
+  //lay thog tin user kèm 
+  async findUserById(userId) {
+    return await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        fullname: true,
+        phone: true,
+        email: true,
+        role: true,
+        storeId: true,
+        store: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            isActive: true
+          }
+        }
+      }
+    });
+  }
+
+  //Tìm store theo ID
+  async findStoreById(storeId) {
+    return await prisma.store.findUnique({
+      where: { id: parseInt(storeId) },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        isActive: true
       }
     });
   }
@@ -365,6 +410,8 @@ export class OrderRepository {
 
 
 }
+
+
 
 
 
