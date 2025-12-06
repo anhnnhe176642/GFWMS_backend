@@ -21,11 +21,7 @@ export class OrderRepository {
     },
     orderDate: true,
     status: true,
-    paymentType: true,
     totalAmount: true,
-    paidAmount: true,
-    creditAmount: true,
-    paymentDeadline: true,
     isOffline: true,
     customerPhone: true,
     notes: true,
@@ -66,7 +62,9 @@ export class OrderRepository {
         totalAmount: true,
         paidAmount: true,
         creditAmount: true,
-        dueDate: true,
+        paymentType: true,        
+        paymentDeadline: true,   
+        creditInvoiceId: true,
         notes: true
       }
     },
@@ -92,48 +90,83 @@ export class OrderRepository {
 
 // TẠO ĐƠN HÀNG VỚI TRANSACTION
   async createOrderWithTransaction(orderData, items, invoiceData, deductStockCallback, shouldUpdateCredit = false) {
-    return await withPrismaErrorHandling(
-      () => prisma.$transaction(async (tx) => {
-        // 1. Tạo order
-        const order = await tx.order.create({
-          data: {
-            ...orderData,
-            orderItems: {
-              create: items
-            }
-          },
-        });
-
-        // 2. Trừ tồn kho 
-        await deductStockCallback(tx);
-
-        // 3. Tạo invoice
-        await tx.invoice.create({
-          data: {
-            ...invoiceData,
-            orderId: order.id
+  return await withPrismaErrorHandling(
+    () => prisma.$transaction(async (tx) => {
+      // THÊM: VALIDATION TRƯỚC KHI TẠO ORDER
+      if (shouldUpdateCredit && invoiceData. creditAmount > 0) {
+        const currentCredit = await tx.creditRegistration.findUnique({
+          where: { userId: orderData. userId },
+          select: { 
+            creditLimit: true, 
+            creditUsed: true,
+            status: true
           }
         });
-
-        // 4. Update credit limit nếu cần
-        if (shouldUpdateCredit && orderData.creditAmount > 0) {
-          await this.#updateQuantity(
-            'creditRegistration',
-            { userId: orderData.userId },
-            'creditLimit',
-            orderData.creditAmount,
-            false,
-            tx
+        
+        if (! currentCredit) {
+          throw new Error('Không tìm thấy Credit Registration');
+        }
+        
+        if (currentCredit.status !== 'APPROVED') {
+          throw new Error('Credit chưa được duyệt');
+        }
+        
+        const newCreditUsed = currentCredit.creditUsed + invoiceData.creditAmount;
+        
+        // KIỂM TRA: Không cho vượt creditLimit
+        if (newCreditUsed > currentCredit.creditLimit) {
+          throw new Error(
+            `VI PHẠM HẠN MỨC CREDIT!\n` +
+            `Hạn mức: ${currentCredit.creditLimit. toLocaleString('vi-VN')}đ\n` +
+            `Đã dùng: ${currentCredit.creditUsed.toLocaleString('vi-VN')}đ\n` +
+            `Cố gắng thêm: ${invoiceData. creditAmount.toLocaleString('vi-VN')}đ\n` +
+            `Tổng sẽ là: ${newCreditUsed.toLocaleString('vi-VN')}đ`
           );
         }
-        const fullOrder = await tx.order.findUnique({
+      }
+      
+      // 1. Tạo order
+      const order = await tx.order.create({
+        data: {
+          ...orderData,
+          orderItems: {
+            create: items
+          }
+        },
+      });
+
+      // 2.  Trừ tồn kho 
+      await deductStockCallback(tx);
+
+      // 3. Tạo invoice
+      await tx.invoice.create({
+        data: {
+          ... invoiceData,
+          orderId: order.id
+        }
+      });
+
+      // 4.  Tăng creditUsed 
+      if (shouldUpdateCredit && invoiceData.creditAmount > 0) {
+        await this.#updateQuantity(
+          'creditRegistration',
+          { userId: orderData.userId },
+          'creditUsed',
+          invoiceData.creditAmount,
+          true,
+          tx
+        );
+      }
+      
+      const fullOrder = await tx.order. findUnique({
         where: { id: order.id },
         select: this.#orderSelectOptions
       });
+      
       return fullOrder;
-      })
-    );
-  }
+    })
+  );
+}
 
   // XÁC NHẬN THANH TOÁN VỚI TRANSACTION
   async confirmPaymentWithTransaction(orderId, updateData, invoiceData, shouldUpdateCredit = false, userId = null, creditAmount = 0) {
@@ -241,7 +274,8 @@ export class OrderRepository {
       select: {
         id: true,
         status: true,
-        creditLimit: true
+        creditLimit: true,
+        creditUsed: true
       }
     });
   }
@@ -259,7 +293,8 @@ export class OrderRepository {
           select: {
             id: true,
             status: true,
-            creditLimit: true
+            creditLimit: true,
+            creditUsed: true
           }
         }
       }

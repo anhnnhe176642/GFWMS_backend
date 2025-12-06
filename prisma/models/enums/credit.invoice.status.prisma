@@ -1,0 +1,5 @@
+enum CreditInvoiceStatus {
+    PENDING   // Chưa thanh toán
+    PAID      // Đã thanh toán đủ
+    OVERDUE   // Quá hạn chưa thanh toán
+}

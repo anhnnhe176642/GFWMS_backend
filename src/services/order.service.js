@@ -1,6 +1,7 @@
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 import { orderRepository } from '../repositories/order.repository.js';
-
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
 // Xử lý mua theo CUỘN
 const processRollPurchase = async (fabric, quantity) => {
@@ -127,23 +128,60 @@ const checkCreditEligibility = async (userId) => {
 };
 
 // Tính credit split
-const calculateCreditSplit = (totalAmount, creditLimit) => {
-  if (totalAmount <= creditLimit) {
-    return {
-      creditAmount: totalAmount,
-      excessAmount: 0,
-      requiresPayment: false
-    };
-  }
+const calculateCreditSplit = (totalAmount, creditLimit, creditUsed) => {
+  const availableCredit = Math.max(0, creditLimit - creditUsed);
+  const creditAmount = Math.min(totalAmount, availableCredit);
+  const excessAmount = totalAmount - creditAmount;
+  
   return {
-    creditAmount: creditLimit,
-    excessAmount: totalAmount - creditLimit,
-    requiresPayment: true
+    creditAmount,
+    excessAmount,
+    requiresPayment: excessAmount > 0,
+    availableCredit
   };
 };
 
-//A. TẠO ĐƠN HÀNG ONLINE (Customer)
+//Tạo hoặc lấy Credit Invoice của tháng hiện tại
+const getOrCreateMonthlyCreditInvoice = async (userId) => {
+  const now = new Date();
+  const endOfMonth = new Date(now. getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  
+  // Tìm Credit Invoice của tháng này
+  let creditInvoice = await prisma.creditInvoice.findFirst({
+    where: {
+      credit: {
+        userId: userId
+      },
+      dueDate: endOfMonth,
+      status: 'PENDING'
+    }
+  });
+  
+  // Nếu chưa có thì tạo mới
+  if (!creditInvoice) {
+    const creditRegistration = await prisma.creditRegistration.findFirst({
+      where: { userId: userId }
+    });
+    
+    if (! creditRegistration) {
+      throw new BadRequestError('Không tìm thấy Credit Registration');
+    }
+    
+    creditInvoice = await prisma.creditInvoice.create({
+      data: {
+        creditId: creditRegistration.id,
+        dueDate: endOfMonth,
+        totalCreditAmount: 0,
+        creditPaidAmount: 0,
+        status: 'PENDING'
+      }
+    });
+  }
+  
+  return creditInvoice;
+};
 
+//A. TẠO ĐƠN HÀNG ONLINE (Customer)
 export const createOrder = async (orderData, userId) => {
   const { orderItems, notes, paymentType, storeId } = orderData;
 
@@ -183,12 +221,8 @@ const createCashOrder = async (userId, items, totalAmount, notes, storeId) => {
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId,
-      paymentType: 'CASH',
       status: 'PENDING',
       totalAmount,
-      paidAmount: 0,
-      creditAmount: 0,
-      paymentDeadline,
       storeId,
       notes
     },
@@ -202,21 +236,30 @@ const createCashOrder = async (userId, items, totalAmount, notes, storeId) => {
       invoiceStatus: 'UNPAID',
       totalAmount,
       paidAmount: 0,
-      creditAmount: 0,
-      dueDate: paymentDeadline,
+      paymentType: 'CASH',
+      paymentDeadline,
       notes: `Vui lòng thanh toán trong 15 phút. Hạn: ${paymentDeadline.toLocaleString('vi-VN')}`
     },
     createDeductStockCallback(items),
     false
   );
-
-  return { order, requiresPayment: true };
+  return { 
+    order, 
+    requiresPayment: true,
+    paymentInstructions: {
+      invoiceId: order.invoice.id,
+      amount: totalAmount,
+      method: 'POST',
+      url: `/api/v1/invoices/${order.invoice.id}/payment/qr-code`,
+      deadline: paymentDeadline
+    }
+  };
 };
 
 // A2. CREDIT
 const createCreditOrder = async (userId, items, totalAmount, notes, storeId) => {
   const credit = await checkCreditEligibility(userId);
-  const { creditAmount, excessAmount, requiresPayment } = calculateCreditSplit(totalAmount, credit.creditLimit);
+  const { creditAmount, excessAmount, requiresPayment } = calculateCreditSplit(totalAmount, credit.creditLimit, credit.creditUsed);
   
   if (requiresPayment) {
     return await createCreditOrderWithExcess(userId, items, totalAmount, creditAmount, excessAmount, notes, storeId);
@@ -227,17 +270,13 @@ const createCreditOrder = async (userId, items, totalAmount, notes, storeId) => 
 
 // A2.1: Trong hạn mức
 const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, notes, storeId) => {
-  const creditDueDate = new Date();
-  creditDueDate.setDate(creditDueDate.getDate() + 15);
+  const creditInvoice = await getOrCreateMonthlyCreditInvoice(userId);
 
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId,
-      paymentType: 'CREDIT',
       status: 'PROCESSING',
       totalAmount,
-      paidAmount: 0,
-      creditAmount,
       storeId,
       notes: notes || 'Đơn ghi nợ - Tự động duyệt'
     },
@@ -252,29 +291,41 @@ const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, n
       totalAmount,
       paidAmount: 0,
       creditAmount,
-      dueDate: creditDueDate,
-      notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ. Hạn trả: ${creditDueDate.toLocaleDateString('vi-VN')}`
+      paymentType: 'CREDIT',
+      paymentDeadline: creditInvoice.dueDate,  // Dùng dueDate của Credit Invoice
+      creditInvoiceId: creditInvoice.id,
+      notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ.  Thanh toán cuối tháng: ${creditInvoice.dueDate.toLocaleDateString('vi-VN')}`
     },
     createDeductStockCallback(items),
     true // Update credit limit
   );
+  await prisma.creditInvoice.update({
+    where: { id: creditInvoice.id },
+    data: {
+      totalCreditAmount: {
+        increment: creditAmount
+      }
+    }
+  });
 
-  return { order, requiresPayment: false };
+  return { 
+    order, 
+    requiresPayment: false,
+    creditInvoiceId: creditInvoice.id,
+    message: `Đơn hàng được ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ. Thanh toán chung cuối tháng. `
+  };
 };
 
 // A2.2: Vượt hạn mức
 const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmount, excessAmount, notes, storeId) => {
   const paymentDeadline = new Date(Date.now() + 15 * 60 * 1000);
+  const creditInvoice = await getOrCreateMonthlyCreditInvoice(userId);
 
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId,
-      paymentType: 'CREDIT',
       status: 'PENDING',
       totalAmount,
-      paidAmount: 0,
-      creditAmount,
-      paymentDeadline,
       storeId,
       notes: notes || `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Cần thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
     },
@@ -289,14 +340,37 @@ const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmo
       totalAmount,
       paidAmount: 0,
       creditAmount,
-      dueDate: paymentDeadline,
+      paymentType: 'CREDIT',
+      paymentDeadline,
+      creditInvoiceId: creditInvoice.id, 
       notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ | Cần thanh toán: ${excessAmount.toLocaleString('vi-VN')}đ trong 15 phút`
     },
     createDeductStockCallback(items),
     false
   );
+//Cập nhật totalCreditAmount của Credit Invoice
+   await prisma.creditInvoice.update({
+    where: { id: creditInvoice.id },
+    data: {
+      totalCreditAmount: {
+        increment: creditAmount
+      }
+    }
+  });
 
-  return { order, requiresPayment: true, excessAmount };
+  return { 
+    order, 
+    requiresPayment: true, 
+    excessAmount,
+    creditInvoiceId: creditInvoice. id,
+    paymentInstructions: {
+      invoiceId: order.invoice.id,
+      amount: excessAmount,  // Chỉ cần thanh toán phần vượt
+      method: 'POST',
+      url: `/api/v1/invoices/${order.invoice.id}/payment/qr-code`,
+      deadline: paymentDeadline
+    }
+  };
 };
 
 // XÁC NHẬN THANH TOÁN
@@ -311,19 +385,23 @@ export const confirmPayment = async (orderId) => {
     throw new BadRequestError('Chỉ có thể xác nhận thanh toán cho đơn hàng PENDING');
   }
 
-  if (order.paymentDeadline && new Date() > new Date(order.paymentDeadline)) {
+  const invoice = order.invoice;
+  if (! invoice) {
+    throw new BadRequestError('Đơn hàng chưa có hóa đơn');
+  }
+
+  if (invoice.paymentDeadline && new Date() > new Date(invoice. paymentDeadline)) {
     throw new BadRequestError('Đơn hàng đã quá hạn thanh toán');
   }
 
-  const amountToPay = order.totalAmount - order.creditAmount;
-  const newInvoiceStatus = order.creditAmount > 0 ? 'CREDIT' : 'PAID';
-  const shouldUpdateCredit = order.creditAmount > 0;
+  const amountToPay = invoice.totalAmount - invoice.creditAmount;
+  const newInvoiceStatus = invoice.creditAmount > 0 ? 'CREDIT' : 'PAID';
+  const shouldUpdateCredit = invoice.creditAmount > 0;
 
   return await orderRepository.confirmPaymentWithTransaction(
     orderId,
     {
       status: 'PROCESSING',
-      paidAmount: amountToPay
     },
     {
       invoiceStatus: newInvoiceStatus,
@@ -331,7 +409,7 @@ export const confirmPayment = async (orderId) => {
     },
     shouldUpdateCredit,
     order.userId,
-    order.creditAmount
+    invoice.creditAmount
   );
 };
 
@@ -375,11 +453,8 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId: customerId,
-      paymentType: 'CASH',
       status: 'DELIVERED',
       totalAmount,
-      paidAmount: totalAmount,
-      creditAmount: 0,
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
@@ -397,7 +472,7 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
       totalAmount,
       paidAmount: totalAmount,
       creditAmount: 0,
-      dueDate: new Date(),
+      paymentType: 'CASH',
       notes: 'Đã thanh toán tại cửa hàng'
     },
     createDeductStockCallback(items),
@@ -415,9 +490,8 @@ const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, c
   if (!customer.creditRegistration || customer.creditRegistration.status !== 'APPROVED') {
     throw new BadRequestError('Khách hàng không được phép mua nợ');
   }
-
-  const { creditLimit } = customer.creditRegistration;
-  const { creditAmount, excessAmount, requiresPayment } = calculateCreditSplit(totalAmount, creditLimit);
+  const { creditLimit, creditUsed  } = customer.creditRegistration;
+  const { creditAmount, excessAmount, requiresPayment } = calculateCreditSplit(totalAmount, creditLimit, creditUsed );
 
   if (requiresPayment) {
     if (!payExcessAmount) {
@@ -425,23 +499,20 @@ const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, c
     }
     return await createOfflineCreditOrderWithExcess(customer.id, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId);
   } else {
-    return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount, customerPhone, notes, storeId);
+    return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount,creditAmount, customerPhone, notes, storeId);
   }
 };
 
 // Offline - CREDIT trong hạn mức
-const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmount, customerPhone, notes, storeId) => {
-  const creditDueDate = new Date();
-  creditDueDate.setDate(creditDueDate.getDate() + 15);
+const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmount, creditAmount, customerPhone, notes, storeId) => {
+  //                                                                                    
+  const creditInvoice = await getOrCreateMonthlyCreditInvoice(customerId);
 
-  const order = await orderRepository.createOrderWithTransaction(
+  const order = await orderRepository. createOrderWithTransaction(
     {
       userId: customerId,
-      paymentType: 'CREDIT',
       status: 'DELIVERED',
       totalAmount,
-      paidAmount: 0,
-      creditAmount: totalAmount,
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
@@ -458,33 +529,41 @@ const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmo
       invoiceStatus: 'CREDIT',
       totalAmount,
       paidAmount: 0,
-      creditAmount: totalAmount,
-      dueDate: creditDueDate,
-      notes: `Ghi nợ: ${totalAmount.toLocaleString('vi-VN')}đ. Hạn trả: ${creditDueDate.toLocaleDateString('vi-VN')}`
+      creditAmount,  
+      paymentType: 'CREDIT',
+      paymentDeadline: creditInvoice. dueDate,
+      creditInvoiceId: creditInvoice. id,
+      notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ.  Hạn trả cuối tháng: ${creditInvoice.dueDate.toLocaleDateString('vi-VN')}`
     },
     createDeductStockCallback(items),
     true
   );
 
+  await prisma.creditInvoice. update({
+    where: { id: creditInvoice.id },
+    data: {
+      totalCreditAmount: {
+        increment: creditAmount  
+      }
+    }
+  });
+
   return {
     order,
-    message: `Tạo đơn hàng thành công. Ghi nợ ${totalAmount.toLocaleString('vi-VN')}đ.`
+    creditInvoiceId: creditInvoice.id,
+    message: `Tạo đơn hàng thành công. Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ. `
   };
 };
 
 // Offline - CREDIT vượt hạn mức
 const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId) => {
-  const creditDueDate = new Date();
-  creditDueDate.setDate(creditDueDate.getDate() + 15);
+  const creditInvoice = await getOrCreateMonthlyCreditInvoice(customerId)
 
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId: customerId,
-      paymentType: 'CREDIT',
       status: 'DELIVERED',
       totalAmount,
-      paidAmount: excessAmount,
-      creditAmount,
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
@@ -502,15 +581,27 @@ const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, to
       totalAmount,
       paidAmount: excessAmount,
       creditAmount,
-      dueDate: creditDueDate,
+      paymentType: 'CREDIT',
+      paymentDeadline: creditInvoice. dueDate,
+      creditInvoiceId: creditInvoice.id,
       notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ | Đã thanh toán: ${excessAmount.toLocaleString('vi-VN')}đ`
     },
     createDeductStockCallback(items),
     true
   );
 
+  await prisma. creditInvoice.update({
+    where: { id: creditInvoice.id },
+    data: {
+      totalCreditAmount: {
+        increment: creditAmount
+      }
+    }
+  });
+
   return {
     order,
+    creditInvoiceId: creditInvoice.id,
     message: `Tạo đơn hàng thành công. Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Đã thanh toán ${excessAmount.toLocaleString('vi-VN')}đ.`
   };
 };

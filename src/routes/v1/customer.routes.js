@@ -3,7 +3,7 @@ import { getAllCustomers, getCustomerById, getCustomerOrders, getCustomerOrderSt
 import { authenticateToken, requirePermission, requireOwnershipOrPermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { userQuerySchema, uuidParamSchema } from '../../validations/user.validation.js';
-import { orderQuerySchema } from '../../validations/order.validation.js'; // new
+// import { orderQuerySchema } from '../../validations/order.validation.js'; // new
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -82,7 +82,7 @@ router.get('/:id/orders',
     PERMISSIONS.CUSTOMERS.VIEW_DETAIL,
     (req) => req.params.id
   ),
-  validate(orderQuerySchema, 'query'),
+  // validate(orderQuerySchema, 'query'),
   getCustomerOrders
 );
 

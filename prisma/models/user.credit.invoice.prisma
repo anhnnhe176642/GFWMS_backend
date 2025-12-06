@@ -1,10 +1,12 @@
 model CreditInvoice{
     id          Int       @id @default(autoincrement())
     
-    totalCreditAmount Float 
+    totalCreditAmount Float @default(0)
     creditPaidAmount Float @default(0)
 
     dueDate     DateTime
+
+    status      CreditInvoiceStatus @default(PENDING)
 
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
@@ -13,4 +15,5 @@ model CreditInvoice{
     credit CreditRegistration @relation(fields: [creditId],references: [id])
 
     invoice Invoice[]
+    payment Payment[]  @relation("CreditInvoicePayments")
 }

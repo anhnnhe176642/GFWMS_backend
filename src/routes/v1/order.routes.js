@@ -421,7 +421,6 @@ router.get('/check-customer-credit',
  *                 description: Phương thức thanh toán
  *                 example: CASH
  *               payExcessAmount:
- *                 type: boolean
  *                 description: Khách có trả phần vượt hạn mức không (chỉ dùng cho CREDIT vượt hạn mức)
  *                 example: true
  *               notes:

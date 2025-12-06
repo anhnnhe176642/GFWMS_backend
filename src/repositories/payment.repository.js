@@ -5,7 +5,8 @@ const prisma = new PrismaClient();
 export const create = async (data) => {
   return await prisma.payment.create({
     data: {
-      invoiceId: data.invoiceId,
+      invoiceId: data.invoiceId || null,  
+      creditInvoiceId: data.creditInvoiceId || null, 
       amount: data.amount,
       paymentMethod: data.paymentMethod,
       status: data.status || 'PENDING',
@@ -31,7 +32,8 @@ export const create = async (data) => {
             }
           }
         }
-      }
+      },
+      creditInvoice: true
     }
   });
 };
@@ -54,17 +56,6 @@ export const findByInvoiceId = async (invoiceId) => {
   });
 };
 
-//Tìm payment theo order ID (join qua invoice)
-export const findByOrderId = async (orderId) => {
-  //Tìm invoice của order
-  const invoice = await prisma.invoice.findUnique({
-    where: { orderId: parseInt(orderId) }
-  });
-  
-  if (!invoice) return null;
-  
-  return await findByInvoiceId(invoice.id);
-};
 
 //Tìm payment theo transaction ID
 export const findByTransactionId = async (transactionId) => {
@@ -113,15 +104,6 @@ export const updateByInvoiceId = async (invoiceId, data) => {
 };
 
 
-//Update payment theo order ID (join qua invoice)
-export const updateByOrderId = async (orderId, data) => {
-  // Tìm invoice của order
-  const invoice = await prisma.invoice. findUnique({
-    where: { orderId: parseInt(orderId) }
-  });
-  if (!invoice) return null;
-  return await updateByInvoiceId(invoice.id, data);
-};
 
 
 //Upsert payment (create hoặc update)
@@ -188,41 +170,3 @@ export const findPendingPayments = async (hours = 24) => {
     orderBy: { createdAt: 'asc' }
   });
 };
-
-
-// // Get metrics (cho monitoring)
-// export const getMetrics = async (hours = 24) => {
-//   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-  
-//   return await prisma.payment.groupBy({
-//     by: ['status', 'processedViaWebhook', 'processedViaReconciliation', 'processedViaCronCheck'],
-//     where: {
-//       createdAt: { gte: since }
-//     },
-//     _count: true
-//   });
-// };
-
-// // Soft delete (chuyển status thành EXPIRED)
-// export const softDelete = async (id) => {
-//   return await updateById(id, {
-//     status: 'EXPIRED',
-//     errorMessage: 'thanh toán đã bị hủy bỏ'
-//   });
-// };
-
-// //Get payment history của order (nếu có nhiều attempts)
-// export const getPaymentHistory = async (orderId) => {
-//   // Tìm invoice của order
-//   const invoice = await prisma.invoice.findUnique({
-//     where: { orderId: parseInt(orderId) }
-//   });
-  
-//   if (! invoice) return [];
-  
-//   // Vì invoiceId là unique, chỉ có 1 payment
-//   // Nhưng để flexible cho tương lai, return array
-//   const payment = await findByInvoiceId(invoice. id);
-  
-//   return payment ?  [payment] : [];
-// };

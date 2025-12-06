@@ -24,9 +24,10 @@ export const reconcilePendingPayments = async () => {
         
         const order = invoice.order;
         const orderId = order.id;
+        const invoiceId = invoice.id;
         
         // GỌI PAYOS API để check status
-        const paymentInfo = await payOSService.queryPaymentStatus(orderId);
+        const paymentInfo = await payOSService.queryPaymentStatus(invoiceId);
         
         if (paymentInfo.status === 'PAID') {
           
@@ -48,17 +49,29 @@ export const reconcilePendingPayments = async () => {
                 data: { status: 'PROCESSING', paidAmount: { increment: payment.amount } }
               });
               
-              const invoiceStatus = order.creditAmount > 0 ? 'CREDIT' : 'PAID';
               await tx.invoice.update({
                 where: { id: invoice.id },
-                data: { invoiceStatus, paidAmount: { increment: payment.amount } }
+                data: { 
+                  invoiceStatus: 'PAID', 
+                  paidAmount: { increment: payment.amount } 
+                }
               });
-              
-              if (order.creditAmount > 0) {
+
+              if (invoice.creditAmount > 0 && invoice.paymentType === 'CREDIT') {
                 await tx.creditRegistration.update({
-                  where: { userId: order.userId },
-                  data: { creditLimit: { decrement: order.creditAmount } }
+                  where: { userId: order. userId },
+                  data: { creditLimit: { decrement: invoice. creditAmount } }
                 });
+                
+                // Cập nhật Credit Invoice
+                if (invoice.creditInvoiceId) {
+                  await tx.creditInvoice.update({
+                    where: { id: invoice.creditInvoiceId },
+                    data: {
+                      creditPaidAmount: { increment: payment.amount }
+                    }
+                  });
+                }
               }
             }
           });
