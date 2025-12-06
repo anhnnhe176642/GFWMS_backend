@@ -27,30 +27,6 @@ export const getAllCreditRegistrations = async (req, res, next) => {
 };
 
 /**
- * POST: Tạo Credit Registration mới
- */
-export const createCreditRegistration = async (req, res, next) => {
-  try {
-    const { note } = req.body;
-
-    const userId = req.user.id; 
-
-    const creditRegistration = await creditRegistrationService.createCreditRegistration({
-      userId,
-      note
-    });
-
-    res.status(201).json({
-      message: 'Tạo Credit Registration thành công',
-      creditRegistration
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-
-/**
  * GET: Lấy chi tiết Credit Registration theo ID
  */
 export const getCreditRegistrationById = async (req, res, next) => {
@@ -68,28 +44,9 @@ export const getCreditRegistrationById = async (req, res, next) => {
   }
 };
 
-
-export const updateCreditRegistrationStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status, reason, creditLimit } = req.body;
-
-    const updated = await creditRegistrationService.updateCreditRegistrationStatus(id, {
-      status,
-      reason,
-      creditLimit,          
-      approvedBy: req.user.id 
-    });
-
-    res.json({
-      message: 'Cập nhật trạng thái Credit Registration thành công',
-      creditRegistration: updated
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
+/**
+ * GET: Lấy tổng quan / điểm uy tín của khách hàng
+ */
 export const getCreditSummary = async (req, res, next) => {
   try {
     const { userId } = req.params;

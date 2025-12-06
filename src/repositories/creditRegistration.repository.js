@@ -1,5 +1,4 @@
-import { PrismaClient, RegistrationStatus } from '@prisma/client';
-import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
+import { PrismaClient } from '@prisma/client';
 import { 
   buildWhereClause, 
   buildPagination, 
@@ -16,9 +15,11 @@ class CreditRegistrationRepository {
     id: true,
     userId: true,
     creditLimit: true,
+    creditUsed: true,
     approvedBy: true,
     approvalDate: true,
     status: true,
+    note: true,
     createdAt: true,
     updatedAt: true,
     user: {
@@ -38,19 +39,7 @@ class CreditRegistrationRepository {
     }
   };
 
-  async create(data) {
-    return await withPrismaErrorHandling(
-      () =>
-        prisma.creditRegistration.create({
-          data,
-          select: this.#selectFields
-        }),
-      {
-        userId: 'User này đã có Credit Registration trước đó'
-      }
-    );
-  }
-
+  // Tìm theo ID
   async findById(id) {
     return prisma.creditRegistration.findUnique({
       where: { id },
@@ -58,6 +47,7 @@ class CreditRegistrationRepository {
     });
   }
 
+  // Tìm theo userId
   async findByUserId(userId) {
     return prisma.creditRegistration.findUnique({
       where: { userId },
@@ -65,6 +55,7 @@ class CreditRegistrationRepository {
     });
   }
 
+  // Query nâng cao (search, filter, pagination, sort)
   async findWithAdvancedQuery(queryOptions = {}) {
     const {
       page = 1,
@@ -75,7 +66,6 @@ class CreditRegistrationRepository {
       filters = {}
     } = queryOptions;
 
-    // search cho user.fullname, user.email, user.username
     const searchableFields = [
       'user.fullname',
       'user.email',
@@ -104,73 +94,29 @@ class CreditRegistrationRepository {
     return formatPaginatedResponse(items, total, page, take);
   }
 
-    async updateStatus(id, data) {
-        return await prisma.creditRegistration.update({
-            where: { id },
-            data: {
-            status: data.status,
-            approvedBy: data.approvedBy ?? null,
-            approvalDate: data.approvalDate ?? null,
-            creditLimit: data.creditLimit ?? undefined 
-            },
-            select: this.#selectFields
-        });
-    }
-
-
-  async approve(id, approverId) {
+  // Cập nhật theo ID
+  async updateById(id, data) {
     return prisma.creditRegistration.update({
       where: { id },
-      data: {
-        status: RegistrationStatus.APPROVED,
-        approvedBy: approverId,
-        approvalDate: new Date()
-      },
+      data,
       select: this.#selectFields
     });
   }
 
-  async reject(id, approverId) {
+  // Cập nhật theo userId
+  async updateByUserId(userId, data) {
     return prisma.creditRegistration.update({
-      where: { id },
-      data: {
-        status: RegistrationStatus.REJECTED,
-        approvedBy: approverId,
-        approvalDate: new Date()
-      },
-      select: this.#selectFields
-    });
-  }
-
-  async getInvoicesByUser(userId) {
-    return prisma.invoice.findMany({
-      where: {
-        order: { userId }
-      },
-      select: {
-        invoiceStatus: true,
-        dueDate: true,
-        totalAmount: true,
-        creditAmount: true,
-        paidAmount: true
-      }
-    });
-  }
-
-  async findLatestByUserId(userId) {
-  return prisma.creditRegistration.findFirst({
-    where: { userId },
-    orderBy: { createdAt: "desc" }
-  });
-}
-
-
-  async getOrdersByUser(userId) {
-    return prisma.order.findMany({
       where: { userId },
-      select: {
-        totalAmount: true
-      }
+      data,
+      select: this.#selectFields
+    });
+  }
+
+  // Tạo mới (thường dùng khi duyệt CreditRequest lần đầu)
+  async create(data) {
+    return prisma.creditRegistration.create({
+      data,
+      select: this.#selectFields
     });
   }
 }
