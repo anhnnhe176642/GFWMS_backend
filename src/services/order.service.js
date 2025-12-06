@@ -398,7 +398,18 @@ export const confirmPayment = async (orderId) => {
   const newInvoiceStatus = invoice.creditAmount > 0 ? 'CREDIT' : 'PAID';
   const shouldUpdateCredit = invoice.creditAmount > 0;
 
-  return await orderRepository.confirmPaymentWithTransaction(
+  console.log('🔍 === confirmPayment DEBUG ===');
+  console.log('  orderId:', orderId);
+  console.log('  order.status:', order.status);
+  console. log('  invoice.totalAmount:', invoice.totalAmount);
+  console.log('  invoice. creditAmount:', invoice.creditAmount);
+  console.log('  invoice.paidAmount:', invoice.paidAmount);
+  console.log('  amountToPay:', amountToPay);
+  console.log('  shouldUpdateCredit:', shouldUpdateCredit);
+  console.log('  order.userId:', order.userId);
+  console.log('🔍 === END DEBUG ===');
+
+  const result = await orderRepository.confirmPaymentWithTransaction(
     orderId,
     {
       status: 'PROCESSING',
@@ -411,6 +422,9 @@ export const confirmPayment = async (orderId) => {
     order.userId,
     invoice.creditAmount
   );
+
+  console.log('✅ confirmPayment completed');
+  return result;
 };
 
 //TẠO ĐƠN HÀNG OFFLINE (Staff)

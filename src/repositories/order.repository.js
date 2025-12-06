@@ -189,9 +189,9 @@ export class OrderRepository {
           await this.#updateQuantity(
             'creditRegistration',
             { userId },
-            'creditLimit',
+            'creditUsed',
             creditAmount,
-            false,
+            true,
             tx
           );
         }

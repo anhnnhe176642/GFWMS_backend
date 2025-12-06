@@ -31,7 +31,7 @@ export const handlePayOSWebhook = async (req, res) => {
       stack: error.stack
     });
     
-    // ⚠️ QUAN TRỌNG: Vẫn trả 200 cho PayOS
+    
     res.status(200).json({ 
       success: false, 
       error: error.message 

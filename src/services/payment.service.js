@@ -518,7 +518,7 @@ const processInvoicePaymentSuccess = async (invoice, transactionId, amount, webh
         await tx.creditRegistration. update({
           where: { userId: invoice.order.userId },
           data: {
-            creditLimit: { decrement: invoice.creditAmount }
+            creditUsed: { increment: invoice.creditAmount }
           }
         });
       }
