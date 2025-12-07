@@ -6,9 +6,7 @@ import {
   dateFromSchema,         
   dateToSchema,
   createSortBySchema,
-  sortOrderSchema,
-  uuidSchema,
-  genderSchema    
+  sortOrderSchema
 } from './common.validation.js';
 
 /**
@@ -120,29 +118,4 @@ export const storeIdSchema = Joi.object({
       'any.required': 'ID cửa hàng là bắt buộc',
       'string.pattern.base': 'ID cửa hàng phải là số nguyên dương'
     })
-});
-
-//Assign Staff to Store Schema
-export const assignStaffSchema = Joi.object({
-  staffIds: Joi.array()
-    .items(uuidSchema)    
-    .min(1)
-    .required()
-    .messages({
-      'array.base': 'Danh sách nhân viên phải là mảng',
-      'array.min': 'Phải có ít nhất 1 nhân viên',
-      'any.required': 'Danh sách nhân viên là bắt buộc'
-    })
-});
-
-//Unassign Staff from Store Schema
-export const unassignStaffSchema = Joi.object({
-  staffId: uuidSchema 
-});
-
-const allowedStaffSortFields = ['fullname', 'email', 'phone', 'role', 'status'];
-export const storeStaffQuerySchema = querySchema. keys({
-  gender: createMultiValueFilterSchema(genderSchema, 'Giới tính'), 
-  sortBy: createSortBySchema(allowedStaffSortFields),
-  order: sortOrderSchema
 });
