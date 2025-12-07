@@ -10,10 +10,14 @@ export const createInitialCreditRequest = async (data) => {
     throw new BadRequestError('Hạn mức yêu cầu phải lớn hơn 0');
   }
 
-  // Check nếu user đã có đăng ký đã duyệt
   const existingRegistration = await creditRegistrationRepository.findByUserId(userId);
 
   if (existingRegistration) {
+    // Nếu đã bị khóa thì không cho làm gì nữa
+    if (existingRegistration.isLocked) {
+      throw new BadRequestError('Tài khoản tín dụng đã bị khóa. Không thể tạo yêu cầu mới.');
+    }
+
     throw new BadRequestError(
       'Bạn đã đăng ký hạn mức. Vui lòng kiểm tra lịch sử đăng ký'
     );
@@ -28,6 +32,7 @@ export const createInitialCreditRequest = async (data) => {
   });
 };
 
+
 export const createIncreaseCreditRequest = async (data) => {
   const { userId, requestLimit, note } = data;
 
@@ -39,11 +44,16 @@ export const createIncreaseCreditRequest = async (data) => {
 
   if (!existingRegistration) {
     throw new BadRequestError(
-      'Bạn chưa đăng ký hạn mức. Vui lòng đăng ký trước khi tăng hạn mức'
+      'Bạn chưa đăng ký hạn mức. Vui lòng đăng ký trước khi tăng'
     );
   }
 
-  // Kiểm tra tăng hạn mức
+  // KHÔNG CHO TẠO ĐƠN NẾU TÍN DỤNG BỊ KHÓA
+  if (existingRegistration.isLocked) {
+    throw new BadRequestError('Tài khoản tín dụng đã bị khóa. Không thể tạo yêu cầu tăng hạn mức.');
+  }
+
+  // Kiểm tra tăng hạn mức mới > hạn mức hiện tại
   if (requestLimit <= existingRegistration.creditLimit) {
     throw new BadRequestError(
       `Hạn mức mới phải lớn hơn hạn mức hiện tại (${existingRegistration.creditLimit})`
@@ -58,6 +68,7 @@ export const createIncreaseCreditRequest = async (data) => {
     type: 'INCREASE'
   });
 };
+
 
 
 //

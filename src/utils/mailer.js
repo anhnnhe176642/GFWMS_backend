@@ -80,3 +80,66 @@ export const sendYoloModelUploadNotification = async (to, modelName, version) =>
     html
   });
 };
+
+export const sendInvoiceOverdueReminder = async (to, creditId, overdueDays) => {
+  const subject = `Nhắc nhở khoản tín dụng quá hạn - Warehouse Fabric System`;
+
+  const text = `Khoản tín dụng (ID: ${creditId}) của bạn đã quá hạn ${overdueDays} ngày. 
+Vui lòng thanh toán sớm để tránh bị khóa hạn mức tín dụng.`;
+
+  const html = `
+    <div style="font-family: sans-serif; line-height:1.6">
+      <p>Xin chào,</p>
+      <p>Khoản tín dụng của bạn (ID: <strong>${creditId}</strong>) đã <strong>quá hạn ${overdueDays} ngày</strong>.</p>
+      <p>Khoản tín dụng này phát sinh từ các hóa đơn chưa được thanh toán.</p>
+
+      <p>Vui lòng thanh toán số dư còn lại để tránh việc 
+        <strong style="color:red">khóa hạn mức tín dụng</strong>.
+      </p>
+
+      <p>Trân trọng,<br/>Warehouse Fabric System</p>
+    </div>
+  `;
+
+  return await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    text,
+    html
+  });
+};
+
+
+
+export const sendCreditLockedNotification = async (to, creditId, overdueDays) => {
+  const subject = `Tài khoản tín dụng đã bị khóa - Warehouse Fabric System`;
+
+  const text = `Tài khoản tín dụng (ID: ${creditId}) đã bị khóa do quá hạn ${overdueDays} ngày. 
+Vui lòng liên hệ để được hỗ trợ.`;
+
+  const html = `
+    <div style="font-family:sans-serif; line-height:1.6">
+      <p>Xin chào,</p>
+      <p>Tài khoản tín dụng của bạn (ID: <strong>${creditId}</strong>) đã bị 
+        <strong style="color:red">KHÓA</strong>.
+      </p>
+      <p>Lý do: Khoản tín dụng của bạn đã quá hạn <strong>${overdueDays} ngày</strong>.</p>
+
+      <p>Vui lòng liên hệ bộ phận quản lý để được hỗ trợ mở khóa 
+        và tiếp tục sử dụng dịch vụ.
+      </p>
+
+      <p>Trân trọng,<br/>Warehouse Fabric System</p>
+    </div>
+  `;
+
+  return await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    text,
+    html
+  });
+};
+

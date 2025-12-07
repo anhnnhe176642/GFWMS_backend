@@ -12,6 +12,8 @@ model CreditRegistration {
   approver      User?    @relation("Approver", fields: [approvedBy], references: [id])
   note          String?
 
+  isLocked Boolean @default(false)
+
   creditInvoice CreditInvoice[]
   @@map("credit_registrations")
 }

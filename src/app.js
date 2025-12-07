@@ -10,6 +10,8 @@ import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 import { cancelExpiredOrders } from './jobs/payment-expiration.job.js';
 import { reconcilePendingPayments } from './jobs/payment-reconciliation.job.js';
+import { checkCreditInvoices } from './jobs/credit-invoice.job.js';
+import { autoLockCreditOverdue } from './jobs/credit-lock.job.js';
 import cron from 'node-cron';
 dotenv.config();
 
@@ -57,6 +59,19 @@ if (process.env.NODE_ENV !== 'test') {
     // Reconciliation - Mỗi 5 phút
     cron.schedule('*/5 * * * *', () => {
       reconcilePendingPayments();
+    });
+
+    cron.schedule('0 0 * * *', async () => {
+      const overdueList = await checkCreditInvoices();
+      console.log("Overdue invoices: ", overdueList);
+
+      // logic gửi noti:
+      // notifyUserForOverdueInvoices(overdueList)
+    });
+
+    // Khóa tín dụng nếu quá hạn quá X ngày — mỗi ngày
+    cron.schedule('0 0 * * *', async () => {
+      await autoLockCreditOverdue();
     });
   }
 }
