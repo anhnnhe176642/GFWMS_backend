@@ -18,24 +18,6 @@ export class StoreRepository {
     createdAt: true,
     updatedAt: true,
   };
-
-   #userSelectOptions = {
-    id: true,
-    username: true,
-    phone: true,
-    email: true,
-    avatar: true,
-    avatarPublicId: true,
-    gender: true,
-    address: true,
-    dob: true,
-    fullname: true,
-    status: true,
-    role: true,
-    storeId: true,
-    createdAt: true,
-    updatedAt: true
-  };
   
   async findById(storeId) {
     return prisma.store.findUnique({
@@ -171,89 +153,6 @@ export class StoreRepository {
     return prisma.fabricStore.count({
       where: { storeId: parseInt(storeId) }
     });
-  }
-
-  // Lấy danh sách nhân viên của cửa hàng 
-  async findStaffsByStoreId(storeId, queryOptions = {}) {
-    const { 
-      page = 1, 
-      limit = 10, 
-      search = '', 
-      sortBy = 'createdAt', 
-      order = 'desc',
-      filters = {}
-    } = queryOptions;
-
-    const searchableFields = ['fullname', 'email', 'phone'];
-    
-    const filterWhere = buildWhereClause(
-      { search, ... filters },
-      searchableFields
-    );
-
-    const where = {
-      storeId: parseInt(storeId),
-      role: 'STAFF', 
-      status: { not: 'DELETED' },
-      ...filterWhere
-    };
-
-    const { skip, take } = buildPagination(page, limit);
-    const orderBy = buildSort(sortBy, order);
-
-    const [staffs, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        skip,
-        take,
-        select: this.#userSelectOptions,  
-        orderBy
-      }),
-      prisma.user.count({ where })
-    ]);
-
-    return formatPaginatedResponse(staffs, total, page, take);
-  }
-
-   /**
-   * Lấy thông tin user theo ID
-   */
-  async findUserById(userId) {
-    return await prisma.user.findFirst({
-      where: { 
-        id: userId,
-        status: { not: 'DELETED' }
-      },
-      select: this.#userSelectOptions 
-    });
-  }
-
-  // Phân công nhân viên cho cửa hàng
-  async assignStaffToStore(staffId, storeId) {
-    return await withPrismaErrorHandling(
-      () => prisma.user. update({
-        where: { id: staffId },
-        data: { 
-          storeId: parseInt(storeId),
-          updatedAt: new Date()
-        },
-        select: this.#userSelectOptions 
-      })
-    );
-  }
-
-  // Hủy phân công nhân viên khỏi cửa hàng
-  async unassignStaffFromStore(staffId) {
-    return await withPrismaErrorHandling(
-      () => prisma.user.update({
-        where: { id: staffId },
-        data: { 
-          storeId: null,
-          updatedAt: new Date()
-        },
-        select: this.#userSelectOptions 
-      })
-    );
   }
 
 }
