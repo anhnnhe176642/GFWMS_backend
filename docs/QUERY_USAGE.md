@@ -22,7 +22,6 @@ GET /api/users?page=1&limit=10
 ```bash
 GET /api/users?search=john
 ```
-- Case-insensitive
 - Search across multiple fields (OR logic)
 - Users: `username`, `email`, `fullname`, `phone`
 - Roles: `name`
