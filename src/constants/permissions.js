@@ -165,6 +165,13 @@ export const PERMISSIONS = {
     CREATE:              { key: 'creadit_registration:create',              description: 'Tạo đơn đăng ký mới' },
     CHANGE_STATUS:       { key: 'creadit_registration:change_status',       description: 'Cập nhật trạng thái đơn đăng ký' },
   },
+
+  CREDIT_INVOICES: {
+    VIEW_MY:      { key: 'credit_invoice:view_my',      description: 'Xem danh sách Credit Invoice của tôi' },
+    VIEW_LIST:    { key: 'credit_invoice:view_list',    description: 'Xem danh sách Credit Invoice (Admin/Staff)' },
+    VIEW_DETAIL:  { key: 'credit_invoice:view_detail',  description: 'Xem chi tiết Credit Invoice' },
+  }
+
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)

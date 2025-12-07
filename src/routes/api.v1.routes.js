@@ -29,6 +29,7 @@ import bannerDiscount from './v1/bannerDiscount.routes.js';
 import yoloRoutes from './v1/yolo.routes.js';
 import paymentRoutes from './v1/payment.routes.js';
 import creditRegistrationRouters from './v1/creditRegistration.routes.js';
+import creditInvoiceRoutes from './v1/creditInvoice.routes.js';
 
 const router = express.Router();
 
@@ -58,6 +59,7 @@ router.use('/banner', bannerRoutes);
 router.use('/banner-discount', bannerDiscount);
 router.use('/', paymentRoutes);
 router.use('/credit-registrations', creditRegistrationRouters);
+router.use('/credit-invoices', creditInvoiceRoutes);
 
 // YOLO detection routes
 router.use('/yolo', yoloRoutes);

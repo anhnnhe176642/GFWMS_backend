@@ -1,7 +1,7 @@
 model Payment {
     id            Int       @id @default(autoincrement())
-    invoiceId     Int       @unique
-    invoice       Invoice     @relation(fields: [invoiceId], references: [id])
+    invoiceId     Int?       @unique
+    invoice       Invoice?     @relation(fields: [invoiceId], references: [id])
     paymentDate   DateTime  @default(now())
     amount        Float     
     paymentMethod String    @db.VarChar(50)
@@ -22,6 +22,9 @@ model Payment {
     // Debug và support khách hàng
     errorCode       String?  @db.VarChar(50)
     errorMessage    String?  @db.VarChar(500)
+    
+    creditInvoiceId Int?     
+    creditInvoice   CreditInvoice?  @relation("CreditInvoicePayments", fields: [creditInvoiceId], references: [id])
 
     createdAt     DateTime  @default(now())
     updatedAt     DateTime  @updatedAt
