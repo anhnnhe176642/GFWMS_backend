@@ -4,7 +4,10 @@ import {
   getStoreById,
   createStore,
   updateStore,
-  deleteStore
+  deleteStore,
+  assignStaffToStore,     
+  unassignStaffFromStore,  
+  getStaffsByStore 
 } from '../../controllers/store.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
@@ -12,7 +15,10 @@ import {
   createStoreSchema, 
   updateStoreSchema, 
   storeQuerySchema, 
-  storeIdSchema 
+  storeIdSchema,
+  assignStaffSchema,    
+  unassignStaffSchema,   
+  storeStaffQuerySchema  
 } from '../../validations/store.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
@@ -226,6 +232,127 @@ router.delete('/:id',
   requirePermission(PERMISSIONS.STORES.DELETE),
   validate(storeIdSchema, 'params'),
   deleteStore
+);
+
+
+/**
+ * @swagger
+ * /stores/{id}/staffs:
+ *   get:
+ *     description: Lấy danh sách staff được phân công cho cửa hàng
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         description: Store ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           default: 10
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo fullname, email, phone
+ *       - in: query
+ *         name: gender
+ *         schema:
+ *           type: string
+ *         description: Lọc theo giới tính
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *         description: fullname', 'email', 'phone', 'role', 'status
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.get('/:id/staffs',
+  requirePermission(PERMISSIONS.STORES.VIEW_STAFF),
+  validate(storeIdSchema, 'params'),
+  validate(storeStaffQuerySchema, 'query'),
+  getStaffsByStore
+);
+
+/**
+ * @swagger
+ * /stores/{id}/assign-staff:
+ *   post:
+ *     summary: Phân công nhân viên cho cửa hàng
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               staffIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router. post('/:id/assign-staff',
+  requirePermission(PERMISSIONS.STORES.ASSIGN_STAFF),
+  validate(storeIdSchema, 'params'),
+  validate(assignStaffSchema, 'body'),
+  assignStaffToStore
+);
+
+/**
+ * @swagger
+ * /stores/{id}/unassign-staff:
+ *   post:
+ *     summary: Hủy phân công nhân viên khỏi cửa hàng
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               staffId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.post('/:id/unassign-staff',
+  requirePermission(PERMISSIONS.STORES.ASSIGN_STAFF),
+  validate(storeIdSchema, 'params'),
+  validate(unassignStaffSchema, 'body'),
+  unassignStaffFromStore
 );
 
 export default  router;
