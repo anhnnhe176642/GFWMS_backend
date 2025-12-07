@@ -104,6 +104,8 @@ export const PERMISSIONS = {
     CREATE:       { key: 'store:create',       description: 'Tạo cửa hàng mới' },
     UPDATE:       { key: 'store:update',       description: 'Cập nhật thông tin cửa hàng' },
     DELETE:       { key: 'store:delete',       description: 'Xóa cửa hàng (soft delete)' },
+    ASSIGN_STAFF: { key: 'store:assign_staff', description: 'Phân công nhân viên cho cửa hàng' }, 
+    VIEW_STAFF:   { key: 'store:view_staff',   description: 'Xem danh sách nhân viên cửa hàng' }
   },
   SHELVES: {
     VIEW_LIST:    { key: 'shelf:view_list',    description: 'Xem danh sách kệ trong kho' },
