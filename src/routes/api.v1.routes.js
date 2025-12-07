@@ -10,6 +10,7 @@ import fabricGlossRouters from './v1/fabricgloss.routes.js';
 import fabricColorRouters from './v1/fabricColor.routes.js'; 
 import fabricCategoryRouters from './v1/fabricCategory.routes.js'; 
 import supplierRouters from './v1/supplier.routes.js';
+import fabricStoreRoutes from './v1/fabricStore.routes.js';
 
 
 import importFabricRoutes from './v1/importFabric.routes.js';
@@ -36,6 +37,7 @@ router.use('/fabric-gloss', fabricGlossRouters);
 router.use('/fabric-color', fabricColorRouters);
 router.use('/fabric-category', fabricCategoryRouters);
 router.use('/supplier', supplierRouters);
+router.use('/fabric-store', fabricStoreRoutes);
 router.use('/import-fabrics', importFabricRoutes);
 router.use('/invoices', invoiceRouters);
 router.use('/export-fabrics', exportFabricRouters);

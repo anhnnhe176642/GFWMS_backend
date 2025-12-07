@@ -901,15 +901,31 @@ async function main() {
   const fabricStoreKeys = new Set();
   
   for (let i = 0; i < CONFIG.FABRIC_STORES; i++) {
-    const fabricId = faker.helpers.arrayElement(allFabrics).id;
+    const fabric = faker.helpers.arrayElement(allFabrics);
     const storeId = faker.helpers.arrayElement(allStores).id;
-    const key = `${fabricId}-${storeId}`;
+    const key = `${fabric.id}-${storeId}`;
     
     if (!fabricStoreKeys.has(key)) {
+      // Tính toán các giá trị cho fabric store
+      const uncutRolls = faker.number.int({ min: 2, max: 10 });
+      const cuttingRollMeters = faker.number.float({ min: 0, max: fabric.length, fractionDigits: 2 });
+      const quantity = uncutRolls + (cuttingRollMeters > 0 ? 1 : 0);
+      
+      // Tổng số mét = cuộn chưa cắt * độ dài cuộn + cuộn đang cắt dở
+      const totalMeters = (uncutRolls * fabric.length) + cuttingRollMeters;
+      
+      // Giá nhập giả định (70-90% giá bán)
+      const importPricePerMeter = fabric.sellingPrice ? fabric.sellingPrice * faker.number.float({ min: 0.7, max: 0.9, fractionDigits: 2 }) : 0;
+      const totalValue = totalMeters * importPricePerMeter;
+      
       fabricStoresToCreate.push({
-        fabricId,
+        fabricId: fabric.id,
         storeId,
-        quantity: faker.number.int({ min: 5, max: 100 }),
+        quantity: quantity,
+        totalValue: totalValue,
+        totalMeters: totalMeters,
+        uncutRolls: uncutRolls,
+        cuttingRollMeters: cuttingRollMeters
       });
       fabricStoreKeys.add(key);
     }
@@ -947,23 +963,56 @@ async function main() {
 
   // 16. TẠO EXPORT FABRICS
   console.log('\n📝 Preparing export fabric records...');
-  const exportStatuses = ['PENDING', 'APPROVED', 'REJECTED'];
   const exportFabricsToCreate = [];
   
-  for (let i = 0; i < CONFIG.EXPORT_FABRICS; i++) {
-    const status = faker.helpers.arrayElement(exportStatuses);
+  // Tạo phiếu xuất PENDING (chưa duyệt)
+  for (let i = 0; i < Math.floor(CONFIG.EXPORT_FABRICS * 0.4); i++) {
     const exportData = {
       warehouseId: faker.helpers.arrayElement(allWarehouses).id,
       storeId: faker.helpers.arrayElement(allStores).id,
       createdById: faker.helpers.arrayElement(allUsers).id,
-      status: status,
+      status: 'PENDING',
       note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
     };
-    
-    if (status === 'APPROVED') {
-      exportData.receivedById = faker.helpers.arrayElement(allUsers).id;
-    }
-    
+    exportFabricsToCreate.push(exportData);
+  }
+
+  // Tạo phiếu xuất APPROVED (đã duyệt)
+  for (let i = 0; i < Math.floor(CONFIG.EXPORT_FABRICS * 0.4); i++) {
+    const exportData = {
+      warehouseId: faker.helpers.arrayElement(allWarehouses).id,
+      storeId: faker.helpers.arrayElement(allStores).id,
+      createdById: faker.helpers.arrayElement(allUsers).id,
+      status: 'APPROVED',
+      receivedById: faker.helpers.arrayElement(allUsers).id,
+      note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
+    };
+    exportFabricsToCreate.push(exportData);
+  }
+
+  // Tạo phiếu xuất COMPLETED (hoàn thành)
+  for (let i = 0; i < Math.floor(CONFIG.EXPORT_FABRICS * 0.15); i++) {
+    const exportData = {
+      warehouseId: faker.helpers.arrayElement(allWarehouses).id,
+      storeId: faker.helpers.arrayElement(allStores).id,
+      createdById: faker.helpers.arrayElement(allUsers).id,
+      status: 'COMPLETED',
+      receivedById: faker.helpers.arrayElement(allUsers).id,
+      note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
+    };
+    exportFabricsToCreate.push(exportData);
+  }
+
+  // Tạo phiếu xuất REJECTED (từ chối)
+  for (let i = 0; i < Math.floor(CONFIG.EXPORT_FABRICS * 0.05); i++) {
+    const exportData = {
+      warehouseId: faker.helpers.arrayElement(allWarehouses).id,
+      storeId: faker.helpers.arrayElement(allStores).id,
+      createdById: faker.helpers.arrayElement(allUsers).id,
+      status: 'REJECTED',
+      receivedById: faker.helpers.arrayElement(allUsers).id,
+      note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
+    };
     exportFabricsToCreate.push(exportData);
   }
   
@@ -974,27 +1023,62 @@ async function main() {
   // 17. TẠO EXPORT FABRIC ITEMS
   console.log('\n📝 Preparing export fabric items...');
   const exportItemsToCreate = [];
-  const exportItemKeys = new Set();
   
   for (const exportFabric of allExportFabrics) {
     const itemsCount = Math.min(CONFIG.EXPORT_ITEMS_PER_EXPORT, allFabrics.length);
     const selectedFabrics = faker.helpers.arrayElements(allFabrics, itemsCount);
     
-    for (const fabric of selectedFabrics) {
-      const key = `${exportFabric.id}-${fabric.id}`;
-      if (!exportItemKeys.has(key)) {
+    if (exportFabric.status === 'PENDING') {
+      // PENDING: Chỉ có fabricId và quantity, price = null (chưa duyệt)
+      for (const fabric of selectedFabrics) {
         exportItemsToCreate.push({
           exportFabricId: exportFabric.id,
           fabricId: fabric.id,
           quantity: faker.number.int({ min: 5, max: 50 }),
-          price: faker.number.float({ min: 40000, max: 500000, multipleOf: 1000 }),
+          price: null, // Chưa duyệt nên chưa có giá
         });
-        exportItemKeys.add(key);
+      }
+    } else if (exportFabric.status === 'APPROVED' || exportFabric.status === 'COMPLETED') {
+      // APPROVED/COMPLETED: Tạo nhiều items cho cùng 1 fabric (giả lập nhiều batch với giá khác nhau)
+      for (const fabric of selectedFabrics) {
+        const totalQuantity = faker.number.int({ min: 20, max: 100 });
+        const batchCount = faker.number.int({ min: 1, max: 3 }); // 1-3 batch cho mỗi fabric
+        
+        let remainingQty = totalQuantity;
+        for (let i = 0; i < batchCount; i++) {
+          const isLastBatch = i === batchCount - 1;
+          const batchQty = isLastBatch ? remainingQty : faker.number.int({ min: 5, max: Math.floor(remainingQty / (batchCount - i)) });
+          
+          // Lấy giá từ ImportFabricItem ngẫu nhiên
+          const randomImportItem = faker.helpers.arrayElement(
+            allImportItems.filter(item => item.fabricId === fabric.id)
+          );
+          const importPrice = randomImportItem?.price || faker.number.float({ min: 40000, max: 500000, multipleOf: 1000 });
+          
+          exportItemsToCreate.push({
+            exportFabricId: exportFabric.id,
+            fabricId: fabric.id,
+            quantity: batchQty,
+            price: importPrice, // Giá nhập từ ImportFabricItem
+          });
+          
+          remainingQty -= batchQty;
+        }
+      }
+    } else if (exportFabric.status === 'REJECTED') {
+      // REJECTED: Có thể có hoặc không có items (không quan trọng vì đã từ chối)
+      for (const fabric of selectedFabrics) {
+        exportItemsToCreate.push({
+          exportFabricId: exportFabric.id,
+          fabricId: fabric.id,
+          quantity: faker.number.int({ min: 5, max: 50 }),
+          price: null,
+        });
       }
     }
   }
   
-  const exportItemsResult = await prisma.exportFabricItem.createMany({ data: exportItemsToCreate, skipDuplicates: true });
+  const exportItemsResult = await prisma.exportFabricItem.createMany({ data: exportItemsToCreate });
   console.log(`✅ Created ${exportItemsResult.count} export fabric items`);
 
   // 18. TẠO ORDERS

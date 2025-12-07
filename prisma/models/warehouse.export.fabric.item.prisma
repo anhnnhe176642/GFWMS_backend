@@ -1,12 +1,12 @@
 model ExportFabricItem {
+    id              Int      @id @default(autoincrement())
     exportFabricId  Int
     fabricId        Int
     quantity        Int
-    price           Float?
-    createdAt       DateTime  @default(now())
-    updatedAt       DateTime  @updatedAt
+    price           Float?          // Giá nhập (được gán từ ImportFabricItem khi duyệt)
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 
     exportFabric    ExportFabric @relation(fields: [exportFabricId], references: [id])
     fabric          Fabric       @relation(fields: [fabricId], references: [id])
-    @@id([exportFabricId, fabricId])
 }

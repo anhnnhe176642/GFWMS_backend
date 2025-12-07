@@ -149,19 +149,42 @@ export const createExportFabric = async (req, res, next) => {
 export const updateExportFabricStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, itemShelfSelections } = req.body;
+    const { status, batchPickupDetails, note } = req.body;
     const userId = req.user.id; // nhân viên kho đang duyệt
 
     const updatedExport = await exportFabricService.approveExportFabric({
       exportFabricId: parseInt(id),
       status,
-      itemShelfSelections,
+      batchPickupDetails,
+      note,
       approvedById: userId
     });
 
     res.json({
       message: 'Cập nhật trạng thái đơn thành công',
       exportFabric: updatedExport
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Xác nhận nhận hàng từ cửa hàng - Chuyển status APPROVED -> COMPLETED
+ */
+export const completeExportFabric = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id; // nhân viên cửa hàng xác nhận
+
+    const completedExport = await exportFabricService.completeExportFabric({
+      exportFabricId: parseInt(id),
+      receivedById: userId
+    });
+
+    res.json({
+      message: 'Xác nhận nhận hàng thành công',
+      exportFabric: completedExport
     });
   } catch (error) {
     next(error);

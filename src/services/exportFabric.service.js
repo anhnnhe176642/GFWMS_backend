@@ -1,10 +1,14 @@
 // src/services/exportFabric.service.js
 import { NotFoundError, ConflictError, ValidationError } from '../utils/errors.js';
+import { PrismaClient } from '@prisma/client';
 import { exportFabricRepository } from '../repositories/exportFabric.repository.js';
 import { fabricRepository } from '../repositories/fabric.repository.js';
 import { warehouseRepository } from '../repositories/warehouse.repository.js';
 import { storeRepository } from '../repositories/store.repository.js';
 import { fabricShelfRepository } from '../repositories/fabricShelf.repository.js';
+import fabricStoreRepository from '../repositories/fabricStore.repository.js';
+
+const prisma = new PrismaClient();
 
 /**
  *  Lấy danh sách phiếu xuất vải (phân trang cơ bản)
@@ -403,7 +407,8 @@ export const createExportFabric = async (exportData) => {
 export const approveExportFabric = async ({
   exportFabricId,
   status,
-  itemShelfSelections = [],
+  batchPickupDetails = [],
+  note,
   approvedById
 }) => {
   const exportFabric = await exportFabricRepository.findById(exportFabricId);
@@ -413,74 +418,163 @@ export const approveExportFabric = async ({
     throw new ConflictError('Phiếu xuất này đã được xử lý trước đó và không thể duyệt lại.');
 
   if (status === 'REJECTED') {
-    // Hoàn trả quantityInStock cho các fabric trong phiếu (nếu đã trừ khi tạo batch)
+    // Hoàn trả quantityInStock cho các fabric trong phiếu
     await exportFabricRepository.restoreQuantityForExport(exportFabricId);
   }
 
   if (status === 'APPROVED') {
-  if (!itemShelfSelections || itemShelfSelections.length === 0) {
-    throw new ConflictError('Bạn cần chọn kệ và số lượng lấy từ kệ để duyệt phiếu.');
-  }
-
-  // Map quantityToTake sang quantity
-  const selections = itemShelfSelections.map(sel => ({
-    fabricId: sel.fabricId,
-    shelfId: sel.shelfId,
-    quantity: sel.quantityToTake
-  }));
-
-  // Validate cơ bản
-  for (const sel of selections) {
-    if (!sel.fabricId || !sel.shelfId || !sel.quantity || sel.quantity <= 0) {
-      throw new ConflictError('Vui lòng chọn đúng loại vải, kệ và số lượng cần lấy (phải lớn hơn 0).');
-    }
-  }
-
-  // Group theo fabricId để kiểm tra tổng quantity
-  const selectionsByFabric = selections.reduce((acc, sel) => {
-    if (!acc[sel.fabricId]) acc[sel.fabricId] = [];
-    acc[sel.fabricId].push(sel);
-    return acc;
-  }, {});
-
-  for (const item of exportFabric.exportItems) {
-    const fabricSelections = selectionsByFabric[item.fabricId] || [];
-    const totalSelected = fabricSelections.reduce((sum, s) => sum + s.quantity, 0);
-
-    if (totalSelected !== item.quantity) {
-      throw new ConflictError(
-        `Tổng số lượng lấy từ kệ cho loại vải (ID: ${item.fabricId}) phải đúng bằng ${item.quantity}.`
-      );
-    }
-  }
-
-  // Kiểm tra tồn kho kệ và trừ kho
-  for (const sel of selections) {
-    const shelfItem = await fabricShelfRepository.findByShelfIdAndFabricId(
-      sel.shelfId,
-      sel.fabricId
-    );
-    if (!shelfItem) 
-      throw new ConflictError(
-        `Kệ bạn chọn (ID: ${sel.shelfId}) không chứa loại vải (ID: ${sel.fabricId}).`
-    );
-
-    if (shelfItem.quantity < sel.quantity) {
-      throw new ConflictError(
-        `Kệ ${shelfItem.shelf.code} không đủ số lượng vải cần lấy. 
-        Cần: ${sel.quantity}, Còn: ${shelfItem.quantity}.`
-      );
+    if (!batchPickupDetails || batchPickupDetails.length === 0) {
+      throw new ConflictError('Vui lòng cung cấp chi tiết batch lấy (importId, shelfId, pickQuantity) để duyệt phiếu.');
     }
 
-    // Trừ tồn kho trong kệ (trigger sẽ update WarehouseFabricStock)
-    await fabricShelfRepository.decreaseQuantity(sel.shelfId, sel.fabricId, sel.quantity);
-    // NOTE: quantityInStock đã được trừ khi tạo batch, không trừ lại ở đây
-  }
-  }
+    // Group batchPickupDetails theo fabricId
+    const batchesByFabric = {};
+    for (const fabricBatch of batchPickupDetails) {
+      batchesByFabric[fabricBatch.fabricId] = fabricBatch.batches;
+    }
 
+    // Validate: mỗi loại vải trong exportFabric phải có batch
+    for (const item of exportFabric.exportItems) {
+      if (!batchesByFabric[item.fabricId]) {
+        throw new ConflictError(`Loại vải (ID: ${item.fabricId}) không có chi tiết batch được cung cấp.`);
+      }
+
+      const batches = batchesByFabric[item.fabricId];
+      const totalPickQuantity = batches.reduce((sum, b) => sum + b.pickQuantity, 0);
+
+      if (totalPickQuantity !== item.quantity) {
+        throw new ConflictError(
+          `Tổng số lượng lấy cho vải (ID: ${item.fabricId}) phải đúng bằng ${item.quantity}, nhưng nhận được ${totalPickQuantity}.`
+        );
+      }
+    }
+
+    // Validate và trừ tồn kho kệ
+    for (const fabricBatch of batchPickupDetails) {
+      const fabricId = fabricBatch.fabricId;
+      const batches = fabricBatch.batches;
+
+      for (const batch of batches) {
+        // Validate FabricShelf tồn tại
+        const fabricShelf = await prisma.fabricShelf.findUnique({
+          where: {
+            shelfId_fabricId_importId: {
+              shelfId: batch.shelfId,
+              fabricId: fabricId,
+              importId: batch.importId
+            }
+          }
+        });
+
+        if (!fabricShelf) {
+          throw new ConflictError(
+            `Kệ ${batch.shelfId} - Lô ${batch.importId} - Vải ${fabricId} không tồn tại.`
+          );
+        }
+
+        if (fabricShelf.quantity < batch.pickQuantity) {
+          throw new ConflictError(
+            `Kệ ${batch.shelfId} - Lô ${batch.importId} không đủ số lượng. Cần: ${batch.pickQuantity}, Còn: ${fabricShelf.quantity}.`
+          );
+        }
+
+        // Trừ tồn kho
+        await prisma.fabricShelf.update({
+          where: {
+            shelfId_fabricId_importId: {
+              shelfId: batch.shelfId,
+              fabricId: fabricId,
+              importId: batch.importId
+            }
+          },
+          data: { quantity: { decrement: batch.pickQuantity } }
+        });
+      }
+    }
+
+    // Xóa hết ExportFabricItem cũ (từ khi tạo phiếu xuất)
+    await exportFabricRepository.deleteAllItems(exportFabricId);
+
+    // Tạo lại ExportFabricItem - MỖI BATCH = 1 ITEM (cho phép cùng fabricId nhưng khác giá)
+    const newItems = [];
+    for (const fabricBatch of batchPickupDetails) {
+      const fabricId = fabricBatch.fabricId;
+      const batches = fabricBatch.batches;
+
+      for (const batch of batches) {
+        // Query importPrice từ ImportFabricItem
+        const importFabricItem = await prisma.importFabricItem.findFirst({
+          where: {
+            importFabricId: batch.importId,
+            fabricId: fabricId
+          }
+        });
+
+        const importPrice = importFabricItem?.price || 0;
+
+        newItems.push({
+          fabricId: fabricId,
+          quantity: batch.pickQuantity,
+          price: importPrice
+        });
+      }
+    }
+
+    // Tạo tất cả items mới
+    await exportFabricRepository.createManyItems(exportFabricId, newItems);
+  }
 
   // Cập nhật trạng thái phiếu xuất
-  return await exportFabricRepository.updateStatus(exportFabricId, status, approvedById, itemShelfSelections);
+  return await exportFabricRepository.updateStatus(exportFabricId, status, approvedById, [], status === 'REJECTED' ? note : null);
+};
+
+/**
+ * Xác nhận nhận hàng từ cửa hàng - Chuyển status APPROVED -> COMPLETED
+ * Cộng vải vào FabricStore dùng giá nhập (từ ExportFabricItem.price)
+ */
+export const completeExportFabric = async ({ exportFabricId, receivedById }) => {
+  const exportFabric = await exportFabricRepository.findById(exportFabricId);
+
+  if (!exportFabric) throw new NotFoundError('Phiếu xuất vải không tồn tại');
+  
+  if (exportFabric.status !== 'APPROVED') {
+    throw new ConflictError('Chỉ có thể xác nhận nhận hàng cho phiếu xuất đã được duyệt (APPROVED)');
+  }
+
+  const storeId = exportFabric.storeId;
+
+  // Cộng vải vào FabricStore cho từng fabric trong exportItems
+  for (const item of exportFabric.exportItems) {
+    const { fabricId, quantity, price, fabric } = item;
+    
+    // Lấy thông tin fabric để tính toán
+    const fabricInfo = fabric || await fabricRepository.findById(fabricId);
+    if (!fabricInfo) {
+      throw new NotFoundError(`Loại vải (ID: ${fabricId}) không tồn tại`);
+    }
+
+    const fabricLength = fabricInfo.length || 0;
+    // Dùng giá nhập (đã lưu trong ExportFabricItem.price khi APPROVED)
+    const importPrice = price || fabricInfo.sellingPrice || 0;
+
+    // Tính toán các giá trị
+    const totalMeters = quantity * fabricLength;
+    const totalValue = quantity * importPrice;
+
+    // Import vải vào cửa hàng
+    await fabricStoreRepository.importFabricRolls({
+      fabricId,
+      storeId,
+      quantity,
+      totalValue,
+      totalMeters,
+      uncutRolls: quantity,
+      cuttingRollMeters: 0
+    });
+  }
+
+  // Cập nhật trạng thái phiếu xuất sang COMPLETED
+  return await exportFabricRepository.updateStatus(exportFabricId, 'COMPLETED', receivedById, []);
 };
 
 

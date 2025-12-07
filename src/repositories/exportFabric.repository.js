@@ -19,6 +19,7 @@ export class ExportFabricRepository {
   #exportFabricDetailSelect = {
   id: true,
   warehouseId: true,
+  storeId: true,
   warehouse: { select: { name: true } }, 
   store: { select: { name: true } }, 
   status: true,
@@ -32,12 +33,14 @@ export class ExportFabricRepository {
 
   exportItems: {
     select: {
+      id: true,
       fabricId: true,
       quantity: true,
       price: true,      
       fabric: {
         select: {
           id: true,
+          length: true,
           colorId: true,
           categoryId: true,
           sellingPrice: true,
@@ -254,23 +257,69 @@ export class ExportFabricRepository {
     return exportFabric;
   }
 
-  async updateStatus(id, status, approvedById, itemShelfSelections = []) {
+  async updateStatus(id, status, approvedById, itemShelfSelections = [], note = null) {
+    const updateData = {
+      status,
+      receivedById: approvedById,
+      exportItems: {
+        updateMany: itemShelfSelections.map(item => ({
+          where: { exportFabricId: id, fabricId: item.fabricId },
+          data: {}
+        }))
+      }
+    };
+
+    // Thêm note nếu có (khi REJECTED)
+    if (note) {
+      updateData.note = note;
+    }
+
     const updatedExport = await prisma.exportFabric.update({
       where: { id },
-      data: {
-        status,
-        receivedById: approvedById,
-        exportItems: {
-          updateMany: itemShelfSelections.map(item => ({
-            where: { exportFabricId: id, fabricId: item.fabricId },
-            data: {}
-          }))
-        }
-      },
+      data: updateData,
       select: this.#exportFabricDetailSelect
     });
 
     return updatedExport;
+  }
+
+  /**
+   * Cập nhật giá cho item cụ thể theo ID
+   * @param {number} itemId - ID của ExportFabricItem
+   * @param {number} price - Giá nhập
+   */
+  async updateItemPrice(itemId, price) {
+    return await prisma.exportFabricItem.update({
+      where: { id: itemId },
+      data: { price }
+    });
+  }
+
+  /**
+   * Tạo nhiều ExportFabricItem cho 1 phiếu xuất
+   * Dùng khi approve và cần tách các batch khác giá
+   * @param {number} exportFabricId
+   * @param {Array<{fabricId: number, quantity: number, price: number}>} items
+   */
+  async createManyItems(exportFabricId, items) {
+    return await prisma.exportFabricItem.createMany({
+      data: items.map(item => ({
+        exportFabricId,
+        fabricId: item.fabricId,
+        quantity: item.quantity,
+        price: item.price
+      }))
+    });
+  }
+
+  /**
+   * Xóa tất cả items của 1 phiếu xuất (dùng trước khi tạo lại)
+   * @param {number} exportFabricId
+   */
+  async deleteAllItems(exportFabricId) {
+    return await prisma.exportFabricItem.deleteMany({
+      where: { exportFabricId }
+    });
   }
 }
 
