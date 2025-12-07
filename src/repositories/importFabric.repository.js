@@ -63,7 +63,7 @@ class ImportFabricRepository {
           include: {
             supplier: { select: { id: true, name: true, phone: true } },
             category: { select: { id: true, name: true } },
-            color: { select: { id: true, name: true } },
+            color: { select: { id: true, name: true, hexCode: true } },
             gloss: { select: { id: true, description: true } }
           }
         }

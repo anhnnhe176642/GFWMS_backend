@@ -77,6 +77,7 @@ class FabricStoreService {
         categoryDescription: fabricStore.fabric.category?.description,
         color: fabricStore.fabric.color?.name || 'N/A',
         colorId: fabricStore.fabric.color?.id,
+        colorHexCode: fabricStore.fabric.color?.hexCode || 'N/A',
         gloss: fabricStore.fabric.gloss?.description || 'N/A',
         glossId: fabricStore.fabric.gloss?.id,
         supplier: fabricStore.fabric.supplier?.name || 'N/A',

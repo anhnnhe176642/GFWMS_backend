@@ -15,7 +15,7 @@ export class FabricRepository {
     sellingPrice: true,
     quantityInStock: true,
     category: { select: { id: true, name: true } },
-    color: { select: { id: true, name: true } },
+    color: { select: { id: true, name: true, hexCode: true } },
     supplier: { select: { id: true, name: true } },
     createdAt: true,
     updatedAt: true,
@@ -135,7 +135,7 @@ export class FabricRepository {
       select: {
         id: true,
         category: { select: { id: true, name: true } },
-        color: { select: { id: true, name: true } },
+        color: { select: { id: true, name: true, hexCode: true } },
         sellingPrice: true
       }
     });

@@ -1,6 +1,7 @@
 model FabricColor {
     id        String   @id @db.VarChar(50)
     name      String   @db.VarChar(100) @unique
+    hexCode   String?  @db.VarChar(7)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

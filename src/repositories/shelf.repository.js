@@ -57,7 +57,8 @@ export class ShelfRepository {
         color: {
           select: {
             id: true,
-            name: true
+            name: true,
+            hexCode: true
           }
         },
         supplier: {
@@ -183,7 +184,8 @@ export class ShelfRepository {
                   color: {
                     select: {
                       id: true,
-                      name: true
+                      name: true,
+                      hexCode: true
                     }
                   },
                   supplier: {
@@ -380,7 +382,8 @@ export class ShelfRepository {
                     color: {
                       select: {
                         id: true,
-                        name: true
+                        name: true,
+                        hexCode: true
                       }
                     },
                     supplier: {

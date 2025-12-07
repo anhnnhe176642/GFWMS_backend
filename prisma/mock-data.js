@@ -405,13 +405,29 @@ async function main() {
   const existingColors = await prisma.fabricColor.findMany({ select: { id: true, name: true } });
   const existingColorNames = new Set(existingColors.map(c => c.name));
   
+  // Danh sách màu cơ bản với hex codes
+  const basicColors = [
+    { name: 'Đỏ', hex: '#FF0000' },
+    { name: 'Xanh da trời', hex: '#0099FF' },
+    { name: 'Xanh lục', hex: '#00AA00' },
+    { name: 'Vàng', hex: '#FFFF00' },
+    { name: 'Cam', hex: '#FF9900' },
+    { name: 'Tím', hex: '#9933FF' },
+    { name: 'Hồng', hex: '#FF66BB' },
+    { name: 'Nâu', hex: '#996633' },
+    { name: 'Xám', hex: '#CCCCCC' },
+    { name: 'Đen', hex: '#000000' }
+  ];
+  
   const colorsToCreate = [];
   for (let i = 0; i < CONFIG.FABRIC_COLORS; i++) {
     const colorId = `MAU${String(i + 1).padStart(3, '0')}`;
-    const name = taoTenMauSac(i);
+    const colorInfo = basicColors[i % basicColors.length];
+    const name = i < basicColors.length ? colorInfo.name : taoTenMauSac(i);
+    const hexCode = i < basicColors.length ? colorInfo.hex : null;
     
     if (!existingColorNames.has(name)) {
-      colorsToCreate.push({ id: colorId, name });
+      colorsToCreate.push({ id: colorId, name, hexCode });
       existingColorNames.add(name);
     }
   }

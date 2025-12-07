@@ -320,7 +320,8 @@ export class WarehouseRepository {
             color: {
               select: {
                 id: true,
-                name: true
+                name: true,
+                hexCode: true
               }
             },
             supplier: {

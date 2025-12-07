@@ -147,6 +147,10 @@ router.get(
  *               name:
  *                 type: string
  *                 example: Red
+ *               hexCode:
+ *                 type: string
+ *                 description: Mã hex của màu (#RRGGBB hoặc #RGB)
+ *                 example: '#FF0000'
  *     responses:
  *       201:
  *         description: Fabric color created successfully
@@ -200,6 +204,10 @@ router.post(
  *               name:
  *                 type: string
  *                 example: Blue
+ *               hexCode:
+ *                 type: string
+ *                 description: Mã hex của màu (#RRGGBB hoặc #RGB)
+ *                 example: '#0000FF'
  *     responses:
  *       200:
  *         description: Fabric color updated successfully

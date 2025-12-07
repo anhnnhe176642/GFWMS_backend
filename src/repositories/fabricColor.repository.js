@@ -9,6 +9,7 @@ export class FabricColorRepository {
   #selectOptions = {
     id: true,
     name: true,
+    hexCode: true,
     createdAt: true,
     updatedAt: true,
   };

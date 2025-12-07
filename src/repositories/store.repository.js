@@ -54,7 +54,8 @@ export class StoreRepository {
                 color: {
                   select: {
                     id: true,
-                    name: true
+                    name: true,
+                    hexCode: true
                   }
                 },
                 supplier: {

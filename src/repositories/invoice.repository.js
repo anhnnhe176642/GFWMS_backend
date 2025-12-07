@@ -74,7 +74,7 @@ export class InvoiceRepository {
                   select: { id: true, description: true }
                 },
                 category: { select: { id: true, name: true } },
-                color: { select: { id: true, name: true } },
+                color: { select: { id: true, name: true, hexCode: true } },
                 supplier: { select: { id: true, name: true, phone: true, address: true } }
               }
             }

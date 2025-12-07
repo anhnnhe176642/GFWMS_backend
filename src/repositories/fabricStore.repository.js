@@ -37,7 +37,8 @@ class FabricStoreRepository {
         color: {
           select: {
             id: true,
-            name: true
+            name: true,
+            hexCode: true
           }
         },
         gloss: {

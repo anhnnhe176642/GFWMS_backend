@@ -20,7 +20,18 @@ export const createFabricColorSchema = Joi.object({
     'string.max': 'ID không được vượt quá 50 ký tự',
     'any.required': 'ID là bắt buộc'
   }),
-  name: nameSchema
+  name: nameSchema,
+  hexCode: Joi.string()
+    .trim()
+    .max(7)
+    .pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+    .optional()
+    .messages({
+      'string.base': 'Mã hex phải là chuỗi',
+      'string.max': 'Mã hex không được vượt quá 7 ký tự',
+      'string.pattern.base': 'Mã hex phải có định dạng #RRGGBB hoặc #RGB',
+      'string.empty': 'Mã hex không được để trống'
+    })
 });
 
 
@@ -35,6 +46,17 @@ export const updateFabricColorSchema = Joi.object({
       'string.max': 'Tên màu không được vượt quá 100 ký tự',
       'any.required': 'Tên màu là bắt buộc',
       'string.empty': 'Tên màu không được để trống'
+    }),
+  hexCode: Joi.string()
+    .trim()
+    .max(7)
+    .pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+    .optional()
+    .messages({
+      'string.base': 'Mã hex phải là chuỗi',
+      'string.max': 'Mã hex không được vượt quá 7 ký tự',
+      'string.pattern.base': 'Mã hex phải có định dạng #RRGGBB hoặc #RGB',
+      'string.empty': 'Mã hex không được để trống'
     })
 });
 

@@ -45,7 +45,7 @@ export class OrderRepository {
             length: true,
             width: true,
             category: { select: { id: true, name: true } },
-            color: { select: { id: true, name: true } },
+            color: { select: { id: true, name: true, hexCode: true } },
             gloss: { select: { id: true, description: true } }
           }
         }
@@ -286,7 +286,7 @@ export class OrderRepository {
           }
         },
         
-        color: { select: { id: true, name: true } },
+        color: { select: { id: true, name: true, hexCode: true } },
         gloss: { select: { id: true, description: true } }
       }
     });
