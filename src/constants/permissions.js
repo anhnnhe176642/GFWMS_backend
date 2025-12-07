@@ -159,11 +159,18 @@ export const PERMISSIONS = {
     DELETE:       { key: 'banner_discount:delete',       description: 'Xóa banner_discount (soft delete)' },
   },
 
-  CREDIT_REGISTRATION: {
+  CREADIT_REGISTRATION: {
     VIEW_LIST:           { key: 'creadit_registration:view_list',           description: 'Xem danh sách đơn đăng ký' },
     VIEW_DETAIL:         { key: 'creadit_registration:view_detail',         description: 'Xem chi tiết đơn đăng ký' },
-    CREATE:              { key: 'creadit_registration:create',              description: 'Tạo đơn đăng ký mới' },
-    CHANGE_STATUS:       { key: 'creadit_registration:change_status',       description: 'Cập nhật trạng thái đơn đăng ký' },
+    CREDIT_SCORE:        { key: 'creadit_registration:credit_score',        description: 'Xem điểm uy tín và gợi ý hạn mức tín dụng' },
+  },
+
+  CREADIT_REQUEST: {
+    VIEW_LIST:            { key: 'creadit_request:view_list',              description: 'Xem lịch sử đơn đăng ký' },
+    VIEW_DETAIL:          { key: 'creadit_request:view_detail',            description: 'Xem chi tiết lịch sử đơn đăng ký' },
+    CREATE:               { key: 'creadit_request:create',                 description: 'Tạo đơn đăng ký nợ mới' },
+    APPROVE:              { key: 'creadit_request:approve',                description: 'Phê duyệt đơn đăng ký nợ ' },
+    REJECT:               { key: 'creadit_request:reject',                 description: 'Từ chối đơn đăng ký nợ' },
   },
 
   CREDIT_INVOICES: {

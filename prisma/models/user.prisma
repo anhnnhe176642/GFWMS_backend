@@ -37,4 +37,6 @@ model User {
 
   wishlist Wishlist[]
   YoloDatasetImage YoloDatasetImage[]
+
+  creditRequests  CreditRequest[]
 }

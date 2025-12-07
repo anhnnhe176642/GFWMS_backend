@@ -10,6 +10,8 @@ import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 import { cancelExpiredOrders } from './jobs/payment-expiration.job.js';
 import { reconcilePendingPayments } from './jobs/payment-reconciliation.job.js';
+import { checkCreditInvoices } from './jobs/credit-invoice.job.js';
+import { autoLockCreditOverdue } from './jobs/credit-lock.job.js';
 import cron from 'node-cron';
 dotenv.config();
 
@@ -47,18 +49,43 @@ app.use(notFound);
 app.use(errorHandler);
 
 
-if (process.env.NODE_ENV !== 'test') {
-  if (process.env.ENABLE_CRON === 'true') {
-    // Cancel expired orders + check PayOS - Mỗi phút
-    cron.schedule('* * * * *', () => {
-      cancelExpiredOrders();
-    });
-    
-    // Reconciliation - Mỗi 5 phút
-    cron.schedule('*/5 * * * *', () => {
-      reconcilePendingPayments();
-    });
-  }
+if (process.env.NODE_ENV !== 'test' && process.env.ENABLE_CRON === 'true') {
+  // Cancel expired orders + check PayOS - mỗi phút
+  cron.schedule('* * * * *', async () => {
+    try {
+      await cancelExpiredOrders();
+    } catch (err) {
+      console.error("Lỗi trong cron CancelExpiredOrders:", err);
+    }
+  });
+
+  // Reconciliation - mỗi 5 phút
+  cron.schedule('*/5 * * * *', async () => {
+    try {
+      await reconcilePendingPayments();
+    } catch (err) {
+      console.error("Lỗi trong cron ReconcilePayments:", err);
+    }
+  });
+
+  // Check credit invoices - mỗi ngày 0h
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      await checkCreditInvoices();
+    } catch (err) {
+      console.error("Lỗi trong cron CheckCreditInvoices:", err);
+    }
+  });
+
+  // Auto lock credit overdue - mỗi phút (test)
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      await autoLockCreditOverdue();
+    } catch (err) {
+      console.error("Lỗi trong cron AutoLockCredit:", err);
+    }
+  });
 }
+
 
 export default app;

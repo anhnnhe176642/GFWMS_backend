@@ -1,33 +1,29 @@
 import express from 'express';
 import {
-  createCreditRegistration,
   getAllCreditRegistrations,
   getCreditRegistrationById,
-  updateCreditRegistrationStatus,
-  getCreditSummary 
+  getCreditSummary
 } from '../../controllers/creditRegistration.controller.js';
 
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 
 import {
-  createCreditRegistrationSchema,
   creditRegistrationQuerySchema,
-  uuidParamSchema,
-  updateCreditStatusSchema
+  idParamSchema,
 } from '../../validations/creditRegistration.validation.js';
 
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
-
 router.use(authenticateToken);
+
 
 /**
  * @swagger
  * /credit-registrations:
  *   get:
- *     summary: Lấy danh sách đăng ký hạn mức tín dụng
+ *     summary: Lấy danh sách tất cả đăng ký hạn mức tín dụng
  *     tags: [Credit Registration]
  *     security:
  *       - bearerAuth: []
@@ -36,11 +32,17 @@ router.use(authenticateToken);
  *         name: search
  *         schema:
  *           type: string
- *         description: Tìm theo tên / email / username của user
+ *         description: Tìm theo tên/email/username
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
+ *         description: Lọc theo trạng thái
+ *       - in: query
+ *         name: uuid
+ *         schema:
+ *           type: string
+ *         description: Lọc theo uuid
  *       - in: query
  *         name: page
  *         schema:
@@ -59,51 +61,20 @@ router.use(authenticateToken);
  *           type: string
  *     responses:
  *       200:
- *         description: Lấy danh sách thành công
+ *         description: Thành công
  */
 router.get(
   '/',
-  requirePermission(PERMISSIONS.CREDIT_REGISTRATION.VIEW_LIST),
+  requirePermission(PERMISSIONS.CREADIT_REGISTRATION.VIEW_DETAIL),
   validate(creditRegistrationQuerySchema, 'query'),
   getAllCreditRegistrations
 );
 
 /**
  * @swagger
- * /credit-registrations:
- *   post:
- *     summary: Tạo đăng ký hạn mức tín dụng cho user
- *     tags: [Credit Registration]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               note:
- *                 type: string
- *             required:
- *               - userId
- *               - creditLimit
- *     responses:
- *       201:
- *         description: Tạo đăng ký thành công
- */
-router.post(
-  '/',
-  requirePermission(PERMISSIONS.CREDIT_REGISTRATION.CREATE),
-  validate(createCreditRegistrationSchema),
-  createCreditRegistration
-);
-
-/**
- * @swagger
  * /credit-registrations/{id}:
  *   get:
- *     summary: Lấy thông tin chi tiết một đăng ký hạn mức tín dụng
+ *     summary: Lấy chi tiết một đăng ký hạn mức
  *     tags: [Credit Registration]
  *     security:
  *       - bearerAuth: []
@@ -112,75 +83,26 @@ router.post(
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *         description: ID của bản ghi đăng ký
+ *           type: integer
+ *         description: ID của bản ghi
  *     responses:
  *       200:
- *         description: Lấy thành công
+ *         description: Thành công
  *       404:
  *         description: Không tìm thấy
  */
 router.get(
   '/:id',
-  requirePermission(PERMISSIONS.CREDIT_REGISTRATION.VIEW_DETAIL),
-  validate(uuidParamSchema, 'params'),
+  requirePermission(PERMISSIONS.CREADIT_REGISTRATION.VIEW_DETAIL),
+  validate(idParamSchema, 'params'),
   getCreditRegistrationById
-);
-
-/**
- * @swagger
- * /credit-registrations/{id}/status:
- *   patch:
- *     summary: Cập nhật trạng thái đăng ký tín dụng (approve/reject)
- *     tags: [Credit Registration]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID đăng ký
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [APPROVED, REJECTED]
- *                 description: Trạng thái mới của đơn
- *               creditLimit:
- *                 type: number
- *                 description: Giới hạn tín dụng mới (chỉ dùng khi APPROVED)
- *             required:
- *               - status
- *     responses:
- *       200:
- *         description: Cập nhật thành công
- *       400:
- *         description: Trạng thái không hợp lệ hoặc đơn đã được xử lý
- *       404:
- *         description: Không tìm thấy đăng ký
- */
-router.patch(
-  '/:id/status',
-  requirePermission(PERMISSIONS.CREDIT_REGISTRATION.CHANGE_STATUS),
-  validate([
-    { schema: uuidParamSchema, source: 'params' },
-    { schema: updateCreditStatusSchema, source: 'body' }
-  ]),
-  updateCreditRegistrationStatus
 );
 
 /**
  * @swagger
  * /credit-registrations/credit-score/{userId}:
  *   get:
- *     summary: Lấy điểm uy tín và gợi ý creditLimit
+ *     summary: Lấy điểm uy tín và gợi ý hạn mức tín dụng của khách hàng
  *     tags: [Credit Registration]
  *     security:
  *       - bearerAuth: []
@@ -194,8 +116,20 @@ router.patch(
  *     responses:
  *       200:
  *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CreditScore'
+ *             example:
+ *               creditScore: 750
+ *               suggestedCreditLimit: 10000000
  *       404:
- *         description: Người dùng không tồn tại
+ *         description: Không tìm thấy khách hàng
  */
-router.get('/credit-score/:userId', getCreditSummary);
+router.get(
+  '/credit-score/:userId', 
+  requirePermission(PERMISSIONS.CREADIT_REGISTRATION.CREDIT_SCORE),
+  getCreditSummary
+);
+
 export default router;

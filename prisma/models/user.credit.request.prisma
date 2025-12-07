@@ -1,0 +1,12 @@
+model CreditRequest {
+  id           Int              @id @default(autoincrement())
+  userId       String
+  type         CreditRequestType @default(INITIAL)
+  requestLimit Float
+  status       RequestStatus     @default(PENDING)
+  note         String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id])
+}
