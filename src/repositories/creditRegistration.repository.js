@@ -22,6 +22,7 @@ class CreditRegistrationRepository {
     note: true,
     createdAt: true,
     updatedAt: true,
+    isLocked:true,
     user: {
       select: {
         id: true,

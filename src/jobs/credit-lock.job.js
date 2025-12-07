@@ -31,7 +31,7 @@ export const autoLockCreditOverdue = async () => {
 
       const overdueDays = differenceInDays(today, new Date(inv.dueDate));
 
-      if (overdueDays >= OVERDUE_LOCK_DAYS) {
+      if (!inv.credit.isLocked && overdueDays >= OVERDUE_LOCK_DAYS) {
 
         await prisma.creditRegistration.update({
           where: { id: inv.creditId },

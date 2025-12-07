@@ -49,31 +49,43 @@ app.use(notFound);
 app.use(errorHandler);
 
 
-if (process.env.NODE_ENV !== 'test') {
-  if (process.env.ENABLE_CRON === 'true') {
-    // Cancel expired orders + check PayOS - Mỗi phút
-    cron.schedule('* * * * *', () => {
-      cancelExpiredOrders();
-    });
-    
-    // Reconciliation - Mỗi 5 phút
-    cron.schedule('*/5 * * * *', () => {
-      reconcilePendingPayments();
-    });
+if (process.env.NODE_ENV !== 'test' && process.env.ENABLE_CRON === 'true') {
+  // Cancel expired orders + check PayOS - mỗi phút
+  cron.schedule('* * * * *', async () => {
+    try {
+      await cancelExpiredOrders();
+    } catch (err) {
+      console.error("Lỗi trong cron CancelExpiredOrders:", err);
+    }
+  });
 
-    cron.schedule('0 0 * * *', async () => {
-      const overdueList = await checkCreditInvoices();
-      console.log("Overdue invoices: ", overdueList);
+  // Reconciliation - mỗi 5 phút
+  cron.schedule('*/5 * * * *', async () => {
+    try {
+      await reconcilePendingPayments();
+    } catch (err) {
+      console.error("Lỗi trong cron ReconcilePayments:", err);
+    }
+  });
 
-      // logic gửi noti:
-      // notifyUserForOverdueInvoices(overdueList)
-    });
+  // Check credit invoices - mỗi ngày 0h
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      await checkCreditInvoices();
+    } catch (err) {
+      console.error("Lỗi trong cron CheckCreditInvoices:", err);
+    }
+  });
 
-    // Khóa tín dụng nếu quá hạn quá X ngày — mỗi ngày
-    cron.schedule('0 0 * * *', async () => {
+  // Auto lock credit overdue - mỗi phút (test)
+  cron.schedule('0 0 * * *', async () => {
+    try {
       await autoLockCreditOverdue();
-    });
-  }
+    } catch (err) {
+      console.error("Lỗi trong cron AutoLockCredit:", err);
+    }
+  });
 }
+
 
 export default app;

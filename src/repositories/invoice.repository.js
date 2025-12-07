@@ -9,96 +9,96 @@ const prisma = new PrismaClient();
 
 export class InvoiceRepository {
   //  Select options cho danh sách (GET ALL)
-  #invoiceListSelectOptions = {
-    id: true,
-    orderId: true,
-    order: {
-      select: {
-        id: true,
-        orderDate: true,
-        status: true,
-        totalAmount: true,
-        user: {
-          select: {
-            id: true,
-            username: true
-          }
+#invoiceListSelectOptions = {
+  id: true,
+  orderId: true,
+  order: {
+    select: {
+      id: true,
+      orderDate: true,
+      status: true,
+      totalAmount: true,
+      user: {
+        select: {
+          id: true,
+          username: true
         }
       }
-    },
-    invoiceDate: true,
-    dueDate: true,
-    invoiceStatus: true,
-    totalAmount: true,
-    createdAt: true,
-    updatedAt: true
-  };
+    }
+  },
+  invoiceDate: true,
+  invoiceStatus: true,
+  totalAmount: true,
+  notes: true,          
+  paymentType: true,
+  paymentDeadline: true,
+  creditAmount: true,
+  paidAmount: true,
+  createdAt: true,
+  updatedAt: true
+};
 
-  //  Select options cho chi tiết (GET DETAIL)
-  #invoiceDetailSelectOptions = {
-    id: true,
-    orderId: true,
-    order: {
-      select: {
-        id: true,
-        orderDate: true,
-        status: true,
-        totalAmount: true,
-        notes: true,
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true
-          }
-        },
-        orderItems: {
-          select: {
-            id: true,
-            quantity: true,
-            price: true,
-            createdAt: true,
-            updatedAt: true,
-            fabric: {
-              select: {
-                id: true,
-                thickness: true,
-                length: true,
-                width: true,
-                weight: true,
-                sellingPrice: true,
-                quantityInStock: true,
-                createdAt: true,
-                updatedAt: true,
-                gloss: {
-                  select: { id: true, description: true }
-                },
-                category: { select: { id: true, name: true } },
-                color: { select: { id: true, name: true } },
-                supplier: { select: { id: true, name: true, phone: true, address: true } }
-              }
+// Lấy chi tiết đầy đủ (GET DETAIL)
+#invoiceDetailSelectOptions = {
+  id: true,
+  orderId: true,
+  order: {
+    select: {
+      id: true,
+      orderDate: true,
+      status: true,
+      totalAmount: true,
+      notes: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true
+        }
+      },
+      orderItems: {
+        select: {
+          id: true,
+          quantity: true,
+          price: true,
+          createdAt: true,
+          updatedAt: true,
+          fabric: {
+            select: {
+              id: true,
+              thickness: true,
+              length: true,
+              width: true,
+              weight: true,
+              sellingPrice: true,
+              quantityInStock: true,
+              createdAt: true,
+              updatedAt: true,
+              gloss: { select: { id: true, description: true } },
+              category: { select: { id: true, name: true } },
+              color: { select: { id: true, name: true } },
+              supplier: { select: { id: true, name: true, phone: true, address: true } }
             }
           }
         }
       }
-    },
-    invoiceDate: true,
-    dueDate: true,
-    invoiceStatus: true,
-    totalAmount: true,
-    createdAt: true,
-    updatedAt: true,
-    payment: {
-      select: {
-        id: true,
-        paymentDate: true,
-        amount: true,
-        paymentMethod: true,
-        transactionId: true,
-        notes: true
-      }
     }
-  };
+  },
+  invoiceDate: true,
+  invoiceStatus: true,
+  totalAmount: true,
+  notes: true,
+  paymentType: true,
+  paymentDeadline: true,
+  creditAmount: true,
+  paidAmount: true,
+  payment: { select: { id: true, paymentDate: true, amount: true, paymentMethod: true, transactionId: true, notes: true } },
+  creditInvoiceId: true,
+  creditInvoice: { select: { id: true, totalAmount: true, invoiceDate: true } },
+  createdAt: true,
+  updatedAt: true
+};
+
 
   /**  Lấy tất cả Invoice (danh sách) */
   async findAll() {
