@@ -1,5 +1,5 @@
-import * as creditInvoiceRepository from '../repositories/creditInvoice.repository.js';
-import { NotFoundError, BadRequestError } from '../utils/errors.js';
+import * as creditInvoiceService from '../services/creditInvoice.service.js';
+import { buildQueryParams } from '../utils/filter-builder.js';
 
 /**
  * Lấy danh sách Credit Invoice của user
@@ -7,18 +7,40 @@ import { NotFoundError, BadRequestError } from '../utils/errors.js';
 export const getMyCreditInvoices = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 10, status } = req.query;
     
-    const result = await creditInvoiceRepository. findByUserId(userId, {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      status
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['status'],
+      defaultSortBy: 'dueDate',
+      defaultOrder: 'desc'
     });
+    
+    const result = await creditInvoiceService. getMyCreditInvoices(userId, queryParams);
     
     res.json({
       message: 'Lấy danh sách Credit Invoice thành công',
-      data: result. creditInvoices,
-      pagination: result.pagination
+      ... result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * [ADMIN/STAFF] Lấy tất cả Credit Invoice
+ */
+export const getAllCreditInvoices = async (req, res, next) => {
+  try {
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['status'],
+      defaultSortBy: 'createdAt',
+      defaultOrder: 'desc'
+    });
+    
+    const result = await creditInvoiceService.getAllCreditInvoices(queryParams);
+    
+    res.json({
+      message: 'Lấy danh sách Credit Invoice thành công',
+      ...result
     });
   } catch (error) {
     next(error);
@@ -30,19 +52,15 @@ export const getMyCreditInvoices = async (req, res, next) => {
  */
 export const getCreditInvoiceDetail = async (req, res, next) => {
   try {
-    const { creditInvoiceId } = req.params;
+    const { creditInvoiceId } = req. params;
     const userId = req.user.id;
+    const userRole = req.user.role;
     
-    const creditInvoice = await creditInvoiceRepository.findById(creditInvoiceId);
-    
-    if (!creditInvoice) {
-      throw new NotFoundError('Không tìm thấy Credit Invoice');
-    }
-    
-    // Check quyền
-    if (creditInvoice.credit.userId !== userId && ! ['STAFF', 'ADMIN'].includes(req.user.role)) {
-      throw new BadRequestError('Bạn không có quyền xem Credit Invoice này');
-    }
+    const creditInvoice = await creditInvoiceService.getCreditInvoiceDetail(
+      creditInvoiceId, 
+      userId, 
+      userRole
+    );
     
     res.json({
       message: 'Lấy chi tiết Credit Invoice thành công',
@@ -52,3 +70,4 @@ export const getCreditInvoiceDetail = async (req, res, next) => {
     next(error);
   }
 };
+

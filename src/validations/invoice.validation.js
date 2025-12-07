@@ -79,5 +79,31 @@ export const invoiceQuerySchema = querySchema.keys({
   })
 });
 
+/**
+ * ============================
+ * CREDIT INVOICE VALIDATIONS
+ * ============================
+ */
+
+const creditInvoiceStatusSchema = Joi. string()
+  .valid('PENDING', 'PAID', 'OVERDUE')
+  . trim()
+  .messages({
+    'string.base': 'Trạng thái Credit Invoice phải là chuỗi',
+    'any.only': 'Trạng thái phải là PENDING, PAID, hoặc OVERDUE'
+  });
+
+const allowedCreditInvoiceSortFields = ['dueDate','totalCreditAmount','creditPaidAmount','createdAt','updatedAt'];
+
+export const creditInvoiceQuerySchema = querySchema.keys({
+  sortBy: createSortBySchema(allowedCreditInvoiceSortFields),
+  order: sortOrderSchema.optional(),
+  
+  status: createMultiValueFilterSchema(
+    creditInvoiceStatusSchema, 
+    'Trạng thái Credit Invoice'
+  ). optional()
+});
+
 
 
