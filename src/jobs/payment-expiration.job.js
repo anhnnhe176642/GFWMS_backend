@@ -19,7 +19,11 @@ export const cancelExpiredOrders = async () => {
     const expiredOrders = await prisma.order.findMany({
       where: {
         status: 'PENDING',
-        paymentDeadline: { lt: now } // đã quá hạn
+        invoice: {  
+          paymentDeadline: {
+            lt: now
+          }
+        }
       },
       include: {
         user: true,
@@ -44,6 +48,7 @@ export const cancelExpiredOrders = async () => {
     for (const order of expiredOrders) {
       try {
         const orderId = order.id;
+        const invoiceId = order.invoice.id;
         const payment = order.invoice?. payment;
         
         
@@ -51,11 +56,9 @@ export const cancelExpiredOrders = async () => {
         if (payment && payment.status === 'PENDING') {
           
           try {
-            const paymentInfo = await payOSService.queryPaymentStatus(orderId);
-            
+            const paymentInfo = await payOSService. queryPaymentStatus(invoiceId);
             if (paymentInfo.status === 'PAID') {
               // ĐÃ THANH TOÁN!  Xử lý ngay
-              console. log(`Order #${orderId} WAS PAID! Processing...`);
               
               await prisma.$transaction(async (tx) => {
                 // Update Payment
@@ -80,9 +83,10 @@ export const cancelExpiredOrders = async () => {
                 });
                 
                 // Update Invoice
-                const invoiceStatus = order.creditAmount > 0 ? 'CREDIT' : 'PAID';
+                const invoice = order.invoice;
+                const invoiceStatus = invoice.creditAmount > 0 ? 'PAID' : 'PAID';
                 await tx.invoice. update({
-                  where: { id: order.invoice.id },
+                  where: { id:invoice.id },
                   data: { 
                     invoiceStatus, 
                     paidAmount: payment.amount 
@@ -94,27 +98,31 @@ export const cancelExpiredOrders = async () => {
                   await tx.creditRegistration.update({
                     where: { userId: order.userId },
                     data: { 
-                      creditLimit: { decrement: order.creditAmount } 
+                      creditLimit: { decrement: invoice.creditAmount  } 
                     }
                   });
-                  console.log(`Deducted ${order.creditAmount}đ credit`);
                 }
+
+                if (invoice.creditInvoiceId) {
+                    await tx.creditInvoice.update({
+                      where: { id: invoice.creditInvoiceId },
+                      data: {
+                        creditPaidAmount: { increment: payment.amount }
+                      }
+                    });
+                  }
               });
               
               recoveredCount++;
-              console.log(`Order #${orderId} recovered at last minute! `);
-              console.error(`CRITICAL: Payment processed at last second for order #${orderId}`);
               
               continue; // Không hủy đơn này
             }
           } catch (queryError) {
             console.error(`PayOS query error:`, queryError. message);
-            // Tiếp tục hủy nếu query lỗi (để safe)
           }
         }
         
         // BƯỚC 2: HỦY ĐƠN HÀNG  
-        console.log(`Cancelling order #${orderId}...`);
         
         await prisma.$transaction(async (tx) => {
           // 2a. Update Order status
@@ -133,11 +141,22 @@ export const cancelExpiredOrders = async () => {
           });
           
           // 2c.  Hoàn trả Credit (nếu có)
-          if (order.creditAmount > 0) {
+          const invoice = order.invoice;
+          if (invoice.creditAmount > 0 && invoice.paymentType === 'CREDIT') {
             await tx.creditRegistration.update({
               where: { userId: order.userId },
-              data: { creditLimit: { increment: order.creditAmount } }
+              data: { creditLimit: { increment: invoice.creditAmount } }
             });
+            
+            // Trừ lại từ Credit Invoice
+            if (invoice.creditInvoiceId) {
+              await tx.creditInvoice.update({
+                where: { id: invoice.creditInvoiceId },
+                data: {
+                  totalCreditAmount: { decrement: invoice.creditAmount }
+                }
+              });
+            }
           }
           
           // 2d. Hoàn trả Tồn kho
@@ -175,7 +194,6 @@ export const cancelExpiredOrders = async () => {
         });
         
         if (payment && payment.transactionId) {
-          console.log(`Cancelling PayOS payment link`);
           
           try {
             const cancelResult = await payOSService. cancelPaymentLink(

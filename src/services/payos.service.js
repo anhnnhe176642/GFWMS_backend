@@ -68,7 +68,7 @@ class PayOSService {
         color: { dark: '#0066CC', light: '#FFFFFF' }
       });
     } catch (error) {
-      console.error('[PayOS] QR generation failed:', error);
+      console.error('[PayOS] QR generation failed:', error)
       return null;
     }
   }
@@ -90,15 +90,12 @@ class PayOSService {
    */
   async queryPaymentStatus(orderCode) {
     try {
-      console.log('[PayOS] Querying status... ', { orderCode });
       const paymentInfo = await this.client.getPaymentLinkInformation(orderCode);
-      console.log('[PayOS] Status retrieved', { orderCode, status: paymentInfo. status });
       return paymentInfo;
     } catch (error) {
       if (error.response?.status === 404) {
         return { orderCode, status: 'NOT_FOUND' };
       }
-      console.error('[PayOS] Query error:', error);
       throw new AppError(`PayOS Query Error: ${error.message}`, 500);
     }
   }
@@ -108,12 +105,9 @@ class PayOSService {
    */
   async cancelPaymentLink(orderCode, reason = 'Order cancelled') {
     try {
-      console.log('[PayOS] Cancelling... ', { orderCode, reason });
       const result = await this.client.cancelPaymentLink(orderCode, reason);
-      console.log('[PayOS] Cancelled', { orderCode });
       return result;
     } catch (error) {
-      console.error('[PayOS] Cancel failed:', error);
       return { success: false, error: error.message };
     }
   }

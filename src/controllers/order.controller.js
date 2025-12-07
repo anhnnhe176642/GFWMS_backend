@@ -18,12 +18,8 @@ export const createOrder = async (req, res, next) => {
         data: {
           order,
           paymentAmount: excessAmount || order.totalAmount,
-          deadline: order.paymentDeadline,
-          testPayment: {
-            method: 'POST',
-            url: `/api/v1/orders/${order.id}/payment/qr-code`,
-            body: { success: true }
-          }
+          deadline: order.invoice?.paymentDeadline,
+          paymentInstructions: result.paymentInstructions
         }
       });
     } else {

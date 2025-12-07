@@ -1,39 +1,40 @@
 import express from 'express';
 import {
-  createPaymentQRCode,
+  createInvoicePaymentQR,
+  createCreditInvoicePaymentQR,
   handlePayOSWebhook,
-  checkPaymentStatus,
-  retryPayment
+  checkInvoicePaymentStatus,
+  checkCreditInvoicePaymentStatus
 } from '../../controllers/payment.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
-import { orderIdParamSchema } from '../../validations/order.validation.js';
+import { creditInvoiceIdParamSchema, invoiceIdParamSchema,  } from '../../validations/invoice.validation.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /orders/{orderId}/payment/qr-code:
+ * /invoices/{invoiceId}/payment/qr-code:
  *   post:
- *     summary: Tạo mã QR thanh toán PayOS
+ *     summary: Tạo mã QR thanh toán cho Invoice
  *     tags: [Payment]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: orderId
+ *         name: invoiceId
  *         required: true
  *         schema:
- *         example: 101
+ *           type: integer
  *     responses:
  *       200:
  *         description: Tạo QR thành công
  */
 router.post(
-  '/orders/:orderId/payment/qr-code',
+  '/invoices/:invoiceId/payment/qr-code',
   authenticateToken,
-  validate(orderIdParamSchema, 'params'),
-  createPaymentQRCode
+  validate(invoiceIdParamSchema, 'params'),
+  createInvoicePaymentQR
 );
 
 /**
@@ -50,50 +51,109 @@ router.post('/payment/payos-webhook', handlePayOSWebhook);
 
 /**
  * @swagger
- * /orders/{orderId}/payment/status:
+ * /invoices/{invoiceId}/payment/status:
  *   get:
- *     summary: Check payment status
+ *     summary: Kiểm tra trạng thái thanh toán Invoice
  *     tags: [Payment]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: orderId
+ *         name: invoiceId
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID của Invoice cần kiểm tra
  *     responses:
  *       200:
- *         description: Status retrieved
+ *         description: Thông tin trạng thái thanh toán
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 invoiceId:
+ *                   type: integer
+ *                 paymentId:
+ *                   type: integer
+ *                 status:
+ *                   type: string
+ *                   enum: [SUCCESS, PENDING, FAILED]
+ *                 amount:
+ *                   type: number
+ *                 paymentDate:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy Invoice
  */
-router.get('/orders/:orderId/payment/status',
+router.get(
+  '/invoices/:invoiceId/payment/status',
   authenticateToken,
-  validate(orderIdParamSchema, 'params'),
-  checkPaymentStatus
+  validate(invoiceIdParamSchema, 'params'),
+  checkInvoicePaymentStatus
 );
 
 /**
  * @swagger
- * /orders/{orderId}/payment/retry:
+ * /credit-invoices/{creditInvoiceId}/payment/qr-code:
  *   post:
- *     summary: Retry payment
+ *     summary: Tạo mã QR thanh toán cho Credit Invoice (gom tháng)
  *     tags: [Payment]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: orderId
+ *         name: creditInvoiceId
  *         required: true
  *         schema:
+ *           type: integer
+ *         description: ID của Credit Invoice
  *     responses:
  *       200:
- *         description: New QR created
+ *         description: Tạo QR thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy Credit Invoice
  */
 router.post(
-  '/orders/:orderId/payment/retry',
+  '/credit-invoices/:creditInvoiceId/payment/qr-code',
   authenticateToken,
-  validate(orderIdParamSchema, 'params'),
-  retryPayment
+  validate(creditInvoiceIdParamSchema, 'params'),
+  createCreditInvoicePaymentQR
+);
+
+/**
+ * @swagger
+ * /credit-invoices/{creditInvoiceId}/payment/status:
+ *   get:
+ *     summary: Kiểm tra trạng thái thanh toán Credit Invoice
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: creditInvoiceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của Credit Invoice cần kiểm tra
+ *     responses:
+ *       200:
+ *         description: Thông tin trạng thái thanh toán
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy Credit Invoice
+ */
+router.get(
+  '/credit-invoices/:creditInvoiceId/payment/status',
+  authenticateToken,
+  validate(creditInvoiceIdParamSchema, 'params'),
+  checkCreditInvoicePaymentStatus
 );
 
 export default router;

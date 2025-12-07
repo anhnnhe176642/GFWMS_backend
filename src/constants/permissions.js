@@ -172,6 +172,13 @@ export const PERMISSIONS = {
     APPROVE:              { key: 'creadit_request:approve',                description: 'Phê duyệt đơn đăng ký nợ ' },
     REJECT:               { key: 'creadit_request:reject',                 description: 'Từ chối đơn đăng ký nợ' },
   },
+
+  CREDIT_INVOICES: {
+    VIEW_MY:      { key: 'credit_invoice:view_my',      description: 'Xem danh sách Credit Invoice của tôi' },
+    VIEW_LIST:    { key: 'credit_invoice:view_list',    description: 'Xem danh sách Credit Invoice (Admin/Staff)' },
+    VIEW_DETAIL:  { key: 'credit_invoice:view_detail',  description: 'Xem chi tiết Credit Invoice' },
+  }
+
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)
