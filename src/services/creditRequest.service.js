@@ -3,10 +3,32 @@ import { creditRequestRepository } from '../repositories/creditRequest.repositor
 import { creditRegistrationRepository } from '../repositories/creditRegistration.repository.js';
 import { RequestStatus } from '@prisma/client';
 
-//
-//  Tạo yêu cầu mới (initial hoặc tăng hạn mức)
-//
-export const createCreditRequest = async (data) => {
+export const createInitialCreditRequest = async (data) => {
+  const { userId, requestLimit, note } = data;
+
+  if (requestLimit <= 0) {
+    throw new BadRequestError('Hạn mức yêu cầu phải lớn hơn 0');
+  }
+
+  // Check nếu user đã có đăng ký đã duyệt
+  const existingRegistration = await creditRegistrationRepository.findByUserId(userId);
+
+  if (existingRegistration) {
+    throw new BadRequestError(
+      'Bạn đã đăng ký hạn mức. Vui lòng kiểm tra lịch sử đăng ký'
+    );
+  }
+
+  return await creditRequestRepository.create({
+    userId,
+    requestLimit,
+    note,
+    status: RequestStatus.PENDING,
+    type: 'INITIAL'
+  });
+};
+
+export const createIncreaseCreditRequest = async (data) => {
   const { userId, requestLimit, note } = data;
 
   if (requestLimit <= 0) {
@@ -14,9 +36,15 @@ export const createCreditRequest = async (data) => {
   }
 
   const existingRegistration = await creditRegistrationRepository.findByUserId(userId);
-  const isIncrease = !!existingRegistration;
 
-  if (isIncrease && requestLimit <= existingRegistration.creditLimit) {
+  if (!existingRegistration) {
+    throw new BadRequestError(
+      'Bạn chưa đăng ký hạn mức. Vui lòng đăng ký trước khi tăng hạn mức'
+    );
+  }
+
+  // Kiểm tra tăng hạn mức
+  if (requestLimit <= existingRegistration.creditLimit) {
     throw new BadRequestError(
       `Hạn mức mới phải lớn hơn hạn mức hiện tại (${existingRegistration.creditLimit})`
     );
@@ -27,9 +55,10 @@ export const createCreditRequest = async (data) => {
     requestLimit,
     note,
     status: RequestStatus.PENDING,
-    type: isIncrease ? 'INCREASE' : 'INITIAL'
+    type: 'INCREASE'
   });
 };
+
 
 //
 //  Lấy danh sách yêu cầu (admin hoặc user)
@@ -45,78 +74,55 @@ export const getCreditRequestById = async (id) => {
   const request = await creditRequestRepository.findById(id);
 
   if (!request) {
-    throw new NotFoundError('Yêu cầu không tồn tại');
+    throw new NotFoundError('Đơn đăng ký không tồn tại');
   }
 
   return request;
 };
 
-//
-// === Approve Initial Request (lần đầu) ===
-//
-export const approveInitialRequest = async (id, data) => {
-  const { approvedLimit, note, adminId } = data;
+export const approveCreditRequest = async (id, data) => {
+  const { status, requestLimit, note, adminId } = data;
 
-  const request = await creditRequestRepository.findById(id);
-  if (!request) throw new NotFoundError('Yêu cầu không tồn tại');
-  if (request.status !== RequestStatus.PENDING)
-    throw new BadRequestError('Yêu cầu đã được xử lý trước đó');
+  const existing = await creditRequestRepository.findById(id);
+  if (!existing) throw new NotFoundError('Đơn đăng ký không tồn tại');
+  if (existing.status !== RequestStatus.PENDING) throw new BadRequestError('Đơn đã được xử lý');
 
-  if (request.type !== 'INITIAL') {
-    throw new BadRequestError('Đây không phải đơn đăng ký nợ lần đầu');
+  if (status === RequestStatus.APPROVED) {
+    let registration = await creditRegistrationRepository.findByUserId(existing.userId);
+
+    // Nếu là đơn đăng ký lần đầu
+    if (!registration) {
+      registration = await creditRegistrationRepository.create({
+        userId: existing.userId,
+        creditLimit: requestLimit ?? existing.requestLimit,
+        creditUsed: 0,
+        approvedBy: adminId,
+        approvalDate: new Date(),
+        status: 'APPROVED',
+        note
+      });
+    } else {
+      // Đơn tăng hạn mức hoặc chỉnh lần đầu
+      await creditRegistrationRepository.updateByUserId(existing.userId, {
+        creditLimit: requestLimit ?? existing.requestLimit,
+        approvedBy: adminId,
+        approvalDate: new Date(),
+        status: 'APPROVED',
+        note
+      });
+    }
+
+    return await creditRequestRepository.update(id, {
+      status,
+      note,
+      requestLimit: requestLimit ?? existing.requestLimit,
+      updatedAt: new Date()
+    });
   }
 
-  // Tạo CreditRegistration hoặc chỉnh lại limit
-  await creditRegistrationRepository.create({
-    userId: request.userId,
-    creditLimit: approvedLimit ?? request.requestLimit,
-    creditUsed: 0,
-    approvedBy: adminId,
-    approvalDate: new Date(),
-    status: 'APPROVED',
-    note
-  });
-
-  return await creditRequestRepository.update(id, {
-    status: RequestStatus.APPROVED,
-    note,
-    updatedAt: new Date()
-  });
+  throw new BadRequestError('Trạng thái không hợp lệ');
 };
 
-//
-// === Approve Increase Request ===
-//
-export const approveIncreaseRequest = async (id, data) => {
-  const { adminId, note } = data;
-
-  const request = await creditRequestRepository.findById(id);
-  if (!request) throw new NotFoundError('Yêu cầu không tồn tại');
-  if (request.status !== RequestStatus.PENDING)
-    throw new BadRequestError('Yêu cầu đã được xử lý trước đó');
-
-  if (request.type !== 'INCREASE') {
-    throw new BadRequestError('Đây không phải đơn tăng hạn mức');
-  }
-
-  const registration = await creditRegistrationRepository.findByUserId(request.userId);
-  if (!registration) throw new BadRequestError('Không tìm thấy CreditRegistration');
-
-  // Chỉ cập nhật creditLimit theo requestLimit
-  await creditRegistrationRepository.updateByUserId(request.userId, {
-    creditLimit: request.requestLimit,
-    approvedBy: adminId,
-    approvalDate: new Date(),
-    status: 'APPROVED',
-    note
-  });
-
-  return await creditRequestRepository.update(id, {
-    status: RequestStatus.APPROVED,
-    note,
-    updatedAt: new Date()
-  });
-};
 
 //
 // === Reject Request (Initial hoặc Increase) ===

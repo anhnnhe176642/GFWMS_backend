@@ -26,28 +26,44 @@ export const getAllCreditRequests = async (req, res, next) => {
   }
 };
 
-//
-// === Tạo CreditRequest mới (initial hoặc increase)
-//
-export const createCreditRequest = async (req, res, next) => {
+export const createInitialCreditRequest = async (req, res, next) => {
   try {
-    const type = req.path.includes('increase') ? 'INCREASE' : 'INITIAL';
     const requestData = {
       ...req.body,
       userId: req.user.id,
-      type
+      type: 'INITIAL'
     };
 
-    const created = await creditRequestService.createCreditRequest(requestData);
+    const created = await creditRequestService.createInitialCreditRequest(requestData);
 
     res.status(201).json({
-      message: `Tạo đơn ${type === 'INITIAL' ? 'đăng ký nợ' : 'tăng hạn mức'} thành công`,
+      message: 'Tạo đơn đăng ký nợ thành công',
       request: created
     });
   } catch (error) {
     next(error);
   }
 };
+
+export const createIncreaseCreditRequest = async (req, res, next) => {
+  try {
+    const requestData = {
+      ...req.body,
+      userId: req.user.id,
+      type: 'INCREASE'
+    };
+
+    const created = await creditRequestService.createIncreaseCreditRequest(requestData);
+
+    res.status(201).json({
+      message: 'Tạo đơn tăng hạn mức thành công',
+      request: created
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 //
 // === Lấy chi tiết 1 yêu cầu theo ID
@@ -67,22 +83,20 @@ export const getCreditRequestById = async (req, res, next) => {
   }
 };
 
-//
-// === Duyệt đơn đăng ký nợ lần đầu (Initial)
-//
-export const approveInitialRequest = async (req, res, next) => {
+export const approveRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { approvedLimit, note } = req.body;
+    const { status, requestLimit, note } = req.body;
 
-    const updated = await creditRequestService.approveInitialRequest(id, {
-      approvedLimit,
+    const updated = await creditRequestService.approveCreditRequest(id, {
+      status,
+      requestLimit,
       note,
       adminId: req.user.id
     });
 
     res.json({
-      message: 'Duyệt đơn đăng ký nợ thành công',
+      message: 'Duyệt đơn thành công',
       request: updated
     });
   } catch (error) {
@@ -90,25 +104,6 @@ export const approveInitialRequest = async (req, res, next) => {
   }
 };
 
-//
-// === Duyệt đơn tăng hạn mức (Increase)
-//
-export const approveIncreaseRequest = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const updated = await creditRequestService.approveIncreaseRequest(id, {
-      adminId: req.user.id
-    });
-
-    res.json({
-      message: 'Duyệt đơn tăng hạn mức thành công',
-      request: updated
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 //
 // === Từ chối đơn (Initial hoặc Increase)

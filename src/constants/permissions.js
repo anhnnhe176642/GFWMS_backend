@@ -169,8 +169,7 @@ export const PERMISSIONS = {
     VIEW_LIST:            { key: 'creadit_request:view_list',              description: 'Xem lịch sử đơn đăng ký' },
     VIEW_DETAIL:          { key: 'creadit_request:view_detail',            description: 'Xem chi tiết lịch sử đơn đăng ký' },
     CREATE:               { key: 'creadit_request:create',                 description: 'Tạo đơn đăng ký nợ mới' },
-    APPROVE_INITIAL:      { key: 'creadit_request:approve_initial',        description: 'Phê duyệt đơn đăng ký nợ lần đầu' },
-    APPROVE_INCREASE:     { key: 'creadit_request:approve_increase',       description: 'Phê duyệt đơn tăng hạn mức' },
+    APPROVE:              { key: 'creadit_request:approve',                description: 'Phê duyệt đơn đăng ký nợ ' },
     REJECT:               { key: 'creadit_request:reject',                 description: 'Từ chối đơn đăng ký nợ' },
   },
 };

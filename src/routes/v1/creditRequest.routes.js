@@ -4,19 +4,18 @@ import { authenticateToken, requirePermission } from '../../middlewares/auth.mid
 
 import {
   createCreditRequestSchema,
-  approveInitialSchema,
-  approveIncreaseSchema,
+  approveRequestSchema,
   rejectRequestSchema,
   idParamSchema,
   creditRequestQuerySchema
 } from '../../validations/creditRequest.validation.js';
 
 import {
-  createCreditRequest,
+  createInitialCreditRequest,
+  createIncreaseCreditRequest,
   getAllCreditRequests,
   getCreditRequestById,
-  approveInitialRequest,
-  approveIncreaseRequest,
+  approveRequest,
   rejectRequest,
 } from '../../controllers/creditRequest.controller.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
@@ -142,7 +141,7 @@ router.post(
    authenticateToken,
    requirePermission(PERMISSIONS.CREADIT_REQUEST.CREATE),
    validate(createCreditRequestSchema), 
-   createCreditRequest
+   createInitialCreditRequest
   );
 
 
@@ -174,7 +173,7 @@ router.post(
   authenticateToken,
   requirePermission(PERMISSIONS.CREADIT_REQUEST.CREATE), 
   validate(createCreditRequestSchema), 
-  createCreditRequest
+  createIncreaseCreditRequest
 );
 
 
@@ -210,9 +209,9 @@ router.get(
 
 /**
  * @swagger
- * /credit-requests/{id}/approve-initial:
+ * /credit-requests/{id}/approve:
  *   patch:
- *     summary: Duyệt đơn đăng ký nợ lần đầu (Admin có thể chỉnh hạn mức)
+ *     summary: Duyệt đơn đăng ký nợ hoặc tăng hạn mức (Admin có thể chỉnh hạn mức)
  *     tags: [Credit Request]
  *     security:
  *       - bearerAuth: []
@@ -222,7 +221,7 @@ router.get(
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID của đơn đăng ký nợ lần đầu
+ *         description: ID của đơn cần duyệt
  *     requestBody:
  *       required: true
  *       content:
@@ -232,7 +231,7 @@ router.get(
  *           example:
  *             status: "APPROVED"
  *             requestLimit: 5000000
- *             note: "Duyệt lần đầu và chỉnh hạn mức"
+ *             note: "Duyệt đơn và chỉnh hạn mức nếu cần"
  *     responses:
  *       200:
  *         description: Duyệt thành công
@@ -242,54 +241,14 @@ router.get(
  *         description: Không tìm thấy đơn
  */
 router.patch(
-  '/:id/approve-initial',
+  '/:id/approve',
   authenticateToken,
-  requirePermission(PERMISSIONS.CREADIT_REQUEST.APPROVE_INITIAL),
+  requirePermission(PERMISSIONS.CREADIT_REQUEST.APPROVE),
   validate(idParamSchema, 'params'),
-  validate(approveInitialSchema),
-  approveInitialRequest
+  validate(approveRequestSchema), 
+  approveRequest
 );
 
-/**
- * @swagger
- * /credit-requests/{id}/approve-increase:
- *   patch:
- *     summary: Duyệt đơn tăng hạn mức (Admin chỉ duyệt, không chỉnh hạn mức)
- *     tags: [Credit Request]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của đơn tăng hạn mức
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateCreditRequestStatus'
- *           example:
- *             status: "APPROVED"
- *             note: "Duyệt tăng hạn mức"
- *     responses:
- *       200:
- *         description: Duyệt thành công
- *       400:
- *         description: Dữ liệu không hợp lệ
- *       404:
- *         description: Không tìm thấy đơn
- */
-router.patch(
-  '/:id/approve-increase',
-  authenticateToken,
-  requirePermission(PERMISSIONS.CREADIT_REQUEST.APPROVE_INCREASE),
-  validate(idParamSchema, 'params'),
-  validate(approveIncreaseSchema),
-  approveIncreaseRequest
-);
 
 /**
  * @swagger

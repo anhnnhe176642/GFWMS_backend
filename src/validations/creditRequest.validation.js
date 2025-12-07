@@ -14,26 +14,21 @@ import {
 // ENUM Request Status
 const requestStatusSchema = Joi.string().valid('PENDING', 'APPROVED', 'REJECTED');
 
-export const approveInitialSchema = Joi.object({
+export const approveRequestSchema = Joi.object({
   status: Joi.string().valid('APPROVED').required().messages({
-    'any.only': 'Chỉ có thể duyệt (APPROVED) cho đơn đăng ký lần đầu',
+    'any.only': 'Status phải là APPROVED',
     'any.required': 'Trạng thái là bắt buộc'
   }),
+
   requestLimit: Joi.number().positive().required().messages({
     'number.base': 'Hạn mức phải là số',
     'number.positive': 'Hạn mức phải lớn hơn 0',
     'any.required': 'Hạn mức là bắt buộc'
   }),
+
   note: Joi.string().trim().max(255).allow(null, '')
 });
 
-export const approveIncreaseSchema = Joi.object({
-  status: Joi.string().valid('APPROVED').required().messages({
-    'any.only': 'Chỉ có thể duyệt (APPROVED) cho đơn tăng hạn mức',
-    'any.required': 'Trạng thái là bắt buộc'
-  }),
-  note: Joi.string().trim().max(255).allow(null, '')
-});
 
 export const rejectRequestSchema = Joi.object({
   status: Joi.string().valid('REJECTED').required().messages({
