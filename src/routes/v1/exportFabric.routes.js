@@ -496,13 +496,83 @@ router.post(
  *                         type: integer
  *                       storeId:
  *                         type: integer
+ *                       batchId:
+ *                         type: integer
  *                       status:
  *                         type: string
  *                         example: PENDING
  *                       note:
  *                         type: string
- *                       batchId:
- *                         type: integer
+ *                       createdById:
+ *                         type: string
+ *                       receivedById:
+ *                         type: string
+ *                         nullable: true
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       warehouse:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                           address:
+ *                             type: string
+ *                       store:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                       createdBy:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           username:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           fullname:
+ *                             type: string
+ *                       receivedBy:
+ *                         type: object
+ *                         nullable: true
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           username:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           fullname:
+ *                             type: string
+ *                       exportItems:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: integer
+ *                             fabricId:
+ *                               type: integer
+ *                             quantity:
+ *                               type: integer
+ *                             price:
+ *                               type: number
+ *                               nullable: true
+ *                             createdAt:
+ *                               type: string
+ *                               format: date-time
+ *                             updatedAt:
+ *                               type: string
+ *                               format: date-time
  *             example:
  *               message: Tạo phiếu xuất vải thành công
  *               batchId: 101
@@ -571,11 +641,20 @@ router.post(
  *                       type: integer
  *                     storeId:
  *                       type: integer
+ *                     batchId:
+ *                       type: integer
+ *                       nullable: true
+ *                       description: ID batch nếu là phiếu xuất nhóm
  *                     status:
  *                       type: string
  *                       enum: [PENDING, APPROVED, REJECTED, COMPLETED]
  *                     note:
  *                       type: string
+ *                     createdById:
+ *                       type: string
+ *                     receivedById:
+ *                       type: string
+ *                       nullable: true
  *                     createdAt:
  *                       type: string
  *                       format: date-time
@@ -585,47 +664,152 @@ router.post(
  *                     warehouse:
  *                       type: object
  *                       properties:
+ *                         id:
+ *                           type: integer
  *                         name:
  *                           type: string
+ *                         address:
+ *                           type: string
+ *                         status:
+ *                           type: string
+ *                           enum: [ACTIVE, INACTIVE]
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
  *                     store:
  *                       type: object
  *                       properties:
+ *                         id:
+ *                           type: integer
  *                         name:
  *                           type: string
+ *                         address:
+ *                           type: string
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
  *                     createdBy:
  *                       type: object
  *                       properties:
+ *                         id:
+ *                           type: string
  *                         username:
  *                           type: string
  *                         email:
  *                           type: string
+ *                         fullname:
+ *                           type: string
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
  *                     receivedBy:
  *                       type: object
+ *                       nullable: true
  *                       properties:
+ *                         id:
+ *                           type: string
  *                         username:
  *                           type: string
  *                         email:
  *                           type: string
+ *                         fullname:
+ *                           type: string
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
  *                     exportItems:
  *                       type: array
  *                       description: Danh sách các loại vải trong phiếu xuất
  *                       items:
  *                         type: object
  *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           exportFabricId:
+ *                             type: integer
  *                           fabricId:
  *                             type: integer
  *                           quantity:
  *                             type: integer
  *                           price:
  *                             type: number
+ *                             nullable: true
  *                             description: Giá nhập (được lưu khi APPROVED)
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
  *                           fabric:
  *                             type: object
  *                             properties:
  *                               id:
  *                                 type: integer
+ *                               thickness:
+ *                                 type: number
+ *                               length:
+ *                                 type: number
+ *                               width:
+ *                                 type: number
+ *                               weight:
+ *                                 type: number
+ *                               quantityInStock:
+ *                                 type: integer
  *                               sellingPrice:
  *                                 type: number
+ *                               colorId:
+ *                                 type: string
+ *                               categoryId:
+ *                                 type: integer
+ *                               supplierId:
+ *                                 type: integer
+ *                               color:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: string
+ *                                   name:
+ *                                     type: string
+ *                                   hexCode:
+ *                                     type: string
+ *                               category:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   name:
+ *                                     type: string
+ *                                   description:
+ *                                     type: string
+ *                                   sellingPricePerMeter:
+ *                                     type: number
+ *                                   sellingPricePerRoll:
+ *                                     type: number
+ *                               gloss:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                               supplier:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   name:
+ *                                     type: string
+ *                                   address:
+ *                                     type: string
+ *                                   phone:
+ *                                     type: string
  *       404:
  *         description: Không tìm thấy phiếu xuất vải
  */
@@ -647,7 +831,6 @@ router.get(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
  *         required: true
  *         schema:
  *           type: integer
@@ -672,21 +855,142 @@ router.get(
  *                       type: integer
  *                     storeId:
  *                       type: integer
+ *                     batchId:
+ *                       type: integer
+ *                       nullable: true
  *                     status:
  *                       type: string
  *                       enum: [PENDING, APPROVED, REJECTED, COMPLETED]
+ *                     note:
+ *                       type: string
+ *                     createdById:
+ *                       type: string
+ *                     receivedById:
+ *                       type: string
+ *                       nullable: true
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     warehouse:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         address:
+ *                           type: string
+ *                         status:
+ *                           type: string
+ *                     store:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         address:
+ *                           type: string
+ *                     createdBy:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           type: string
+ *                     receivedBy:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           type: string
  *                     exportItems:
  *                       type: array
  *                       description: Danh sách fabric với gợi ý kệ (shelfSuggestions)
  *                       items:
  *                         type: object
  *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           exportFabricId:
+ *                             type: integer
  *                           fabricId:
  *                             type: integer
  *                           quantity:
  *                             type: integer
  *                           price:
  *                             type: number
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           fabric:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               thickness:
+ *                                 type: number
+ *                               length:
+ *                                 type: number
+ *                               width:
+ *                                 type: number
+ *                               weight:
+ *                                 type: number
+ *                               quantityInStock:
+ *                                 type: integer
+ *                               sellingPrice:
+ *                                 type: number
+ *                               colorId:
+ *                                 type: string
+ *                               categoryId:
+ *                                 type: integer
+ *                               supplierId:
+ *                                 type: integer
+ *                               color:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: string
+ *                                     type: string
+ *                                   hexCode:
+ *                                     type: string
+ *                               category:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                                   sellingPricePerMeter:
+ *                                     type: number
+ *                                   sellingPricePerRoll:
+ *                                     type: number
+ *                               gloss:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                               supplier:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   name:
+ *                                     type: string
+ *                                   address:
+ *                                     type: string
+ *                                   phone:
+ *                                     type: string
  *                           shelfSuggestions:
  *                             type: array
  *                             description: Danh sách kệ trong kho chứa fabric này
@@ -780,19 +1084,65 @@ router.get(
  *                       type: integer
  *                     storeId:
  *                       type: integer
+ *                     batchId:
+ *                       type: integer
+ *                       nullable: true
  *                     status:
  *                       type: string
  *                       example: PENDING
  *                     note:
  *                       type: string
+ *                     createdById:
+ *                       type: string
+ *                     receivedById:
+ *                       type: string
+ *                       nullable: true
  *                     createdAt:
  *                       type: string
  *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     warehouse:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         address:
+ *                           type: string
+ *                     store:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                     createdBy:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           type: string
+ *                     receivedBy:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           type: string
  *                     exportItems:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           exportFabricId:
+ *                             type: integer
  *                           fabricId:
  *                             type: integer
  *                           quantity:
@@ -801,6 +1151,72 @@ router.get(
  *                             type: number
  *                             nullable: true
  *                             description: Null khi PENDING, sẽ được lưu khi APPROVED
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           fabric:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               thickness:
+ *                                 type: number
+ *                               length:
+ *                                 type: number
+ *                               width:
+ *                                 type: number
+ *                               weight:
+ *                                 type: number
+ *                               quantityInStock:
+ *                                 type: integer
+ *                               sellingPrice:
+ *                                 type: number
+ *                               colorId:
+ *                                 type: string
+ *                               categoryId:
+ *                                 type: integer
+ *                               supplierId:
+ *                                 type: integer
+ *                               color:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: string
+ *                                     type: string
+ *                                   hexCode:
+ *                                     type: string
+ *                               category:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                                   sellingPricePerMeter:
+ *                                     type: number
+ *                                   sellingPricePerRoll:
+ *                                     type: number
+ *                               gloss:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                               supplier:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   name:
+ *                                     type: string
+ *                                   address:
+ *                                     type: string
+ *                                   phone:
+ *                                     type: string
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -830,7 +1246,6 @@ router.post(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
  *         required: true
  *         schema:
  *           type: integer
@@ -930,12 +1345,20 @@ router.post(
  *                       type: integer
  *                     storeId:
  *                       type: integer
+ *                     batchId:
+ *                       type: integer
+ *                       nullable: true
  *                     status:
  *                       type: string
  *                       description: Trạng thái sau cập nhật (APPROVED, REJECTED, hoặc COMPLETED)
  *                       enum: [PENDING, APPROVED, REJECTED, COMPLETED]
  *                     note:
  *                       type: string
+ *                     createdById:
+ *                       type: string
+ *                     receivedById:
+ *                       type: string
+ *                       nullable: true
  *                     createdAt:
  *                       type: string
  *                       format: date-time
@@ -945,30 +1368,66 @@ router.post(
  *                     warehouse:
  *                       type: object
  *                       properties:
- *                         name:
+ *                         id:
+ *                           type: integer
+ *                         address:
  *                           type: string
+ *                         status:
+ *                           type: string
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
  *                     store:
  *                       type: object
  *                       properties:
- *                         name:
+ *                         id:
+ *                           type: integer
+ *                         address:
  *                           type: string
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
  *                     createdBy:
  *                       type: object
  *                       properties:
- *                         username:
+ *                         id:
  *                           type: string
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           type: string
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
  *                     receivedBy:
  *                       type: object
  *                       nullable: true
  *                       properties:
- *                         username:
+ *                         id:
  *                           type: string
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           type: string
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
  *                     exportItems:
  *                       type: array
  *                       description: Khi APPROVED, price được lưu từ ImportFabricItem
  *                       items:
  *                         type: object
  *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           exportFabricId:
+ *                             type: integer
  *                           fabricId:
  *                             type: integer
  *                           quantity:
@@ -976,6 +1435,72 @@ router.post(
  *                           price:
  *                             type: number
  *                             description: Giá nhập (khi APPROVED)
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           fabric:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               thickness:
+ *                                 type: number
+ *                               length:
+ *                                 type: number
+ *                               width:
+ *                                 type: number
+ *                               weight:
+ *                                 type: number
+ *                               quantityInStock:
+ *                                 type: integer
+ *                               sellingPrice:
+ *                                 type: number
+ *                               colorId:
+ *                                 type: string
+ *                               categoryId:
+ *                                 type: integer
+ *                               supplierId:
+ *                                 type: integer
+ *                               color:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: string
+ *                                     type: string
+ *                                   hexCode:
+ *                                     type: string
+ *                               category:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                                   sellingPricePerMeter:
+ *                                     type: number
+ *                                   sellingPricePerRoll:
+ *                                     type: number
+ *                               gloss:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                               supplier:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   name:
+ *                                     type: string
+ *                                   address:
+ *                                     type: string
+ *                                   phone:
+ *                                     type: string
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -1016,7 +1541,6 @@ router.patch(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
  *         required: true
  *         schema:
  *           type: integer
@@ -1037,11 +1561,144 @@ router.patch(
  *                   properties:
  *                     id:
  *                       type: integer
+ *                     warehouseId:
+ *                       type: integer
+ *                     storeId:
+ *                       type: integer
+ *                     batchId:
+ *                       type: integer
+ *                       nullable: true
  *                     status:
  *                       type: string
  *                       enum: [COMPLETED]
- *                     storeId:
- *                       type: integer
+ *                     note:
+ *                       type: string
+ *                     createdById:
+ *                       type: string
+ *                     receivedById:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     warehouse:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         address:
+ *                           type: string
+ *                         status:
+ *                           type: string
+ *                     store:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         address:
+ *                           type: string
+ *                     createdBy:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           type: string
+ *                     receivedBy:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           type: string
+ *                     exportItems:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           exportFabricId:
+ *                             type: integer
+ *                           fabricId:
+ *                             type: integer
+ *                           quantity:
+ *                             type: integer
+ *                           price:
+ *                             type: number
+ *                             description: Giá nhập từ ImportFabricItem
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           fabric:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               thickness:
+ *                                 type: number
+ *                               length:
+ *                                 type: number
+ *                               width:
+ *                                 type: number
+ *                               weight:
+ *                                 type: number
+ *                               quantityInStock:
+ *                                 type: integer
+ *                               sellingPrice:
+ *                                 type: number
+ *                               colorId:
+ *                                 type: string
+ *                               categoryId:
+ *                                 type: integer
+ *                               supplierId:
+ *                                 type: integer
+ *                               color:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: string
+ *                                     type: string
+ *                                   hexCode:
+ *                                     type: string
+ *                               category:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                                   sellingPricePerMeter:
+ *                                     type: number
+ *                                   sellingPricePerRoll:
+ *                                     type: number
+ *                               gloss:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   description:
+ *                                     type: string
+ *                               supplier:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: integer
+ *                                   name:
+ *                                     type: string
+ *                                   address:
+ *                                     type: string
+ *                                   phone:
+ *                                     type: string
  *                     warehouseId:
  *                       type: integer
  *                     exportItems:

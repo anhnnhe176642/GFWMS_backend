@@ -17,39 +17,114 @@ export class ExportFabricRepository {
 
   //  Select chi tiết (get detail)
   #exportFabricDetailSelect = {
-  id: true,
-  warehouseId: true,
-  storeId: true,
-  warehouse: { select: { name: true } }, 
-  store: { select: { name: true } }, 
-  status: true,
-  note: true,
-  createdAt: true,
-  updatedAt: true,
-  createdById: true,
-  createdBy: { select: { username: true, email: true } }, 
-  receivedById: true,
-  receivedBy: { select: { username: true, email: true } }, 
-
-  exportItems: {
-    select: {
-      id: true,
-      fabricId: true,
-      quantity: true,
-      price: true,      
-      fabric: {
-        select: {
-          id: true,
-          length: true,
-          colorId: true,
-          categoryId: true,
-          sellingPrice: true,
-          supplierId: true
-        }
+    id: true,
+    warehouseId: true,
+    storeId: true,
+    status: true,
+    note: true,
+    batchId: true,
+    createdAt: true,
+    updatedAt: true,
+    createdById: true,
+    receivedById: true,
+    warehouse: {
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true
       }
+    },
+    store: {
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    },
+    createdBy: {
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        fullname: true,
+        createdAt: true
+      }
+    },
+    receivedBy: {
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        fullname: true,
+        createdAt: true
+      }
+    },
+    exportItems: {
+      select: {
+        id: true,
+        exportFabricId: true,
+        fabricId: true,
+        quantity: true,
+        price: true,
+        createdAt: true,
+        updatedAt: true,
+        fabric: {
+          select: {
+            id: true,
+            thickness: true,
+            length: true,
+            width: true,
+            weight: true,
+            quantityInStock: true,
+            sellingPrice: true,
+            colorId: true,
+            categoryId: true,
+            supplierId: true,
+            color: {
+              select: {
+                id: true,
+                name: true,
+                hexCode: true
+              }
+            },
+            category: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                sellingPricePerMeter: true,
+                sellingPricePerRoll: true
+              }
+            },
+            gloss: {
+              select: {
+                id: true,
+                description: true
+              }
+            },
+            supplier: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                phone: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: [
+        { fabric: { categoryId: 'asc' } },
+        { fabric: { colorId: 'asc' } },
+        { fabric: { glossId: 'asc' } }
+      ]
     }
-  }
-};
+  };
 
   /**  Lấy tất cả (ít trường, không chi tiết exportItems) */
   async findAll() {
