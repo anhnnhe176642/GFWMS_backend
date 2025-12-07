@@ -1,6 +1,8 @@
-import prisma from '../utils/prisma.js';
+import { PrismaClient } from '@prisma/client';
 import { isAfter, differenceInDays } from 'date-fns';
-import { sendInvoiceOverdueReminder } from '../utils/mail.js';
+import { sendInvoiceOverdueReminder } from '../utils/mailer.js';
+
+const prisma = new PrismaClient();
 
 export const checkCreditInvoices = async () => {
   try {

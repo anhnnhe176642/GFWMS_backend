@@ -1,8 +1,9 @@
-import prisma from '../utils/prisma.js';
+import { PrismaClient } from '@prisma/client';
 import { differenceInDays, format } from 'date-fns';
-import { sendCreditLockedNotification } from '../utils/mail.js';
+import { sendCreditLockedNotification } from '../utils/mailer.js';
 
 const OVERDUE_LOCK_DAYS = 7;
+const prisma = new PrismaClient();
 
 export const autoLockCreditOverdue = async () => {
   try {
