@@ -1,12 +1,13 @@
 import * as paymentService from '../services/payment.service.js';
 
-export const createPaymentQRCode = async (req, res, next) => {
+// thanh toán invoice 
+export const createInvoicePaymentQR = async (req, res, next) => {
   try {
-    const { orderId } = req.params;
+    const { invoiceId } = req.params;
     const userId = req.user.id;
     const userRole = req.user.role;
     
-    const result = await paymentService.createPaymentQRCode(orderId, userId, userRole);
+    const result = await paymentService.createInvoicePaymentQR(invoiceId, userId, userRole);
     
     res.json({
       message: 'Tạo mã QR thanh toán thành công',
@@ -18,36 +19,62 @@ export const createPaymentQRCode = async (req, res, next) => {
 };
 
 export const handlePayOSWebhook = async (req, res) => {
+  
   try {
-    const result = await paymentService.handlePayOSWebhook(req. body);
+    const result = await paymentService.handlePayOSWebhook(req.body);
+    
+    
     res.json(result);
-  } catch (error) { // tha nhưng thiếu tiền
-    res.status(200).json({ success: false, error: error.message });
+  } catch (error) {
+    console.error('[Controller] Webhook error:', {
+      message: error.message,
+      stack: error.stack
+    });
+    
+    
+    res.status(200).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 };
 
-export const checkPaymentStatus = async (req, res, next) => {
+//kiem tra trạng thái thanh toán 
+export const checkInvoicePaymentStatus = async (req, res, next) => {
   try {
-    const { orderId } = req.params;
-    const result = await paymentService.checkPaymentStatus(orderId);
+    const { invoiceId } = req.params;
+    const result = await paymentService.checkInvoicePaymentStatus(invoiceId);
     res.json(result);
   } catch (error) {
     next(error);
   }
 };
 
-export const retryPayment = async (req, res, next) => {
+
+// thanh tóa đơn gom Credit Invoice
+export const createCreditInvoicePaymentQR = async (req, res, next) => {
   try {
-    const { orderId } = req.params;
+    const { creditInvoiceId } = req.params;
     const userId = req.user.id;
     const userRole = req.user.role;
     
-    const result = await paymentService.retryPayment(orderId, userId, userRole);
+    const result = await paymentService.createCreditInvoicePaymentQR(creditInvoiceId, userId, userRole);
     
     res.json({
-      message: 'Tạo lại mã QR thanh toán thành công',
+      message: 'Tạo mã QR thanh toán Credit Invoice thành công',
       data: result
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+//Kiểm tra trạng thái thanh toán Credit Invoice
+export const checkCreditInvoicePaymentStatus = async (req, res, next) => {
+  try {
+    const { creditInvoiceId } = req.params;
+    const result = await paymentService.checkCreditInvoicePaymentStatus(creditInvoiceId);
+    res.json(result);
   } catch (error) {
     next(error);
   }

@@ -36,11 +36,16 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
+ *               - storeId
  *               - orderItems
  *             properties:
+ *               storeId:
+ *                 type: integer           
+ *                 description: ID cửa hàng muốn mua hàng
+ *                 example: "1"              
  *               orderItems:
  *                 type: array
- *                 minItems: 1
+ *                 minItems: "1"
  *                 description: Danh sách sản phẩm trong đơn hàng
  *                 items:
  *                   type: object
@@ -50,11 +55,13 @@ const router = express.Router();
  *                     - saleUnit
  *                   properties:
  *                     fabricId:
+ *                       type: integer      
  *                       description: ID vải
- *                       example: "1"
+ *                       example: "1"         
  *                     quantity:
- *                       description: Số lượng (mét chẵn)
- *                       example: "5"
+ *                       type: integer      
+ *                       description: Số lượng
+ *                       example: "5"         
  *                     saleUnit:
  *                       type: string
  *                       enum: [ROLL, METER]
@@ -75,21 +82,23 @@ const router = express.Router();
  *             cashOrder:
  *               summary: Đơn trả tiền ngay (CASH)
  *               value:
+ *                 storeId: "1"               
  *                 orderItems:
- *                   - fabricId: "1"
- *                     quantity: "5"
+ *                   - fabricId: "1"          
+ *                     quantity: "5"          
  *                     saleUnit: METER
- *                   - fabricId: "2"
- *                     quantity: "2"
+ *                   - fabricId: "2"          
+ *                     quantity: "2"          
  *                     saleUnit: ROLL
  *                 paymentType: CASH
  *                 notes: Giao hàng gấp
  *             creditOrder:
  *               summary: Đơn mua nợ (CREDIT)
  *               value:
+ *                 storeId: "1"               
  *                 orderItems:
- *                   - fabricId: "3"
- *                     quantity: "10"
+ *                   - fabricId: "3"          
+ *                     quantity: "10"         
  *                     saleUnit: METER
  *                 paymentType: CREDIT
  *     responses:
@@ -102,15 +111,16 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example:  Vui lòng thanh toán trong 15 phút.
+ *                   example: Vui lòng thanh toán trong 15 phút.
  *                 data:
  *                   type: object
  *                   properties:
  *                     order:
  *                       $ref: '#/components/schemas/Order'
  *                     paymentAmount:
+ *                       type: number       
  *                       description: Số tiền cần thanh toán
- *                       example: "500000"
+ *                       example: 500000    
  *                     deadline:
  *                       type: string
  *                       format: date-time
@@ -136,8 +146,7 @@ const router = express.Router();
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.post(
-  '/',
+router.post('/',
   authenticateToken,
   validate(createOrderSchema),
   createOrder
@@ -412,7 +421,6 @@ router.get('/check-customer-credit',
  *                 description: Phương thức thanh toán
  *                 example: CASH
  *               payExcessAmount:
- *                 type: boolean
  *                 description: Khách có trả phần vượt hạn mức không (chỉ dùng cho CREDIT vượt hạn mức)
  *                 example: true
  *               notes:

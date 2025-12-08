@@ -24,7 +24,7 @@ const titleSchema = Joi.string()
     'any.required': 'Tiêu đề banner là bắt buộc'
   });
 
-// Description (không bắt buộc)
+// Description
 const descriptionSchema = Joi.string()
   .trim()
   .max(255)
@@ -33,35 +33,48 @@ const descriptionSchema = Joi.string()
     'string.max': 'Mô tả banner không được vượt quá 255 ký tự'
   });
 
-// URL hình ảnh
+// Image URL
 const imageUrlSchema = Joi.string()
   .trim()
   .uri()
   .required()
   .messages({
+    'string.empty': 'URL hình ảnh banner không được để trống',
     'string.uri': 'URL hình ảnh banner không hợp lệ',
     'any.required': 'URL hình ảnh banner là bắt buộc'
   });
 
-// Start date / End date
-const startDateSchema = Joi.date()
+// Start / End date (string format)
+const startDateSchema = Joi.string()
+  .trim()
+  .pattern(/^\d{4}-\d{2}-\d{2}$/)
   .required()
   .messages({
-    'date.base': 'Ngày bắt đầu không hợp lệ',
+    'string.empty': 'Ngày bắt đầu không được để trống',
+    'string.pattern.base': 'Ngày bắt đầu phải đúng định dạng YYYY-MM-DD (ví dụ: 2025-12-04)',
     'any.required': 'Ngày bắt đầu là bắt buộc'
   });
 
-const endDateSchema = Joi.date()
+const endDateSchema = Joi.string()
+  .trim()
+  .pattern(/^\d{4}-\d{2}-\d{2}$/)
   .required()
   .messages({
-    'date.base': 'Ngày kết thúc không hợp lệ',
+    'string.empty': 'Ngày kết thúc không được để trống',
+    'string.pattern.base': 'Ngày kết thúc phải đúng định dạng YYYY-MM-DD (ví dụ: 2025-12-04)',
     'any.required': 'Ngày kết thúc là bắt buộc'
   });
 
+
 // isActive
-const isActiveSchema = Joi.boolean().optional();
+const isActiveSchema = Joi.boolean()
+  .optional()
+  .messages({
+    'boolean.base': 'Trạng thái hoạt động phải là true hoặc false'
+  });
 
 
+// ID param
 export const bannerIdParamSchema = Joi.object({
   id: Joi.number().integer().positive().required().messages({
     'number.base': 'ID banner phải là số',
@@ -71,12 +84,14 @@ export const bannerIdParamSchema = Joi.object({
   })
 });
 
+// Pagination
 export const paginationQuerySchema = Joi.object({
   page: pageSchema,
   limit: limitSchema
 });
 
 
+// CREATE
 export const createBannerSchema = Joi.object({
   title: titleSchema,
   description: descriptionSchema.optional(),
@@ -86,6 +101,8 @@ export const createBannerSchema = Joi.object({
   isActive: isActiveSchema
 });
 
+
+// UPDATE
 export const updateBannerSchema = Joi.object({
   title: titleSchema.optional(),
   description: descriptionSchema.optional(),
@@ -98,13 +115,16 @@ export const updateBannerSchema = Joi.object({
 });
 
 
+// Filter isActive
+const isActiveFilterSchema = Joi.boolean()
+  .required()
+  .messages({
+    'boolean.base': 'Trạng thái isActive phải là true hoặc false',
+    'any.required': 'Trạng thái isActive là bắt buộc'
+  });
 
-// Multi-value filter cho isActive (ví dụ filter nhiều trạng thái)
-const isActiveFilterSchema = Joi.boolean().required().messages({
-  'boolean.base': 'Trạng thái isActive phải là true hoặc false',
-  'any.required': 'Trạng thái isActive là bắt buộc'
-});
 
+// Allowed sort
 const allowedBannerSortFields = [
   'title',
   'startDate',
@@ -114,25 +134,39 @@ const allowedBannerSortFields = [
   'updatedAt'
 ];
 
+
+// QUERY
 export const bannerQuerySchema = querySchema.keys({
   page: pageSchema,
   limit: limitSchema,
+
   search: Joi.string().trim().optional().messages({
     'string.base': 'Từ khóa tìm kiếm phải là chuỗi'
   }),
 
-  // Multi-value filter: isActive
   isActive: createMultiValueFilterSchema(isActiveFilterSchema, 'Trạng thái'),
 
-  startDateFrom: dateFromSchema,
-  startDateTo: dateToSchema.min(Joi.ref('startDateFrom')).messages({
-    'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu'
-  }),
+  startDate: dateFromSchema.optional(),
 
-  endDateFrom: dateFromSchema,
-  endDateTo: dateToSchema.min(Joi.ref('endDateFrom')).messages({
-    'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu'
-  }),
+  endDate: dateToSchema
+    .optional()
+    .custom((value, helpers) => {
+      const { startDate } = helpers.state.ancestors[0];
+
+      if (value && !startDate) {
+        return helpers.error('any.custom', { message: 'Vui lòng nhập ngày bắt đầu trước' });
+      }
+
+      if (startDate && new Date(value < new Date(startDate))) {
+        return helpers.error('date.min', { limit: startDate });
+      }
+
+      return value;
+    })
+    .messages({
+      'any.custom': '{{#message}}',
+      'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu'
+    }),
 
   sortBy: createSortBySchema(allowedBannerSortFields),
   order: sortOrderSchema.optional()

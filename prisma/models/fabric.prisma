@@ -24,4 +24,6 @@ model Fabric {
     warehouseStocks WarehouseFabricStock[]
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
+
+    Wishlist Wishlist[]
 }

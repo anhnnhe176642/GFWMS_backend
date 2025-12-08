@@ -15,6 +15,10 @@ import fabricStoreRoutes from './v1/fabricStore.routes.js';
 
 import importFabricRoutes from './v1/importFabric.routes.js';
 import invoiceRouters from './v1/invoice.routes.js';
+
+import customerRoutes from './v1/customer.routes.js';
+import wishlistRoutes from './v1/wishlist.routes.js';
+
 import exportFabricRouters from './v1/exportFabric.routes.js';
 import storeRouters from './v1/store.routes.js';
 import fabricShelfRouters from './v1/fabricShelf.route.js';
@@ -25,6 +29,10 @@ import bannerRoutes from './v1/banner.routes.js';
 import bannerDiscount from './v1/bannerDiscount.routes.js';
 import yoloRoutes from './v1/yolo.routes.js';
 import paymentRoutes from './v1/payment.routes.js';
+import creditRegistrationRouters from './v1/creditRegistration.routes.js';
+import creditRequest from './v1/creditRequest.routes.js';
+import creditInvoiceRoutes from './v1/creditInvoice.routes.js';
+
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -40,6 +48,10 @@ router.use('/supplier', supplierRouters);
 router.use('/fabric-store', fabricStoreRoutes);
 router.use('/import-fabrics', importFabricRoutes);
 router.use('/invoices', invoiceRouters);
+
+router.use('/customers', customerRoutes);
+router.use('/wishlist', wishlistRoutes);
+
 router.use('/export-fabrics', exportFabricRouters);
 router.use('/stores', storeRouters);
 router.use('/fabric-shelf', fabricShelfRouters);
@@ -49,6 +61,9 @@ router.use('/orders', orderRoutes);
 router.use('/banner', bannerRoutes);
 router.use('/banner-discount', bannerDiscount);
 router.use('/', paymentRoutes);
+router.use('/credit-registrations', creditRegistrationRouters);
+router.use('/credit-requests', creditRequest);
+router.use('/credit-invoices', creditInvoiceRoutes);
 
 // YOLO detection routes
 router.use('/yolo', yoloRoutes);

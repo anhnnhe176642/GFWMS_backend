@@ -68,9 +68,6 @@ class BannerRepository {
           data: bannerData,
           select: this.#basicSelectOptions 
         }),
-      {
-        title: 'Banner này đã tồn tại trong hệ thống'
-      }
     );
   }
 
@@ -83,9 +80,6 @@ class BannerRepository {
           data: bannerData,
           select: this.#basicSelectOptions 
         }),
-      {
-        title: 'Banner này đã tồn tại trong hệ thống'
-      }
     );
   }
 

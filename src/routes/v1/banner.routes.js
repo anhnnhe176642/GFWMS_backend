@@ -56,28 +56,16 @@ const router = express.Router();
  *       - in: query
  *         name: isActive
  *         schema:
- *           type: boolean
+ *           type: string
  *         description: Filter by active status
  *       - in: query
- *         name: startDateFrom
+ *         name: startDate
  *         schema:
  *           type: string
  *           format: date
  *         description: Filter banners with startDate >= this value
  *       - in: query
- *         name: startDateTo
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter banners with startDate <= this value
- *       - in: query
- *         name: endDateFrom
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter banners with endDate >= this value
- *       - in: query
- *         name: endDateTo
+ *         name: endDate
  *         schema:
  *           type: string
  *           format: date
@@ -149,11 +137,11 @@ router.get(
  *               startDate:
  *                 type: string
  *                 format: date-time
- *                 example: "2025-11-14T00:00:00.000Z"
+ *                 example: "2025-11-14"
  *               endDate:
  *                 type: string
  *                 format: date-time
- *                 example: "2025-11-30T23:59:59.000Z"
+ *                 example: "2025-11-30"
  *               isActive:
  *                 type: boolean
  *                 example: true
@@ -203,11 +191,11 @@ router.post(
  *               startDate:
  *                 type: string
  *                 format: date-time
- *                 example: "2025-11-20T00:00:00.000Z"
+ *                 example: "2025-11-20"
  *               endDate:
  *                 type: string
  *                 format: date-time
- *                 example: "2025-12-05T23:59:59.000Z"
+ *                 example: "2025-12-05"
  *               isActive:
  *                 type: boolean
  *                 example: false
@@ -239,8 +227,8 @@ router.put(
  *         name: id
  *         schema:
  *           type: string
- *         required: true
- *         description: Banner ID
+ *         description: ID Banner
+ *         example: "1"
  *     responses:
  *       200:
  *         description: Banner deleted successfully

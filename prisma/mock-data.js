@@ -1197,12 +1197,10 @@ async function main() {
   
   for (const order of ordersWithInvoices) {
     const invoiceDate = new Date(order.orderDate);
-    const dueDate = faker.date.soon({ days: 30, refDate: invoiceDate });
     
     invoicesToCreate.push({
       orderId: order.id,
       invoiceDate,
-      dueDate,
       invoiceStatus: faker.helpers.arrayElement(invoiceStatuses),
       totalAmount: order.totalAmount,
       notes: faker.helpers.maybe(() => faker.helpers.arrayElement(ghiChuHoaDon), { probability: 0.3 }),

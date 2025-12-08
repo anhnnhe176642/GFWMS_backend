@@ -12,9 +12,15 @@ export const PERMISSIONS = {
     VIEW_OWN_PROFILE:   { key: 'user:view_own_profile',   description: 'Xem hồ sơ cá nhân' },
     UPDATE_OWN_PROFILE: { key: 'user:update_own_profile', description: 'Cập nhật hồ sơ cá nhân' }
   },
+  // Customer Management
+  CUSTOMERS: {
+    VIEW_LIST: { key: 'customer:view_list', description: 'Xem danh sách khách hàng' },
+    VIEW_DETAIL: { key: 'customer:view_detail', description: 'Xem chi tiết khách hàng' },
+    UPDATE: { key: 'customer:update', description: 'Cập nhật thông tin khách hàng' },
+    MANAGE_STATUS: { key: 'customer:manage_status', description: 'Quản lý trạng thái khách hàng' }
+  },
 
-  
-  
+
   // Fabric Management
   FABRICS: {
     VIEW_LIST:          { key: 'fabric:view_list',          description: 'Xem danh sách vải' },
@@ -153,6 +159,27 @@ export const PERMISSIONS = {
     UPDATE:       { key: 'banner_discount:update',       description: 'Cập nhật thông tin banner_discount' },
     DELETE:       { key: 'banner_discount:delete',       description: 'Xóa banner_discount' },
   },
+
+  CREADIT_REGISTRATION: {
+    VIEW_LIST:           { key: 'creadit_registration:view_list',           description: 'Xem danh sách đơn đăng ký' },
+    VIEW_DETAIL:         { key: 'creadit_registration:view_detail',         description: 'Xem chi tiết đơn đăng ký' },
+    CREDIT_SCORE:        { key: 'creadit_registration:credit_score',        description: 'Xem điểm uy tín và gợi ý hạn mức tín dụng' },
+  },
+
+  CREADIT_REQUEST: {
+    VIEW_LIST:            { key: 'creadit_request:view_list',              description: 'Xem lịch sử đơn đăng ký' },
+    VIEW_DETAIL:          { key: 'creadit_request:view_detail',            description: 'Xem chi tiết lịch sử đơn đăng ký' },
+    CREATE:               { key: 'creadit_request:create',                 description: 'Tạo đơn đăng ký nợ mới' },
+    APPROVE:              { key: 'creadit_request:approve',                description: 'Phê duyệt đơn đăng ký nợ ' },
+    REJECT:               { key: 'creadit_request:reject',                 description: 'Từ chối đơn đăng ký nợ' },
+  },
+
+  CREDIT_INVOICES: {
+    VIEW_MY:      { key: 'credit_invoice:view_my',      description: 'Xem danh sách Credit Invoice của tôi' },
+    VIEW_LIST:    { key: 'credit_invoice:view_list',    description: 'Xem danh sách Credit Invoice (Admin/Staff)' },
+    VIEW_DETAIL:  { key: 'credit_invoice:view_detail',  description: 'Xem chi tiết Credit Invoice' },
+  }
+
 };
 
 // Hàm helper để lấy tất cả permissions với đầy đủ thông tin (key + description)

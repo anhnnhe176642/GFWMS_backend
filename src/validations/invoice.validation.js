@@ -32,13 +32,19 @@ const invoiceStatusSchema = Joi.string()
  * ============================
  */
 
+export const idSchema = Joi.number().integer().positive().required().messages({
+  'number.base': 'ID phải là số',
+  'number.positive': 'ID phải lớn hơn 0',
+  'number.integer': 'ID phải là số nguyên dương',
+  'any.required': 'ID là bắt buộc'
+});
+
 export const invoiceIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required().messages({
-    'number.base': 'ID phải là số',
-    'number.positive': 'ID phải lớn hơn 0',
-    'number.integer': 'ID phải là số nguyên dương',
-    'any.required': 'ID là bắt buộc'
-  })
+  invoiceId: idSchema
+});
+
+export const creditInvoiceIdParamSchema = Joi.object({
+  creditInvoiceId: idSchema
 });
 
 export const paginationQuerySchema = Joi.object({
@@ -72,4 +78,32 @@ export const invoiceQuerySchema = querySchema.keys({
     'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày tạo'
   })
 });
+
+/**
+ * ============================
+ * CREDIT INVOICE VALIDATIONS
+ * ============================
+ */
+
+const creditInvoiceStatusSchema = Joi. string()
+  .valid('PENDING', 'PAID', 'OVERDUE')
+  . trim()
+  .messages({
+    'string.base': 'Trạng thái Credit Invoice phải là chuỗi',
+    'any.only': 'Trạng thái phải là PENDING, PAID, hoặc OVERDUE'
+  });
+
+const allowedCreditInvoiceSortFields = ['dueDate','totalCreditAmount','creditPaidAmount','createdAt','updatedAt'];
+
+export const creditInvoiceQuerySchema = querySchema.keys({
+  sortBy: createSortBySchema(allowedCreditInvoiceSortFields),
+  order: sortOrderSchema.optional(),
+  
+  status: createMultiValueFilterSchema(
+    creditInvoiceStatusSchema, 
+    'Trạng thái Credit Invoice'
+  ). optional()
+});
+
+
 
