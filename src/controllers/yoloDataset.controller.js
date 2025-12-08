@@ -3,11 +3,7 @@ import { buildQueryParams } from '../utils/filter-builder.js';
 import { enrichImageWithUrl, enrichImagesWithUrls } from '../utils/image-url.js';
 import path from 'path';
 import fs from 'fs/promises';
-import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * Create new dataset
@@ -137,8 +133,7 @@ export const addLabeledImage = async (req, res, next) => {
       req.user?.id
     );
 
-    const baseUrl = process.env.API_BASE_URL || `http://localhost:3000`;
-    const enrichedImage = enrichImageWithUrl(image, baseUrl);
+    const enrichedImage = enrichImageWithUrl(image);
 
     res.status(201).json({
       success: true,
@@ -170,10 +165,9 @@ export const getDatasetImages = async (req, res, next) => {
       queryParams
     );
 
-    const baseUrl = process.env.API_BASE_URL || `http://localhost:3000`;
     const enrichedResult = {
       ...result,
-      data: enrichImagesWithUrls(result.data, baseUrl)
+      data: enrichImagesWithUrls(result.data)
     };
 
     res.json({
@@ -193,8 +187,7 @@ export const getDatasetImages = async (req, res, next) => {
 export const getImageById = async (req, res, next) => {
   try {
     const image = await yoloDatasetService.getImageById(req.params.imageId);
-    const baseUrl = process.env.API_BASE_URL || `http://localhost:3000`;
-    const enrichedImage = enrichImageWithUrl(image, baseUrl);
+    const enrichedImage = enrichImageWithUrl(image);
 
     res.json({
       success: true,
@@ -257,7 +250,7 @@ export const exportDataset = async (req, res, next) => {
     
     // Create temp file for ZIP - use dataset name as filename
     const zipFilename = `${dataset.name}.zip`;
-    const tempZipPath = path.join(__dirname, '../../temp', zipFilename);
+    const tempZipPath = path.join(process.cwd(), 'temp', zipFilename);
 
     // Ensure temp directory exists
     await fs.mkdir(path.dirname(tempZipPath), { recursive: true });
@@ -474,7 +467,7 @@ export const downloadDatasetWithToken = async (req, res, next) => {
 
     // Create temp file for ZIP with unique name to avoid file locks
     const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    const tempZipPath = path.join(__dirname, '../../temp', `data-${uniqueSuffix}.zip`);
+    const tempZipPath = path.join(process.cwd(), 'temp', `data-${uniqueSuffix}.zip`);
     const downloadFilename = 'data.zip';
 
     // Ensure temp directory exists

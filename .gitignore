@@ -11,6 +11,10 @@ node_modules/
 # Prisma merged schema (generated)
 prisma/schema.merged.prisma
 
+# Dataset images (not tracked in git)
+datasets/
+!datasets/.gitkeep
+
 # Logs
 logs
 *.log
