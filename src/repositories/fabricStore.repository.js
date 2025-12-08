@@ -9,7 +9,6 @@ class FabricStoreRepository {
   #fabricStoreSelectOptions = {
     fabricId: true,
     storeId: true,
-    quantity: true,
     totalValue: true,
     totalMeters: true,
     uncutRolls: true,
@@ -148,9 +147,9 @@ class FabricStoreRepository {
 
   /**
    * Nhập vải vào cửa hàng (thêm cuộn mới)
-   * @param {Object} params - { fabricId, storeId, quantity, totalValue, totalMeters, uncutRolls, cuttingRollMeters }
+   * @param {Object} params - { fabricId, storeId, totalValue, totalMeters, uncutRolls, cuttingRollMeters }
    */
-  async importFabricRolls({ fabricId, storeId, quantity, totalValue, totalMeters, uncutRolls = quantity, cuttingRollMeters = 0 }, tx = prisma) {
+  async importFabricRolls({ fabricId, storeId, totalValue, totalMeters, uncutRolls, cuttingRollMeters = 0 }, tx = prisma) {
     return await withPrismaErrorHandling(
       () => tx.fabricStore.upsert({
         where: {
@@ -160,7 +159,6 @@ class FabricStoreRepository {
           }
         },
         update: {
-          quantity: { increment: quantity },
           totalValue: { increment: totalValue },
           totalMeters: { increment: totalMeters },
           uncutRolls: { increment: uncutRolls }
@@ -168,7 +166,6 @@ class FabricStoreRepository {
         create: {
           fabricId,
           storeId,
-          quantity,
           totalValue,
           totalMeters,
           uncutRolls,
@@ -266,25 +263,6 @@ class FabricStoreRepository {
     );
   }
 
-  /**
-   * Cập nhật số lượng khi order được xác nhận/hủy
-   */
-  async updateStoreQuantity(fabricId, storeId, quantityChange, tx = prisma) {
-    return await withPrismaErrorHandling(
-      () => tx.fabricStore.update({
-        where: {
-          fabricId_storeId: {
-            fabricId,
-            storeId
-          }
-        },
-        data: {
-          quantity: { increment: quantityChange }
-        },
-        select: this.#fabricStoreSelectOptions
-      })
-    );
-  }
 
   /**
    * Đếm tổng số fabric store records

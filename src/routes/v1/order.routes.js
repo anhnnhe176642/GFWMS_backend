@@ -125,22 +125,14 @@ const router = express.Router();
  *                       type: string
  *                       format: date-time
  *                       description: Hạn thanh toán
- *                     testPayment:
+ *                     paymentInstructions:
  *                       type: object
- *                       description: Thông tin để test thanh toán
+ *                       description: Thông tin hướng dẫn thanh toán (trả về nếu cần thanh toán)
  *                       properties:
- *                         method:
+ *                         checkoutUrl:
  *                           type: string
- *                           example: POST
- *                         url:
- *                           type: string
- *                           example: /api/v1/orders/1/simulate-payment
- *                         body:
- *                           type: object
- *                           properties:
- *                             success:
- *                               type: boolean
- *                               example: true
+ *                           description: URL thanh toán PayOS
+ *                           example: https://pay.payos.vn/...*
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -772,7 +764,12 @@ router.get('/all',
  *                             example: METER
  *                           price:
  *                             type: number
+ *                             description: Tổng giá tiền bán cho mục này
  *                             example: 285000
+ *                           costPrice:
+ *                             type: number
+ *                             description: Giá vốn (giá nhập kho) từng mục khi bán
+ *                             example: 200000
  *                           fabric:
  *                             type: object
  *                             properties:

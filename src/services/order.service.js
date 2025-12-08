@@ -4,66 +4,69 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Xử lý mua theo CUỘN
-const processRollPurchase = async (fabric, quantity) => {
-  if (fabric.quantityInStock < quantity) {
+const processRollPurchase = async (fabric, quantity, storeId) => {
+  // Lấy thông tin cửa hàng
+  const fabricStore = await orderRepository.getStoreStock(fabric.id, storeId);
+  
+  if (!fabricStore || fabricStore.uncutRolls < quantity) {
     throw new BadRequestError(
-      `Vải ID ${fabric.id}: Không đủ hàng trong kho (còn ${fabric.quantityInStock} cuộn, cần ${quantity} cuộn)`
+      `Vải ID ${fabric.id}: Không đủ cuộn trong cửa hàng (còn ${fabricStore?.uncutRolls || 0} cuộn, cần ${quantity} cuộn)`
     );
   }
 
+  // Tính giá nhập trung bình mỗi cuộn
+  const costPricePerRoll = fabricStore.totalMeters > 0 
+    ? (fabricStore.totalValue / fabricStore.totalMeters) * fabric.length
+    : 0;
+
   const pricePerRoll = fabric.sellingPrice ?? fabric.category.sellingPricePerRoll;
+  
   return {
     fabricId: fabric.id,
     quantity,
     saleUnit: 'ROLL',
     price: pricePerRoll,
+    costPrice: costPricePerRoll,
     totalPrice: quantity * pricePerRoll,
     stockOperation: {
-      type: 'WAREHOUSE',
-      rollsToDeduct: quantity
+      type: 'STORE_ROLL',
+      rollsToDeduct: quantity,
+      storeId,
+      fabricLength: fabric.length
     }
   };
 };
 
 // Xử lý mua theo MÉT
 const processMeterPurchase = async (fabric, meters, storeId) => {
-  //Lấy số mét vải còn trong cửa hàng
+  // Lấy số mét vải còn trong cửa hàng
   const fabricStore = await orderRepository.getStoreStock(fabric.id, storeId);
-  const availableMeters = fabricStore?.quantity || 0;
-  // tính số mét 
-  const shortage = meters - availableMeters;
+  const availableMeters = fabricStore?.totalMeters || 0;
 
-  let needsExport = false;
-  let rollsToExport = 0;
-  let metersToExport = 0;
-
-  //Nếu cửa hàng thiếu, tính số cuộn cần xuất từ kho
-  if (shortage > 0) {
-    needsExport = true;
-    rollsToExport = Math.ceil(shortage / fabric.length);
-    metersToExport = rollsToExport * fabric.length;
-
-    // Kiểm tra kho có đủ cuộn để xuất không
-    if (fabric.quantityInStock < rollsToExport) {
-      throw new BadRequestError(
-        `Vải ID ${fabric.id}: Không đủ hàng trong kho để xuất (cần ${rollsToExport} cuộn, còn ${fabric.quantityInStock} cuộn)`
-      );
-    }
+  // Kiểm tra cửa hàng có đủ mét không
+  if (availableMeters < meters) {
+    throw new BadRequestError(
+      `Vải ID ${fabric.id}: Không đủ vải trong cửa hàng (còn ${availableMeters.toFixed(2)} mét, cần ${meters} mét)`
+    );
   }
+
+  // Tính giá nhập trung bình mỗi mét
+  const costPricePerMeter = fabricStore.totalMeters > 0 
+    ? fabricStore.totalValue / fabricStore.totalMeters 
+    : 0;
 
   return {
     fabricId: fabric.id,
     quantity: meters,
     saleUnit: 'METER',
     price: fabric.category.sellingPricePerMeter,
+    costPrice: costPricePerMeter,
     totalPrice: meters * fabric.category.sellingPricePerMeter,
     stockOperation: {
-      type: 'STORE',
+      type: 'STORE_METER',
       metersToDeduct: meters,
-      needsExport,
-      rollsToExport,
-      metersToExport,
-      storeId  
+      storeId,
+      fabricLength: fabric.length
     }
   };
 };
@@ -80,7 +83,7 @@ const processOrderItems = async (orderItems, fabricMap, storeId) => {
 
     let processed;
     if (item.saleUnit === 'ROLL') {
-      processed = await processRollPurchase(fabric, item.quantity);
+      processed = await processRollPurchase(fabric, item.quantity, storeId);
     } else if (item.saleUnit === 'METER') {
       processed = await processMeterPurchase(fabric, item.quantity, storeId);
     } else {
@@ -104,15 +107,23 @@ const createDeductStockCallback = (items) => {
     for (const item of items) {
       const { stockOperation } = item;
 
-      if (item.saleUnit === 'ROLL') {
-        await orderRepository.decrementFabricStock(item.fabricId, stockOperation.rollsToDeduct, tx);
-      } else if (item.saleUnit === 'METER') {
-        const storeId = stockOperation.storeId;
-        if (stockOperation.needsExport) {
-          await orderRepository.decrementFabricStock(item.fabricId, stockOperation.rollsToExport, tx);
-          await orderRepository.incrementStoreStock(item.fabricId, stockOperation.metersToExport, storeId, tx);
-        }
-        await orderRepository.decrementStoreStock(item.fabricId, stockOperation.metersToDeduct,storeId, tx);
+      if (stockOperation.type === 'STORE_ROLL') {
+        // Trừ cuộn nguyên từ cửa hàng
+        await orderRepository.decrementUncutRolls(
+          item.fabricId, 
+          stockOperation.rollsToDeduct,
+          stockOperation.fabricLength,
+          stockOperation.storeId, 
+          tx
+        );
+      } else if (stockOperation.type === 'STORE_METER') {
+        // Cắt vải từ cửa hàng
+        await orderRepository.decrementStoreStock(
+          item.fabricId, 
+          stockOperation.metersToDeduct, 
+          stockOperation.storeId, 
+          tx
+        );
       }
     }
   };
@@ -230,7 +241,8 @@ const createCashOrder = async (userId, items, totalAmount, notes, storeId) => {
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'UNPAID',
@@ -284,7 +296,8 @@ const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, n
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'CREDIT',
@@ -333,7 +346,8 @@ const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmo
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'UNPAID',
@@ -479,7 +493,8 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'PAID',
@@ -537,7 +552,8 @@ const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmo
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'CREDIT',
@@ -588,7 +604,8 @@ const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, to
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'CREDIT',

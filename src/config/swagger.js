@@ -452,24 +452,64 @@ const options = {
               type: 'string',
               description: 'User ID'
             },
+            storeId: {
+              type: 'integer',
+              description: 'Store ID'
+            },
             orderDate: {
               type: 'string',
               format: 'date-time',
-              description: 'Order date'
+              description: 'Order creation date'
             },
             status: {
               type: 'string',
-              enum: ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELED'],
+              enum: ['PENDING', 'PROCESSING', 'DELIVERED', 'CANCELED', 'FAILED'],
               description: 'Order status'
+            },
+            paymentType: {
+              type: 'string',
+              enum: ['CASH', 'CREDIT'],
+              description: 'Payment method'
             },
             totalAmount: {
               type: 'number',
               format: 'float',
-              description: 'Total amount'
+              description: 'Total order amount'
+            },
+            paidAmount: {
+              type: 'number',
+              format: 'float',
+              description: 'Amount already paid'
+            },
+            creditAmount: {
+              type: 'number',
+              format: 'float',
+              description: 'Credit amount if payment type is CREDIT'
+            },
+            isOffline: {
+              type: 'boolean',
+              description: 'Whether order was created offline (by staff) or online (by customer)'
+            },
+            customerPhone: {
+              type: 'string',
+              description: 'Customer phone number (for offline orders)',
+              nullable: true
             },
             notes: {
               type: 'string',
               description: 'Order notes',
+              nullable: true
+            },
+            orderItems: {
+              type: 'array',
+              description: 'List of items in order',
+              items: {
+                $ref: '#/components/schemas/OrderItem'
+              }
+            },
+            invoice: {
+              type: 'object',
+              description: 'Associated invoice if exists',
               nullable: true
             },
             createdAt: {
@@ -481,6 +521,46 @@ const options = {
               type: 'string',
               format: 'date-time',
               description: 'Updated date'
+            }
+          }
+        },
+        OrderItem: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'OrderItem ID'
+            },
+            orderId: {
+              type: 'integer',
+              description: 'Order ID'
+            },
+            fabricId: {
+              type: 'integer',
+              description: 'Fabric ID'
+            },
+            quantity: {
+              type: 'number',
+              description: 'Quantity (meters for METER, rolls for ROLL)'
+            },
+            saleUnit: {
+              type: 'string',
+              enum: ['ROLL', 'METER'],
+              description: 'Sale unit type'
+            },
+            price: {
+              type: 'number',
+              format: 'float',
+              description: 'Total selling price for this item'
+            },
+            costPrice: {
+              type: 'number',
+              format: 'float',
+              description: 'Cost price (inventory cost) when item was sold'
+            },
+            fabric: {
+              type: 'object',
+              description: 'Fabric details'
             }
           }
         },

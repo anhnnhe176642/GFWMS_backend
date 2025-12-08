@@ -611,24 +611,109 @@ const processPaymentFailed = async (invoiceId, creditInvoiceId, transactionId, e
     };
     
     if (invoiceId) {
-      // Update payment cho Invoice
-      await tx.payment. upsert({
+      // 1. Update payment cho Invoice
+      await tx.payment.upsert({
         where: { transactionId },
         create: {
           invoiceId,
-          ... paymentData,
+          ...paymentData,
           amount: 0,
           paymentMethod: 'PAYOS_VIETQR'
         },
         update: paymentData
       });
+
+      // 2. Lấy order để hoàn tồn kho
+      const invoice = await tx.invoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          order: {
+            include: {
+              orderItems: {
+                include: {
+                  fabric: {
+                    select: { id: true, length: true }
+                  }
+                }
+              },
+              store: true
+            }
+          }
+        }
+      });
+
+      if (invoice?.order) {
+        const order = invoice.order;
+        const storeId = order.storeId;
+        
+        // 3. Hoàn tồn kho + totalValue
+        for (const item of order.orderItems) {
+          if (item.saleUnit === 'ROLL') {
+            // Hoàn cuộn
+            const metersToRestore = item.quantity * item.fabric.length;
+            const valueToRestore = item.quantity * item.costPrice;
+
+            await tx.fabricStore.update({
+              where: {
+                fabricId_storeId: {
+                  fabricId: item.fabricId,
+                  storeId
+                }
+              },
+              data: {
+                uncutRolls: { increment: item.quantity },
+                totalMeters: { increment: metersToRestore },
+                totalValue: { increment: valueToRestore }
+              }
+            });
+          } else if (item.saleUnit === 'METER') {
+            // Hoàn mét
+            const valueToRestore = item.quantity * item.costPrice;
+            
+            const currentStore = await tx.fabricStore.findUnique({
+              where: {
+                fabricId_storeId: {
+                  fabricId: item.fabricId,
+                  storeId
+                }
+              }
+            });
+
+            if (currentStore) {
+              const newCuttingMeters = currentStore.cuttingRollMeters + item.quantity;
+              let newUncutRolls = currentStore.uncutRolls;
+              let finalCuttingMeters = newCuttingMeters;
+
+              if (newCuttingMeters >= item.fabric.length) {
+                newUncutRolls = currentStore.uncutRolls + Math.floor(newCuttingMeters / item.fabric.length);
+                finalCuttingMeters = newCuttingMeters % item.fabric.length;
+              }
+
+              await tx.fabricStore.update({
+                where: {
+                  fabricId_storeId: {
+                    fabricId: item.fabricId,
+                    storeId
+                  }
+                },
+                data: {
+                  totalMeters: { increment: item.quantity },
+                  totalValue: { increment: valueToRestore },
+                  uncutRolls: { increment: newUncutRolls - currentStore.uncutRolls },
+                  cuttingRollMeters: finalCuttingMeters
+                }
+              });
+            }
+          }
+        }
+      }
     } else if (creditInvoiceId) {
       // Update payment cho Credit Invoice
       await tx.payment.upsert({
         where: { transactionId },
         create: {
           creditInvoiceId,
-          ... paymentData,
+          ...paymentData,
           amount: 0,
           paymentMethod: 'PAYOS_VIETQR'
         },

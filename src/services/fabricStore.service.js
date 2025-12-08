@@ -40,7 +40,6 @@ class FabricStoreService {
         address: item.store.address
       },
       inventory: {
-        quantity: item.quantity,
         totalValue: item.totalValue,
         totalMeters: item.totalMeters,
         uncutRolls: item.uncutRolls,
@@ -99,7 +98,6 @@ class FabricStoreService {
         address: fabricStore.store.address
       },
       inventory: {
-        quantity: fabricStore.quantity,
         totalValue: fabricStore.totalValue,
         totalMeters: fabricStore.totalMeters,
         uncutRolls: fabricStore.uncutRolls,
@@ -136,15 +134,18 @@ class FabricStoreService {
     }
 
     const metersPerRoll = fabric.length;
+    const totalMeters = rolls * metersPerRoll;
+    const totalValue = rolls * importPrice;
 
     // Thực hiện nhập vải
-    const result = await fabricStoreRepository.importFabricRolls(
-      fabricId, 
-      storeId, 
-      rolls, 
-      importPrice, 
-      metersPerRoll
-    );
+    const result = await fabricStoreRepository.importFabricRolls({
+      fabricId,
+      storeId,
+      totalValue,
+      totalMeters,
+      uncutRolls: rolls,
+      cuttingRollMeters: 0
+    });
 
     return {
       fabricId: result.fabricId,
@@ -165,8 +166,7 @@ class FabricStoreService {
         totalValue: result.totalValue,
         totalMeters: result.totalMeters,
         uncutRolls: result.uncutRolls,
-        cuttingRollMeters: result.cuttingRollMeters,
-        quantity: result.quantity
+        cuttingRollMeters: result.cuttingRollMeters
       }
     };
   }
@@ -232,8 +232,7 @@ class FabricStoreService {
         totalValue: result.totalValue,
         totalMeters: result.totalMeters,
         uncutRolls: result.uncutRolls,
-        cuttingRollMeters: result.cuttingRollMeters,
-        quantity: result.quantity
+        cuttingRollMeters: result.cuttingRollMeters
       }
     };
   }

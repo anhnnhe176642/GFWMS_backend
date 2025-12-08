@@ -4,7 +4,8 @@ model OrderItem {
     fabricId  Int
     quantity  Int      @default(1)
     saleUnit  SaleUnit 
-    price     Float    
+    price     Float    // Giá bán
+    costPrice Float    @default(0) // Giá nhập (cost price)
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     order     Order    @relation(fields: [orderId], references: [id])

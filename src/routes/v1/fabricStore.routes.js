@@ -57,7 +57,7 @@ const router = express.Router();
  *         name: sortBy
  *         schema:
  *           type: string
- *           enum: [updatedAt, createdAt, totalValue, totalMeters, uncutRolls, quantity]
+ *           enum: [updatedAt, createdAt, totalValue, totalMeters, uncutRolls]
  *           default: updatedAt
  *         description: Trường để sắp xếp
  *       - in: query
@@ -135,9 +135,6 @@ const router = express.Router();
  *                       inventory:
  *                         type: object
  *                         properties:
- *                           quantity:
- *                             type: integer
- *                             description: Tổng số cuộn vải
  *                           totalValue:
  *                             type: number
  *                             description: Tổng giá trị vải hiện tại
@@ -287,9 +284,6 @@ router.get(
  *                       type: object
  *                       description: Thông tin tồn kho trong cửa hàng này
  *                       properties:
- *                         quantity:
- *                           type: integer
- *                           description: Tổng số cuộn vải
  *                         totalValue:
  *                           type: number
  *                           description: Tổng giá trị vải hiện tại

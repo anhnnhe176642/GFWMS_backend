@@ -565,7 +565,6 @@ export const completeExportFabric = async ({ exportFabricId, receivedById }) => 
     await fabricStoreRepository.importFabricRolls({
       fabricId,
       storeId,
-      quantity,
       totalValue,
       totalMeters,
       uncutRolls: quantity,

@@ -159,25 +159,66 @@ export const cancelExpiredOrders = async () => {
             }
           }
           
-          // 2d. Hoàn trả Tồn kho
-          for (const item of order. orderItems) {
+          // 2d. Hoàn trả Tồn kho (cửa hàng)
+          for (const item of order.orderItems) {
             if (item.saleUnit === 'ROLL') {
-              // Hoàn cuộn về kho
-              await tx.fabric.update({
-                where: { id: item.fabricId },
-                data: { quantityInStock: { increment: item.quantity } }
-              });
-            } else if (item. saleUnit === 'METER') {
-              // Hoàn mét về cửa hàng (store ID = 1)
+              // Hoàn cuộn: cộng vào uncutRolls
+              const fabricLength = item.fabric?.length || 0;
+              const metersToRestore = item.quantity * fabricLength;
+              const valueToRestore = item.quantity * item.costPrice;
+
               await tx.fabricStore.update({
                 where: {
                   fabricId_storeId: {
                     fabricId: item.fabricId,
-                    storeId: 1
+                    storeId: order.storeId
                   }
                 },
-                data: { quantity: { increment: item.quantity } }
+                data: {
+                  uncutRolls: { increment: item.quantity },
+                  totalMeters: { increment: metersToRestore },
+                  totalValue: { increment: valueToRestore }
+                }
               });
+            } else if (item.saleUnit === 'METER') {
+              // Hoàn mét: thêm vào cuttingRollMeters/uncutRolls
+              const fabricLength = item.fabric?.length || 0;
+              const valueToRestore = item.quantity * item.costPrice;
+              
+              const currentStore = await tx.fabricStore.findUnique({
+                where: {
+                  fabricId_storeId: {
+                    fabricId: item.fabricId,
+                    storeId: order.storeId
+                  }
+                }
+              });
+
+              if (currentStore) {
+                const newCuttingMeters = currentStore.cuttingRollMeters + item.quantity;
+                let newUncutRolls = currentStore.uncutRolls;
+                let finalCuttingMeters = newCuttingMeters;
+
+                if (newCuttingMeters >= fabricLength) {
+                  newUncutRolls = currentStore.uncutRolls + Math.floor(newCuttingMeters / fabricLength);
+                  finalCuttingMeters = newCuttingMeters % fabricLength;
+                }
+
+                await tx.fabricStore.update({
+                  where: {
+                    fabricId_storeId: {
+                      fabricId: item.fabricId,
+                      storeId: order.storeId
+                    }
+                  },
+                  data: {
+                    totalMeters: { increment: item.quantity },
+                    totalValue: { increment: valueToRestore },
+                    uncutRolls: { increment: newUncutRolls - currentStore.uncutRolls },
+                    cuttingRollMeters: finalCuttingMeters
+                  }
+                });
+              }
             }
           }
           
