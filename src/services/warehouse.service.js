@@ -2,8 +2,9 @@ import { warehouseRepository } from '../repositories/warehouse.repository.js';
 import { fabricRepository } from '../repositories/fabric.repository.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 class WarehouseService {
-  async getAllWarehousesAdvanced(queryOptions) {
-    return await warehouseRepository.findWithAdvancedQuery(queryOptions);
+  async getAllWarehousesAdvanced(queryOptions, userId = null) {
+    // Pass userId để repository tự lọc dựa trên bảng WarehouseManage
+    return await warehouseRepository.findWithAdvancedQuery(queryOptions, userId);
   }
   
   async createWarehouse(warehouseData) {

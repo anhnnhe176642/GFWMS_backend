@@ -1,8 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
 import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+import { UserRepository } from './user.repository.js';
+import { PERMISSIONS } from '../constants/permissions.js';
 
 const prisma = new PrismaClient();
+const userRepository = new UserRepository();
 
 export class WarehouseRepository {
   #warehouseSelectOptions = {
@@ -52,7 +55,7 @@ export class WarehouseRepository {
     );
   }
 
-  async findWithAdvancedQuery(queryOptions = {}) {
+  async findWithAdvancedQuery(queryOptions = {}, userId = null) {
     const { 
       page = 1, 
       limit = 10, 
@@ -66,6 +69,20 @@ export class WarehouseRepository {
       { search, ...filters },
       searchableFields
     );
+
+    // If userId provided, check if user has manager_all permission
+    // Only filter by assigned warehouses if they don't have global access
+    if (userId) {
+      const hasGlobalAccess = await userRepository.hasPermission(userId, PERMISSIONS.WAREHOUSES_MANAGER.MANAGER_ALL.key);
+      if (!hasGlobalAccess) {
+        where.warehouseManages = {
+          some: {
+            userId: userId
+          }
+        };
+      }
+    }
+
     const { skip, take } = buildPagination(page, limit);
     
     const orderBy = buildSort(sortBy, order);

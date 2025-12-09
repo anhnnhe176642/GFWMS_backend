@@ -200,3 +200,51 @@ export const requireStoreAccessFromBody = requireStoreAccess(req => Promise.reso
 
 // Lấy storeId từ query
 export const requireStoreAccessFromQuery = requireStoreAccess(req => Promise.resolve(parseInt(req.query.storeId)));
+
+// ===== Warehouse Access Middleware =====
+
+// Middleware kiểm tra user có quyền manage warehouse cụ thể không
+export const requireWarehouseAccess = (getWarehouseId) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        throw new AuthenticationError('User chưa được xác thực');
+      }
+
+      const warehouseId = await getWarehouseId(req);
+      
+      if (!warehouseId) {
+        throw new AuthorizationError('Warehouse ID không tìm thấy');
+      }
+
+      // User có permission warehouse:manager_all thì có thể access tất cả warehouses
+      const hasManagerAllPermission = await userRepository.hasPermission(req.user.id, PERMISSIONS.WAREHOUSES_MANAGER.MANAGER_ALL.key);
+      if (hasManagerAllPermission) {
+        req.warehouseId = warehouseId;
+        return next();
+      }
+
+      // Hoặc check user có quản lý warehouse đó không (warehouse:manager + trong danh sách WarehouseManage)
+      const canManage = await userRepository.canManageWarehouse(req.user.id, warehouseId);
+      if (!canManage) {
+        throw new AuthorizationError(`Bạn không có quyền truy cập kho này`);
+      }
+
+      req.warehouseId = warehouseId;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+// ===== Simplified Warehouse Access Middlewares =====
+
+// Lấy warehouseId từ params
+export const requireWarehouseAccessFromParams = requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.warehouseId)));
+
+// Lấy warehouseId từ body
+export const requireWarehouseAccessFromBody = requireWarehouseAccess(req => Promise.resolve(parseInt(req.body.warehouseId)));
+
+// Lấy warehouseId từ query
+export const requireWarehouseAccessFromQuery = requireWarehouseAccess(req => Promise.resolve(parseInt(req.query.warehouseId)));

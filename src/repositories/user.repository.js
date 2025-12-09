@@ -440,7 +440,7 @@ export class UserRepository {
         }
       },
       select: {
-        id: true
+        userId: true
       }
     });
 
@@ -458,6 +458,36 @@ export class UserRepository {
 
     // Hoặc nếu user manage store đó, mặc định cũng có thể quản lý managers
     return await this.canManageStore(userId, storeId);
+  }
+
+  // Check user có quyền manage warehouse cụ thể không
+  async canManageWarehouse(userId, warehouseId) {
+    const warehouseManage = await prisma.warehouseManage.findUnique({
+      where: {
+        userId_warehouseId: {
+          userId: userId,
+          warehouseId: warehouseId
+        }
+      },
+      select: {
+        userId: true
+      }
+    });
+
+    return !!warehouseManage;
+  }
+
+  // Check user có manage_managers permission cho warehouse (có thể thêm/xóa người quản lý khác)
+  async canManageWarehouseManagers(userId, warehouseId) {
+    // Nếu user là admin hoặc có permission warehouse:manage_managers thì có thể quản lý
+    const hasGlobalPermission = await this.hasPermission(userId, 'warehouse:manage_managers');
+    
+    if (hasGlobalPermission) {
+      return true;
+    }
+
+    // Hoặc nếu user manage warehouse đó, mặc định cũng có thể quản lý managers
+    return await this.canManageWarehouse(userId, warehouseId);
   }
 }
 

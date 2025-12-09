@@ -10,7 +10,7 @@ import {
   getWarehouseShelvesByFabric,
   calculateFabricPickup
 } from '../../controllers/warehouse.controller.js';
-import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { authenticateToken, requirePermission, requireWarehouseAccess } from '../../middlewares/permission.middleware.js';
 import { validate} from '../../middlewares/validation.middleware.js';
 import { 
   createWarehouseSchema, 
@@ -157,9 +157,10 @@ router.get('/',
  *                   $ref: '#/components/schemas/PaginationMeta'
  */
 router.get('/:id/fabrics',
+  validate(warehouseIdSchema, 'params'),
   authenticateToken,
   requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
-  validate(warehouseIdSchema, 'params'),
+  requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.id))),
   validate(fabricQuerySchema, 'query'),
   getWarehouseFabrics
 );
@@ -274,8 +275,9 @@ router.get('/:id/fabrics',
  *         description: Lỗi server không mong muốn
  */
 router.get('/:id/shelves',
-  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
   validate(warehouseIdSchema, 'params'),
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
+  requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.id))),
   validate(shelfQuerySchema, 'query'),
   getWarehouseShelves
 );
@@ -481,8 +483,9 @@ router.get('/:id/shelves',
  *         description: Lỗi server không mong muốn
  */
 router.get('/:id/fabrics/:fabricId/shelves',
-  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
   validate(warehouseIdWithFabricIdSchema, 'params'),
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
+  requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.id))),
   getWarehouseShelvesByFabric
 );
 
@@ -644,8 +647,9 @@ router.get('/:id/fabrics/:fabricId/shelves',
  *         description: Lỗi server không mong muốn
  */
 router.get('/:id/fabrics/:fabricId/pickup',
-  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
   validate(warehouseIdWithFabricIdSchema, 'params'),
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
+  requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.id))),
   validate(fabricPickupQuerySchema, 'query'),
   calculateFabricPickup
 );
@@ -711,8 +715,9 @@ router.post('/',
  *               type: object
  */
 router.get('/:id', 
-  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
   validate(warehouseIdSchema, 'params'),
+  requirePermission(PERMISSIONS.WAREHOUSES.VIEW_DETAIL),
+  requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.id))),
   getWarehouseById
 );
 
@@ -759,9 +764,10 @@ router.get('/:id',
  *               type: object
  */
 router.patch('/:id', 
-  requirePermission(PERMISSIONS.WAREHOUSES.UPDATE),
-  validate(updateWarehouseSchema, 'body'),
   validate(warehouseIdSchema, 'params'),
+  validate(updateWarehouseSchema, 'body'),
+  requirePermission(PERMISSIONS.WAREHOUSES.UPDATE),
+  requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.id))),
   updateWarehouse
 );
 
@@ -802,8 +808,9 @@ router.patch('/:id',
  *         description: Không tìm thấy kho hàng
  */
 router.delete('/:id',
-  requirePermission(PERMISSIONS.WAREHOUSES.DELETE),
   validate(warehouseIdSchema, 'params'),
+  requirePermission(PERMISSIONS.WAREHOUSES.DELETE),
+  requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.id))),
   deleteWarehouse
 );
 

@@ -6,8 +6,11 @@ import {
   buildSort,
   formatPaginatedResponse
 } from '../utils/query-builder.js';
+import { UserRepository } from './user.repository.js';
+import { PERMISSIONS } from '../constants/permissions.js';
 
 const prisma = new PrismaClient();
+const userRepository = new UserRepository();
 
 export class StoreRepository {
   #storeSelectOptions = {
@@ -109,7 +112,7 @@ export class StoreRepository {
     );
   }
 
-  async findWithAdvancedQuery(queryOptions = {}) {
+  async findWithAdvancedQuery(queryOptions = {}, userId = null) {
     const {
       page = 1,
       limit = 10,
@@ -121,6 +124,7 @@ export class StoreRepository {
 
     const searchableFields = ['name', 'address'];
     const where = buildWhereClause({ search, ...filters }, searchableFields);
+    
     if (filters.isActive !== undefined) {
         if (Array.isArray(filters.isActive)) {
             where.isActive = filters.isActive[0] === 'true';
@@ -128,6 +132,20 @@ export class StoreRepository {
             where.isActive = filters.isActive === 'true';
         }
     }
+
+    // If userId provided, check if user has manager_all permission
+    // Only filter by assigned stores if they don't have global access
+    if (userId) {
+      const hasGlobalAccess = await userRepository.hasPermission(userId, PERMISSIONS.STORES.MANAGER_ALL.key);
+      if (!hasGlobalAccess) {
+        where.managers = {
+          some: {
+            userId: userId
+          }
+        };
+      }
+    }
+
     const { skip, take } = buildPagination(page, limit);
     const orderBy = buildSort(sortBy, order);
 

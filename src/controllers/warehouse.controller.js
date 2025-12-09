@@ -12,8 +12,9 @@ export const getAllWarehouses = async (req, res, next) => {
         targetField: 'createdAt' 
       }
     });
-    
-    const result = await warehouseService.getAllWarehousesAdvanced(queryParams);
+
+    // Pass userId để service tự lọc dựa trên quyền
+    const result = await warehouseService.getAllWarehousesAdvanced(queryParams, req.user.id);
     res.json({
       message: 'Lấy danh sách kho thành công',
       ...result
