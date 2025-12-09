@@ -24,27 +24,6 @@ export const getAllExportFabrics = async (req, res, next) => {
   }
 };
 
-export const getExportFabricDetailForWarehouse = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const exportFabric = await exportFabricService.getExportFabricDetailForWarehouse(
-      parseInt(id)
-    );
-
-    if (!exportFabric) {
-      return res.status(404).json({ message: 'Không tìm thấy phiếu xuất vải' });
-    }
-
-    res.json({
-      message: 'Lấy thông tin phiếu xuất vải cho kho thành công',
-      exportFabric
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const getExportFabricDetailForStore = async (req, res, next) => {
   try {
     const { id } = req.params;

@@ -93,7 +93,6 @@ export const PERMISSIONS = {
   EXPORT_FABRICS: {
     VIEW_LIST:              { key: 'exportFabric:view_list',    description: 'Xem danh sách các đơn yêu cầu xuất kho' },
     VIEW_DETAIL:            { key: 'exportFabric:view_detail',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
-    VIEW_DETAIL_WAREHOUSE:  { key: 'exportFabric:view_detail_warehouse',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
     CREATE:                 { key: 'exportFabric:create',       description: 'Tạo đơn yêu cầu xuất kho mới' },
     CHANGE_STATUS:          { key: 'exportFabric:change_status',description: 'Thay đổi trạng thái đơn' },
     RECEIVE:                { key: 'exportFabric:receive',      description: 'Xác nhận nhận hàng từ cửa hàng' },
