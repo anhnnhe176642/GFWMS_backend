@@ -81,6 +81,7 @@ async function main() {
     where: { username: 'admin' },
     update: {},
     create: {
+      id: 'a0000000-0000-4000-8000-000000000001',
       username: 'admin',
       password: hashedAdminPassword,
       email: 'admin@example.com',
@@ -99,6 +100,7 @@ async function main() {
     where: { username: 'user' },
     update: {},
     create: {
+      id: 'a0000000-0000-4000-8000-000000000002',
       username: 'user',
       password: hashedUserPassword,
       email: 'user@example.com',
@@ -117,6 +119,7 @@ async function main() {
     where: { username: 'staff' },
     update: {},
     create: {
+      id: 'a0000000-0000-4000-8000-000000000003',
       username: 'staff',
       password: hashedStaffPassword,
       email: 'staff@example.com',

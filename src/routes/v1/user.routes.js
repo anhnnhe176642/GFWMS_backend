@@ -1,8 +1,12 @@
 import express from 'express';
 import { getAllUsers, createUser, getUserById, updateUserStatus, updateUserRole, deleteUser } from '../../controllers/user.controller.js';
+import { 
+  getUserStats,
+  getDashboardMetrics
+} from '../../controllers/userActivity.controller.js';
 import { authenticateToken, requirePermission, requireOwnershipOrPermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
-import { createUserSchema, updateUserStatusSchema, updateUserRoleSchema, uuidParamSchema, userQuerySchema } from '../../validations/user.validation.js';
+import { createUserSchema, updateUserStatusSchema, updateUserRoleSchema, uuidParamSchema, userQuerySchema, userIdParamSchema } from '../../validations/user.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -461,6 +465,524 @@ router.delete('/:id',
   requirePermission(PERMISSIONS.USERS.DELETE),
   validate(uuidParamSchema, 'params'), 
   deleteUser
+);
+
+// ===== User Activity & Statistics Routes =====
+
+/**
+ * @swagger
+ * /users/{userId}/stats:
+ *   get:
+ *     summary: Get comprehensive user statistics (chi tiết toàn diện)
+ *     tags: [User Activity]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thống kê người dùng toàn diện thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     orderStats:
+ *                       type: object
+ *                       properties:
+ *                         summary:
+ *                           type: object
+ *                           properties:
+ *                             asCustomer:
+ *                               type: object
+ *                               properties:
+ *                                 totalOrders:
+ *                                   type: integer
+ *                                   example: 15
+ *                                 totalSpent:
+ *                                   type: number
+ *                                   example: 3500000
+ *                                 averageOrderValue:
+ *                                   type: string
+ *                                   example: "233333.33"
+ *                             asStaff:
+ *                               type: object
+ *                               properties:
+ *                                 totalCreated:
+ *                                   type: integer
+ *                                   example: 22
+ *                                 totalAmount:
+ *                                   type: number
+ *                                   example: 8900000
+ *                                 averageOrderValue:
+ *                                   type: string
+ *                                   example: "404545.45"
+ *                         breakdown:
+ *                           type: object
+ *                           description: "Phân bổ theo trạng thái (PENDING, CONFIRMED, SHIPPING, DELIVERED, CANCELLED)"
+ *                           example:
+ *                             PENDING: 2
+ *                             CONFIRMED: 5
+ *                             SHIPPING: 8
+ *                             DELIVERED: 15
+ *                             CANCELLED: 1
+ *                         recentOrders:
+ *                           type: array
+ *                           maxItems: 10
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               status:
+ *                                 type: string
+ *                               totalAmount:
+ *                                 type: number
+ *                               orderDate:
+ *                                 type: string
+ *                                 format: date-time
+ *                               isOffline:
+ *                                 type: boolean
+ *                     exportStats:
+ *                       type: object
+ *                       properties:
+ *                         summary:
+ *                           type: object
+ *                           properties:
+ *                             totalExports:
+ *                               type: integer
+ *                               example: 18
+ *                         breakdown:
+ *                           type: object
+ *                           description: "Phân bổ theo trạng thái (PENDING, APPROVED, COMPLETED, REJECTED)"
+ *                           example:
+ *                             PENDING: 2
+ *                             APPROVED: 6
+ *                             COMPLETED: 9
+ *                             REJECTED: 1
+ *                         recentExports:
+ *                           type: array
+ *                           maxItems: 10
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               status:
+ *                                 type: string
+ *                               createdAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                               warehouse:
+ *                                 type: object
+ *                                 properties:
+ *                                   name:
+ *                                     type: string
+ *                               store:
+ *                                 type: object
+ *                                 properties:
+ *                                   name:
+ *                                     type: string
+ *                     importStats:
+ *                       type: object
+ *                       properties:
+ *                         summary:
+ *                           type: object
+ *                           properties:
+ *                             totalImports:
+ *                               type: integer
+ *                               example: 8
+ *                             totalCost:
+ *                               type: number
+ *                               example: 2400000
+ *                             averageCost:
+ *                               type: string
+ *                               example: "300000.00"
+ *                         breakdown:
+ *                           type: object
+ *                           description: "Phân bổ theo trạng thái (PENDING, APPROVED, COMPLETED, CANCELLED)"
+ *                           example:
+ *                             PENDING: 1
+ *                             APPROVED: 2
+ *                             COMPLETED: 5
+ *                         recentImports:
+ *                           type: array
+ *                           maxItems: 10
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               status:
+ *                                 type: string
+ *                               totalPrice:
+ *                                 type: number
+ *                               importDate:
+ *                                 type: string
+ *                                 format: date-time
+ *                               warehouse:
+ *                                 type: object
+ *                                 properties:
+ *                                   name:
+ *                                     type: string
+ *                     paymentStats:
+ *                       type: object
+ *                       properties:
+ *                         summary:
+ *                           type: object
+ *                           properties:
+ *                             totalPayments:
+ *                               type: integer
+ *                               example: 12
+ *                             totalAmount:
+ *                               type: number
+ *                               example: 2800000
+ *                             successfulPayments:
+ *                               type: integer
+ *                               example: 12
+ *                             invoicePayments:
+ *                               type: integer
+ *                               example: 8
+ *                             creditPayments:
+ *                               type: integer
+ *                               example: 4
+ *                             averagePayment:
+ *                               type: string
+ *                               example: "233333.33"
+ *                         recentPayments:
+ *                           type: array
+ *                           maxItems: 10
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               amount:
+ *                                 type: number
+ *                               paymentDate:
+ *                                 type: string
+ *                                 format: date-time
+ *                               paymentMethod:
+ *                                 type: string
+ *                     creditInfo:
+ *                       type: object
+ *                       properties:
+ *                         creditLimit:
+ *                           type: number
+ *                           example: 2000000
+ *                         creditUsed:
+ *                           type: number
+ *                           example: 1200000
+ *                         creditAvailable:
+ *                           type: number
+ *                           example: 800000
+ *                         utilizationRate:
+ *                           type: string
+ *                           example: "60.00%"
+ *                         status:
+ *                           type: string
+ *                           example: ACTIVE
+ *                         isCritical:
+ *                           type: boolean
+ *                           description: "True nếu sử dụng > 80%"
+ *                           example: false
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                     creditRequests:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 3
+ *                         byStatus:
+ *                           type: object
+ *                           example:
+ *                             PENDING: 1
+ *                             APPROVED: 2
+ *                             REJECTED: 0
+ *                         byType:
+ *                           type: object
+ *                           example:
+ *                             INITIAL: 1
+ *                             INCREASE: 2
+ *                             DECREASE: 0
+ *                         data:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                     managedStores:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 3
+ *                         details:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               name:
+ *                                 type: string
+ *                               address:
+ *                                 type: string
+ *                               isActive:
+ *                                 type: boolean
+ *                               createdAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                               ordersCount:
+ *                                 type: integer
+ *                               exportsCount:
+ *                                 type: integer
+ *                     managedWarehouses:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 2
+ *                         details:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               name:
+ *                                 type: string
+ *                               address:
+ *                                 type: string
+ *                               status:
+ *                                 type: string
+ *                               createdAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                               shelvesCount:
+ *                                 type: integer
+ *                               importsCount:
+ *                                 type: integer
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/:userId/stats',
+  validate(userIdParamSchema, 'params'),
+  getUserStats
+);
+
+/**
+ * @swagger
+ * /users/{userId}/activity/dashboard:
+ *   get:
+ *     summary: Get dashboard metrics with detailed activity analysis
+ *     tags: [User Activity]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Dashboard metrics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy metrics dashboard thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     activityMetrics:
+ *                       type: object
+ *                       properties:
+ *                         totalActivities:
+ *                           type: integer
+ *                           example: 250
+ *                         orderMetrics:
+ *                           type: object
+ *                           properties:
+ *                             total:
+ *                               type: integer
+ *                               example: 15
+ *                             last7Days:
+ *                               type: integer
+ *                               example: 4
+ *                             last30Days:
+ *                               type: integer
+ *                               example: 12
+ *                             totalCount:
+ *                               type: integer
+ *                               example: 15
+ *                             recentOrders:
+ *                               type: array
+ *                               maxItems: 5
+ *                               items:
+ *                                 type: object
+ *                         exportMetrics:
+ *                           type: object
+ *                           properties:
+ *                             totalCreated:
+ *                               type: integer
+ *                               example: 10
+ *                             totalCompleted:
+ *                               type: integer
+ *                               example: 8
+ *                             totalExports:
+ *                               type: integer
+ *                               example: 18
+ *                             createdTrend:
+ *                               type: object
+ *                               properties:
+ *                                 last7Days:
+ *                                   type: integer
+ *                                 last30Days:
+ *                                   type: integer
+ *                                 totalCount:
+ *                                   type: integer
+ *                             completedTrend:
+ *                               type: object
+ *                               properties:
+ *                                 last7Days:
+ *                                   type: integer
+ *                                 last30Days:
+ *                                   type: integer
+ *                                 totalCount:
+ *                                   type: integer
+ *                             recentExports:
+ *                               type: array
+ *                               maxItems: 5
+ *                               items:
+ *                                 type: object
+ *                         importMetrics:
+ *                           type: object
+ *                           properties:
+ *                             total:
+ *                               type: integer
+ *                               example: 8
+ *                             last7Days:
+ *                               type: integer
+ *                               example: 2
+ *                             last30Days:
+ *                               type: integer
+ *                               example: 6
+ *                             totalCount:
+ *                               type: integer
+ *                               example: 8
+ *                             recentImports:
+ *                               type: array
+ *                               maxItems: 5
+ *                               items:
+ *                                 type: object
+ *                         paymentMetrics:
+ *                           type: object
+ *                           properties:
+ *                             total:
+ *                               type: integer
+ *                               example: 12
+ *                             last7Days:
+ *                               type: integer
+ *                               example: 3
+ *                             last30Days:
+ *                               type: integer
+ *                               example: 10
+ *                             totalCount:
+ *                               type: integer
+ *                               example: 12
+ *                             recentPayments:
+ *                               type: array
+ *                               maxItems: 5
+ *                               items:
+ *                                 type: object
+ *                     activityBreakdown:
+ *                       type: object
+ *                       description: "Phân bổ hoạt động theo loại"
+ *                       example:
+ *                         ORDER_CREATED: 15
+ *                         EXPORT_CREATED: 10
+ *                         EXPORT_COMPLETED: 8
+ *                         IMPORT_COMPLETED: 8
+ *                         PAYMENT_MADE: 12
+ *                     activityTimeline:
+ *                       type: object
+ *                       properties:
+ *                         recentActivities:
+ *                           type: array
+ *                           maxItems: 10
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                                 format: uuid
+ *                               userId:
+ *                                 type: string
+ *                                 format: uuid
+ *                               activityType:
+ *                                 type: string
+ *                                 enum: [ORDER_CREATED, EXPORT_CREATED, EXPORT_COMPLETED, IMPORT_COMPLETED, PAYMENT_MADE]
+ *                               entityType:
+ *                                 type: string
+ *                               entityId:
+ *                                 type: integer
+ *                               description:
+ *                                 type: string
+ *                               createdAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                         lastActivityAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2024-12-09T15:30:00Z"
+ *                         firstActivityAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2024-10-01T08:00:00Z"
+ *                         totalActivitiesCount:
+ *                           type: integer
+ *                           example: 250
+ *                     trends:
+ *                       type: object
+ *                       properties:
+ *                         activityLast7Days:
+ *                           type: integer
+ *                           example: 35
+ *                         activityLast30Days:
+ *                           type: integer
+ *                           example: 180
+ *                         avgActivitiesPerDay:
+ *                           type: number
+ *                           example: 2.5
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/:userId/activity/dashboard',
+  validate(userIdParamSchema, 'params'),
+  getDashboardMetrics
 );
 
 export default router;

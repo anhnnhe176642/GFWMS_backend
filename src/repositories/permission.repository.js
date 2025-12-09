@@ -30,6 +30,45 @@ export class PermissionRepository {
       }
     });
   }
+
+  async findByUserId(userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        roleRel: {
+          select: {
+            name: true,
+            fullName: true,
+            description: true,
+            rolePermissions: {
+              select: {
+                permission: {
+                  select: {
+                    id: true,
+                    key: true,
+                    description: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      userId,
+      roleName: user.role,
+      roleFullName: user.roleRel?.fullName,
+      roleDescription: user.roleRel?.description,
+      permissions: user.roleRel?.rolePermissions?.map(rp => rp.permission) || []
+    };
+  }
 }
 
 export const permissionRepository = new PermissionRepository();

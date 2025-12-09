@@ -7,6 +7,7 @@ import { warehouseRepository } from '../repositories/warehouse.repository.js';
 import { storeRepository } from '../repositories/store.repository.js';
 import { fabricShelfRepository } from '../repositories/fabricShelf.repository.js';
 import fabricStoreRepository from '../repositories/fabricStore.repository.js';
+import { userActivityService } from './userActivity.service.js';
 
 const prisma = new PrismaClient();
 
@@ -396,7 +397,18 @@ export const createExportFabric = async (exportData) => {
   }
 
   // Tạo phiếu xuất (KHÔNG trừ stock ở đây - chỉ trừ khi duyệt)
-  return await exportFabricRepository.create(exportData);
+  const createdExport = await exportFabricRepository.create(exportData);
+  
+  // Log activity
+  await userActivityService.logActivity(
+    exportData.createdById,
+    'EXPORT_CREATED',
+    'ExportFabric',
+    createdExport.id,
+    `Tạo phiếu xuất vải #${createdExport.id}`
+  );
+  
+  return createdExport;
 };
 
 
@@ -573,7 +585,18 @@ export const completeExportFabric = async ({ exportFabricId, receivedById }) => 
   }
 
   // Cập nhật trạng thái phiếu xuất sang COMPLETED
-  return await exportFabricRepository.updateStatus(exportFabricId, 'COMPLETED', receivedById, []);
+  const updatedExport = await exportFabricRepository.updateStatus(exportFabricId, 'COMPLETED', receivedById, []);
+  
+  // Log activity
+  await userActivityService.logActivity(
+    receivedById,
+    'EXPORT_COMPLETED',
+    'ExportFabric',
+    exportFabricId,
+    `Xác nhận nhận phiếu xuất vải`
+  );
+  
+  return updatedExport;
 };
 
 

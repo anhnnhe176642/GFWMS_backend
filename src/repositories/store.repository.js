@@ -31,7 +31,10 @@ export class StoreRepository {
         updatedAt: true,
         fabrics: {
           select: {
-            quantity: true,
+            totalValue: true,
+            totalMeters: true,
+            uncutRolls: true,
+            cuttingRollMeters: true,
             fabric: {
               select: {
                 id: true,
@@ -156,6 +159,14 @@ export class StoreRepository {
     });
   }
 
+  async findByIds(storeIds) {
+    return prisma.store.findMany({
+      where: {
+        id: { in: storeIds }
+      },
+      select: this.#storeSelectOptions
+    });
+  }
 }
 
 export const storeRepository = new StoreRepository();

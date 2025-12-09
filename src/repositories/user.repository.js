@@ -372,6 +372,93 @@ export class UserRepository {
     const userPermissions = result?.roleRel?.rolePermissions?.map(rp => rp.permission.key) || [];
     return permissionKeys.every(permission => userPermissions.includes(permission));
   }
+
+  // Check user có quản lý bất kỳ store nào không (manager cửa hàng cố định)
+  async isStoreManager(userId) {
+    const userStores = await prisma.userStore.findFirst({
+      where: {
+        userId: userId,
+        user: this.#notDeletedWhere
+      },
+      select: {
+        id: true
+      }
+    });
+
+    return !!userStores;
+  }
+
+  // Check user có quản lý tất cả stores không (manager toàn bộ)
+  async isStoreManagerAll(userId) {
+    return await this.hasPermission(userId, 'store:manager_all');
+  }
+
+  // Lấy danh sách storeIds mà user quản lý
+  async getUserStoreIds(userId) {
+    const userStores = await prisma.userStore.findMany({
+      where: {
+        userId: userId,
+        user: this.#notDeletedWhere
+      },
+      select: {
+        storeId: true
+      }
+    });
+
+    return userStores.map(us => us.storeId);
+  }
+
+  // Lấy danh sách stores đầy đủ thông tin mà user quản lý
+  async getUserStores(userId) {
+    return await prisma.userStore.findMany({
+      where: {
+        userId: userId,
+        user: this.#notDeletedWhere
+      },
+      select: {
+        store: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        }
+      }
+    }).then(results => results.map(r => r.store));
+  }
+
+  // Check user có quyền manage store cụ thể không
+  async canManageStore(userId, storeId) {
+    const userStore = await prisma.userStore.findUnique({
+      where: {
+        userId_storeId: {
+          userId: userId,
+          storeId: storeId
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    return !!userStore;
+  }
+
+  // Check user có manage_managers permission cho store (có thể thêm/xóa người quản lý khác)
+  async canManageStoreManagers(userId, storeId) {
+    // Nếu user là admin hoặc có permission store:manage_managers thì có thể quản lý
+    const hasGlobalPermission = await this.hasPermission(userId, 'store:manage_managers');
+    
+    if (hasGlobalPermission) {
+      return true;
+    }
+
+    // Hoặc nếu user manage store đó, mặc định cũng có thể quản lý managers
+    return await this.canManageStore(userId, storeId);
+  }
 }
 
 // Export singleton instance

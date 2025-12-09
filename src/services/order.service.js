@@ -1,5 +1,6 @@
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 import { orderRepository } from '../repositories/order.repository.js';
+import { userActivityService } from './userActivity.service.js';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -255,6 +256,16 @@ const createCashOrder = async (userId, items, totalAmount, notes, storeId) => {
     createDeductStockCallback(items),
     false
   );
+  
+  // Log activity
+  await userActivityService.logActivity(
+    userId,
+    'ORDER_CREATED',
+    'Order',
+    order.id,
+    `Tạo đơn hàng #${order.id}`
+  );
+  
   return { 
     order, 
     requiresPayment: true,
@@ -320,6 +331,15 @@ const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, n
       }
     }
   });
+  
+  // Log activity
+  await userActivityService.logActivity(
+    userId,
+    'ORDER_CREATED',
+    'Order',
+    order.id,
+    `Tạo đơn hàng #${order.id} (ghi nợ)`
+  );
 
   return { 
     order, 
@@ -371,6 +391,15 @@ const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmo
       }
     }
   });
+  
+  // Log activity
+  await userActivityService.logActivity(
+    userId,
+    'ORDER_CREATED',
+    'Order',
+    order.id,
+    `Tạo đơn hàng #${order.id} (vượt hạn mức)`
+  );
 
   return { 
     order, 

@@ -100,12 +100,22 @@ export const PERMISSIONS = {
   },
 
   STORES: {
-    VIEW_LIST:    { key: 'store:view_list',    description: 'Xem danh sách cửa hàng' },
-    VIEW_DETAIL:  { key: 'store:view_detail',  description: 'Xem chi tiết cửa hàng' },
-    CREATE:       { key: 'store:create',       description: 'Tạo cửa hàng mới' },
-    UPDATE:       { key: 'store:update',       description: 'Cập nhật thông tin cửa hàng' },
-    DELETE:       { key: 'store:delete',       description: 'Xóa cửa hàng' },
+    VIEW_LIST:           { key: 'store:view_list',           description: 'Xem danh sách cửa hàng' },
+    VIEW_DETAIL:         { key: 'store:view_detail',         description: 'Xem chi tiết cửa hàng' },
+    CREATE:              { key: 'store:create',              description: 'Tạo cửa hàng mới' },
+    UPDATE:              { key: 'store:update',              description: 'Cập nhật thông tin cửa hàng' },
+    DELETE:              { key: 'store:delete',              description: 'Xóa cửa hàng' },
+    MANAGER:             { key: 'store:manager',             description: 'Là quản lý cửa hàng (quản lý cửa hàng cụ thể được assign)' },
+    MANAGER_ALL:         { key: 'store:manager_all',         description: 'Quản lý tất cả cửa hàng (quyền cao cấp)' },
+    MANAGE_MANAGERS:     { key: 'store:manage_managers',     description: 'Quản lý người quản lý cửa hàng' }
   },
+
+  WAREHOUSES_MANAGER: {
+    MANAGER:             { key: 'warehouse:manager',         description: 'Là quản lý kho (quản lý kho cụ thể được assign)' },
+    MANAGER_ALL:         { key: 'warehouse:manager_all',     description: 'Quản lý tất cả kho (quyền cao cấp)' },
+    MANAGE_MANAGERS:     { key: 'warehouse:manage_managers', description: 'Quản lý người quản lý kho' }
+  },
+
   SHELVES: {
     VIEW_LIST:    { key: 'shelf:view_list',    description: 'Xem danh sách kệ trong kho' },
     VIEW_DETAIL:  { key: 'shelf:view_detail',  description: 'Xem chi tiết kệ' },

@@ -1,10 +1,25 @@
 import express from 'express';
 import { getAllRoles, createRole, getRoleByName, deleteRole, updateRole } from '../../controllers/role.controller.js';
+import { 
+  assignStoreToUser, 
+  removeStoreFromUser, 
+  getUserStores, 
+  getStoreManagers, 
+  assignMultipleStoresToUser,
+  removeAllStoresFromUser 
+} from '../../controllers/userStore.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { requirePermission } from '../../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { createRoleSchema, roleNameParamSchema, roleQuerySchema, updateRoleSchema } from '../../validations/role.validation.js';
+import { 
+  assignStoreSchema, 
+  removeStoreSchema, 
+  assignMultipleStoresSchema,
+  userIdParamSchema,
+  storeIdParamSchema 
+} from '../../validations/userStore.validation.js';
 
 const router = express.Router();
 
@@ -328,6 +343,237 @@ router.put('/:name',
   validate(roleNameParamSchema, 'params'),
   validate(updateRoleSchema, 'body'),
   updateRole
+);
+
+// ===== User Store Management Routes =====
+
+/**
+ * @swagger
+ * /roles/user-stores/assign:
+ *   post:
+ *     summary: Assign a store to a user
+ *     tags: [User Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - storeId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: User ID
+ *               storeId:
+ *                 type: integer
+ *                 description: Store ID
+ *     responses:
+ *       201:
+ *         description: Store assigned successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.post('/user-stores/assign',
+  requirePermission(PERMISSIONS.STORES.MANAGE_MANAGERS),
+  validate(assignStoreSchema, 'body'),
+  assignStoreToUser
+);
+
+/**
+ * @swagger
+ * /roles/user-stores/assign-multiple:
+ *   post:
+ *     summary: Assign multiple stores to a user
+ *     tags: [User Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - storeIds
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *               storeIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 minItems: 1
+ *     responses:
+ *       201:
+ *         description: Stores assigned successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.post('/user-stores/assign-multiple',
+  requirePermission(PERMISSIONS.STORES.MANAGE_MANAGERS),
+  validate(assignMultipleStoresSchema, 'body'),
+  assignMultipleStoresToUser
+);
+
+/**
+ * @swagger
+ * /roles/user-stores/remove:
+ *   post:
+ *     summary: Remove a store from a user
+ *     tags: [User Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - storeId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *               storeId:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Store removed successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.post('/user-stores/remove',
+  requirePermission(PERMISSIONS.STORES.MANAGE_MANAGERS),
+  validate(removeStoreSchema, 'body'),
+  removeStoreFromUser
+);
+
+/**
+ * @swagger
+ * /roles/user-stores/{userId}:
+ *   get:
+ *     summary: Get all stores assigned to a user
+ *     tags: [User Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Stores retrieved successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/user-stores/:userId',
+  requirePermission(PERMISSIONS.STORES.MANAGE_MANAGERS),
+  validate(userIdParamSchema, 'params'),
+  getUserStores
+);
+
+/**
+ * @swagger
+ * /roles/store-managers/{storeId}:
+ *   get:
+ *     summary: Get all managers assigned to a store
+ *     tags: [User Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Store ID
+ *     responses:
+ *       200:
+ *         description: Managers retrieved successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/store-managers/:storeId',
+  requirePermission(PERMISSIONS.STORES.MANAGE_MANAGERS),
+  validate(storeIdParamSchema, 'params'),
+  getStoreManagers
+);
+
+/**
+ * @swagger
+ * /roles/user-stores/{userId}/remove-all:
+ *   delete:
+ *     summary: Remove all stores from a user
+ *     tags: [User Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: All stores removed successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.delete('/user-stores/:userId/remove-all',
+  requirePermission(PERMISSIONS.STORES.MANAGE_MANAGERS),
+  validate(userIdParamSchema, 'params'),
+  removeAllStoresFromUser
 );
 
 export default router;

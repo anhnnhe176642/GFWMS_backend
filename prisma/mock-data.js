@@ -529,24 +529,16 @@ async function main() {
   
   const shelvesToCreate = [];
   for (const warehouse of allWarehouses) {
-    // Lấy chữ cái đầu của tên kho (bỏ dấu)
-    const warehouseCode = warehouse.name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .substring(0, 3)
-      .toUpperCase();
     
     for (let i = 0; i < CONFIG.SHELVES_PER_WAREHOUSE; i++) {
       const khuVuc = faker.helpers.arrayElement(khuVucKho);
-      const code = `${warehouseCode}-${khuVuc}${String(i + 1).padStart(3, '0')}`;
+      const code = `${khuVuc}${String(i + 1).padStart(3, '0')}`;
       
       if (!existingShelfCodes.has(code)) {
         shelvesToCreate.push({
           code,
           currentQuantity: 0, // Ban đầu kệ trống
-          maxQuantity: faker.number.int({ min: 40, max: 100 }),
+          maxQuantity: faker.number.int({ min: 50, max: 200 }),
           warehouseId: warehouse.id,
         });
         existingShelfCodes.add(code);
@@ -624,7 +616,7 @@ async function main() {
     for (const fabric of selectedFabrics) {
       const key = `${importFabric.id}-${fabric.id}`;
       if (!importItemKeys.has(key)) {
-        const quantity = faker.number.int({ min: 1, max: 100 });
+        const quantity = faker.number.int({ min: 1, max: 10 });
         const price = faker.number.float({ min: 30000, max: 400000, multipleOf: 1000 });
         totalPrice += quantity * price;
         
@@ -686,15 +678,16 @@ async function main() {
   
   // Theo dõi số lượng để cập nhật
   const shelfQuantityUpdates = new Map(); // shelfId -> tổng quantity cần thêm
-  const shelfMaxQuantityUpdates = new Map(); // shelfId -> maxQuantity mới (nếu cần tăng)
+  //const shelfMaxQuantityUpdates = new Map(); // shelfId -> maxQuantity mới (nếu cần tăng)
   const fabricQuantityUpdates = new Map(); // fabricId -> tổng quantity cần thêm
   const fabricShelvesToCreate = [];
   const fabricShelfKeys = new Set();
   const itemsToMarkStored = []; // Các import items cần đánh dấu STORED
   const importsToComplete = new Set(); // Các đơn nhập cần đánh dấu COMPLETED
   
-  // Để tạo nhiều trường hợp cùng vải + cùng kệ nhưng khác importId,
+  // Để tạo ít nhất 1 trường hợp cùng vải + cùng kệ nhưng khác importId,
   // ta sẽ ưu tiên chọn lại các kệ đã có vải đó từ các đơn nhập trước
+  // nếu tồn tại, sau đó mới chọn kệ ngẫu nhiên
   const fabricToShelvesMap = new Map(); // fabricId -> [shelfId, ...]
   
   for (const importItem of allImportItems) {
@@ -704,33 +697,35 @@ async function main() {
     if (warehouseShelves.length === 0) continue;
     
     let remainingQty = importItem.quantity;
-    let allocatedShelves = [];
     let allocations = []; // Lưu tạm các allocation trước khi commit
     
     // Ưu tiên chọn kệ đã có loại vải này (tạo case cùng vải + cùng kệ + khác importId)
     const existingShelvesForFabric = fabricToShelvesMap.get(importItem.fabricId) || [];
-    const candidateShelves = [
-      ...existingShelvesForFabric.filter(sId => 
-        warehouseShelves.some(ws => ws.id === sId)
-      ),
-      ...warehouseShelves.filter(s => 
-        !existingShelvesForFabric.includes(s.id)
-      ).map(s => s.id)
-    ];
+    const existingShelvesInWarehouse = existingShelvesForFabric.filter(sId => 
+      warehouseShelves.some(ws => ws.id === sId)
+    );
     
-    // Phân bổ vải vào các kệ có capacity còn lại
-    for (const shelfId of candidateShelves) {
-      if (remainingQty <= 0) break;
-      
-      const capacity = shelfRemainingCapacity.get(shelfId) || 0;
-      if (capacity <= 0) continue;
-      
+    // Nếu có kệ đã chứa loại vải này, thử chọn 1 kệ từ danh sách đó
+    let targetShelf = null;
+    if (existingShelvesInWarehouse.length > 0 && faker.datatype.boolean(0.6)) {
+      // 60% xác suất chọn kệ cũ (nếu có)
+      targetShelf = faker.helpers.arrayElement(existingShelvesInWarehouse);
+    }
+    
+    // Nếu không chọn kệ cũ hoặc không có kệ cũ, chọn kệ ngẫu nhiên
+    if (!targetShelf) {
+      targetShelf = faker.helpers.arrayElement(warehouseShelves);
+    }
+    
+    const capacity = shelfRemainingCapacity.get(targetShelf.id) || 0;
+    
+    if (capacity > 0) {
       const qtyToAllocate = Math.min(remainingQty, capacity);
-      const key = `${shelfId}-${importItem.fabricId}-${importItem.importFabricId}`;
+      const key = `${targetShelf.id}-${importItem.fabricId}-${importItem.importFabricId}`;
       
       if (!fabricShelfKeys.has(key)) {
         allocations.push({
-          shelfId,
+          shelfId: targetShelf.id,
           fabricId: importItem.fabricId,
           importId: importItem.importFabricId,
           quantity: qtyToAllocate,
@@ -738,56 +733,14 @@ async function main() {
         });
         
         // Tạm giảm capacity
-        shelfRemainingCapacity.set(shelfId, capacity - qtyToAllocate);
-        allocatedShelves.push(shelfId);
+        shelfRemainingCapacity.set(targetShelf.id, capacity - qtyToAllocate);
         remainingQty -= qtyToAllocate;
       }
     }
     
-    // Nếu vẫn còn số lượng chưa phân bổ được, tăng maxQuantity của một kệ
+    // Nếu vẫn còn số lượng chưa phân bổ được, bỏ qua (không mở rộng kệ)
     if (remainingQty > 0) {
-      // Chọn ngẫu nhiên một kệ trong kho để tăng maxQuantity
-      const availableShelves = candidateShelves.length > 0 
-        ? candidateShelves.filter(sId => warehouseShelves.some(ws => ws.id === sId))
-        : warehouseShelves.map(s => s.id);
-      
-      const targetShelfId = faker.helpers.arrayElement(availableShelves || [warehouseShelves[0]?.id]);
-      
-      if (targetShelfId) {
-        const currentMax = shelfMaxQuantity.get(targetShelfId);
-        const newMax = currentMax + remainingQty;
-        const shelf = shelfInfo.get(targetShelfId);
-        
-        console.log(`📦 Expanding shelf ${shelf?.code} maxQuantity: ${currentMax} -> ${newMax} to fit fabric ${importItem.fabricId}`);
-        
-        // Cập nhật maxQuantity và capacity
-        shelfMaxQuantity.set(targetShelfId, newMax);
-        const currentRemaining = shelfRemainingCapacity.get(targetShelfId) || 0;
-        shelfRemainingCapacity.set(targetShelfId, currentRemaining + remainingQty);
-        shelfMaxQuantityUpdates.set(targetShelfId, newMax);
-        
-        const key = `${targetShelfId}-${importItem.fabricId}-${importItem.importFabricId}`;
-        
-        // Kiểm tra xem đã có allocation cho kệ này chưa
-        const existingAllocation = allocations.find(a => a.shelfId === targetShelfId);
-        if (existingAllocation) {
-          // Cộng thêm số lượng vào allocation đã có
-          existingAllocation.quantity += remainingQty;
-        } else if (!fabricShelfKeys.has(key)) {
-          allocations.push({
-            shelfId: targetShelfId,
-            fabricId: importItem.fabricId,
-            importId: importItem.importFabricId,
-            quantity: remainingQty,
-            key
-          });
-          allocatedShelves.push(targetShelfId);
-        }
-        
-        // Trừ capacity đã sử dụng
-        shelfRemainingCapacity.set(targetShelfId, 0);
-        remainingQty = 0;
-      }
+      //console.log(`⚠️  Warning: Could not fully allocate fabric ${importItem.fabricId} from import ${importItem.importFabricId}. Remaining: ${remainingQty} (không mở rộng kệ)`);
     }
     
     // Chỉ commit allocations nếu đã phân bổ được 100% số lượng
@@ -810,9 +763,10 @@ async function main() {
         fabricQuantityUpdates.set(alloc.fabricId, currentFabricQty + alloc.quantity);
       }
       
-      // Lưu lại các kệ đã có vải này
+      // Lưu lại kệ đã xếp vải này
       const existing = fabricToShelvesMap.get(importItem.fabricId) || [];
-      fabricToShelvesMap.set(importItem.fabricId, [...new Set([...existing, ...allocatedShelves])]);
+      const newShelves = allocations.map(a => a.shelfId);
+      fabricToShelvesMap.set(importItem.fabricId, [...new Set([...existing, ...newShelves])]);
       
       // Đánh dấu item này cần update status
       itemsToMarkStored.push({
@@ -822,25 +776,7 @@ async function main() {
       
       // Đánh dấu đơn nhập này sẽ được hoàn thành
       importsToComplete.add(importItem.importFabricId);
-    } else if (remainingQty > 0) {
-      console.log(`⚠️  Warning: Could not fully allocate fabric ${importItem.fabricId} from import ${importItem.importFabricId}. Remaining: ${remainingQty}`);
     }
-  }
-  
-  // Cập nhật maxQuantity cho các kệ cần mở rộng
-  if (shelfMaxQuantityUpdates.size > 0) {
-    console.log('\n📝 Expanding shelf capacities...');
-    const maxQtyUpdates = [];
-    for (const [shelfId, newMaxQty] of shelfMaxQuantityUpdates.entries()) {
-      maxQtyUpdates.push(
-        prisma.shelf.update({
-          where: { id: shelfId },
-          data: { maxQuantity: newMaxQty },
-        })
-      );
-    }
-    await batchUpdate(maxQtyUpdates, 50, 'expanding shelves');
-    console.log(`✅ Expanded ${maxQtyUpdates.length} shelf capacities`);
   }
   
   // Tạo FabricShelf records
@@ -900,55 +836,38 @@ async function main() {
   // Cập nhật status của ImportFabric thành COMPLETED
   console.log('\n📝 Marking imports as COMPLETED...');
   const importStatusUpdates = [];
+  const importActivities = [];
   for (const importId of importsToComplete) {
+    const importRecord = allImportFabrics.find(i => i.id === importId);
     importStatusUpdates.push(
       prisma.importFabric.update({
         where: { id: importId },
         data: { status: 'COMPLETED' },
       })
     );
+    // Tạo activity cho import completion
+    if (importRecord) {
+      importActivities.push({
+        userId: importRecord.importer,
+        activityType: 'IMPORT_COMPLETED',
+        entityType: 'ImportFabric',
+        entityId: importId,
+        description: `Hoàn thành nhập kho đơn #${importId}`,
+        metadata: null,
+        createdAt: importRecord.importDate,
+      });
+    }
   }
   await batchUpdate(importStatusUpdates, 50, 'marking imports as COMPLETED');
   console.log(`✅ Marked ${importStatusUpdates.length} imports as COMPLETED`);
-
-  // 13. TẠO FABRIC STORES
-  console.log('\n📝 Preparing fabric-store relationships...');
-  const fabricStoresToCreate = [];
-  const fabricStoreKeys = new Set();
   
-  for (let i = 0; i < CONFIG.FABRIC_STORES; i++) {
-    const fabric = faker.helpers.arrayElement(allFabrics);
-    const storeId = faker.helpers.arrayElement(allStores).id;
-    const key = `${fabric.id}-${storeId}`;
-    
-    if (!fabricStoreKeys.has(key)) {
-      // Tính toán các giá trị cho fabric store
-      const uncutRolls = faker.number.int({ min: 2, max: 10 });
-      const cuttingRollMeters = faker.number.float({ min: 0, max: fabric.length, fractionDigits: 2 });
-      const quantity = uncutRolls + (cuttingRollMeters > 0 ? 1 : 0);
-      
-      // Tổng số mét = cuộn chưa cắt * độ dài cuộn + cuộn đang cắt dở
-      const totalMeters = (uncutRolls * fabric.length) + cuttingRollMeters;
-      
-      // Giá nhập giả định (70-90% giá bán)
-      const importPricePerMeter = fabric.sellingPrice ? fabric.sellingPrice * faker.number.float({ min: 0.7, max: 0.9, fractionDigits: 2 }) : 0;
-      const totalValue = totalMeters * importPricePerMeter;
-      
-      fabricStoresToCreate.push({
-        fabricId: fabric.id,
-        storeId,
-        quantity: quantity,
-        totalValue: totalValue,
-        totalMeters: totalMeters,
-        uncutRolls: uncutRolls,
-        cuttingRollMeters: cuttingRollMeters
-      });
-      fabricStoreKeys.add(key);
-    }
+  // Tạo activities cho imports
+  if (importActivities.length > 0) {
+    await prisma.userActivity.createMany({ data: importActivities, skipDuplicates: true });
+    console.log(`✅ Created ${importActivities.length} import activities`);
   }
-  
-  const fabricStoresResult = await prisma.fabricStore.createMany({ data: fabricStoresToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${fabricStoresResult.count} fabric-store relationships`);
+
+  // 13. FABRIC STORES sẽ được tạo/cập nhật dựa trên COMPLETED exports (xem phần 16)
 
   // 14. TẠO WAREHOUSE MANAGES
   console.log('\n📝 Preparing warehouse managers...');
@@ -977,125 +896,218 @@ async function main() {
   const warehouseManagesResult = await prisma.warehouseManage.createMany({ data: warehouseManagesToCreate, skipDuplicates: true });
   console.log(`✅ Created ${warehouseManagesResult.count} warehouse manager assignments`);
 
-  // 16. TẠO EXPORT FABRICS
-  console.log('\n📝 Preparing export fabric records...');
+  // 16. TẠO EXPORT FABRICS & ITEMS + CẬP NHẬT FABRIC STORES
+  console.log('\n📝 Preparing export fabric records and items...');
+  
+  // Theo dõi tổng số lượng xuất cho mỗi (fabric, store) pair - chỉ từ COMPLETED exports
+  const fabricStoreExportMap = new Map(); // `${fabricId}-${storeId}` -> { uncutRolls, cuttingRollMeters, totalMeters, totalValue }
+  
   const exportFabricsToCreate = [];
-  
-  // Tạo phiếu xuất PENDING (chưa duyệt)
-  for (let i = 0; i < Math.floor(CONFIG.EXPORT_FABRICS * 0.4); i++) {
-    const exportData = {
-      warehouseId: faker.helpers.arrayElement(allWarehouses).id,
-      storeId: faker.helpers.arrayElement(allStores).id,
-      createdById: faker.helpers.arrayElement(allUsers).id,
-      status: 'PENDING',
-      note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
-    };
-    exportFabricsToCreate.push(exportData);
-  }
-
-  // Tạo phiếu xuất APPROVED (đã duyệt)
-  for (let i = 0; i < Math.floor(CONFIG.EXPORT_FABRICS * 0.4); i++) {
-    const exportData = {
-      warehouseId: faker.helpers.arrayElement(allWarehouses).id,
-      storeId: faker.helpers.arrayElement(allStores).id,
-      createdById: faker.helpers.arrayElement(allUsers).id,
-      status: 'APPROVED',
-      receivedById: faker.helpers.arrayElement(allUsers).id,
-      note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
-    };
-    exportFabricsToCreate.push(exportData);
-  }
-
-  // Tạo phiếu xuất COMPLETED (hoàn thành)
-  for (let i = 0; i < Math.floor(CONFIG.EXPORT_FABRICS * 0.15); i++) {
-    const exportData = {
-      warehouseId: faker.helpers.arrayElement(allWarehouses).id,
-      storeId: faker.helpers.arrayElement(allStores).id,
-      createdById: faker.helpers.arrayElement(allUsers).id,
-      status: 'COMPLETED',
-      receivedById: faker.helpers.arrayElement(allUsers).id,
-      note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
-    };
-    exportFabricsToCreate.push(exportData);
-  }
-
-  // Tạo phiếu xuất REJECTED (từ chối)
-  for (let i = 0; i < Math.floor(CONFIG.EXPORT_FABRICS * 0.05); i++) {
-    const exportData = {
-      warehouseId: faker.helpers.arrayElement(allWarehouses).id,
-      storeId: faker.helpers.arrayElement(allStores).id,
-      createdById: faker.helpers.arrayElement(allUsers).id,
-      status: 'REJECTED',
-      receivedById: faker.helpers.arrayElement(allUsers).id,
-      note: faker.datatype.boolean(0.7) ? taoGhiChuXuatKho() : null,
-    };
-    exportFabricsToCreate.push(exportData);
-  }
-  
-  const exportFabricsResult = await prisma.exportFabric.createMany({ data: exportFabricsToCreate });
-  console.log(`✅ Created ${exportFabricsResult.count} export fabric records`);
-  const allExportFabrics = await prisma.exportFabric.findMany();
-
-  // 17. TẠO EXPORT FABRIC ITEMS
-  console.log('\n📝 Preparing export fabric items...');
   const exportItemsToCreate = [];
   
-  for (const exportFabric of allExportFabrics) {
-    const itemsCount = Math.min(CONFIG.EXPORT_ITEMS_PER_EXPORT, allFabrics.length);
-    const selectedFabrics = faker.helpers.arrayElements(allFabrics, itemsCount);
-    
-    if (exportFabric.status === 'PENDING') {
-      // PENDING: Chỉ có fabricId và quantity, price = null (chưa duyệt)
+  // Phân bố status: 40% PENDING, 35% APPROVED, 15% COMPLETED, 10% REJECTED
+  // Chỉ COMPLETED exports mới cập nhật FabricStore
+  const exportStatusDistribution = [
+    { status: 'PENDING', count: Math.floor(CONFIG.EXPORT_FABRICS * 0.4) },
+    { status: 'APPROVED', count: Math.floor(CONFIG.EXPORT_FABRICS * 0.35) },
+    { status: 'COMPLETED', count: Math.floor(CONFIG.EXPORT_FABRICS * 0.15) },
+    { status: 'REJECTED', count: Math.floor(CONFIG.EXPORT_FABRICS * 0.1) }
+  ];
+  
+  let exportFabricIndex = 0;
+  
+  for (const { status, count } of exportStatusDistribution) {
+    for (let i = 0; i < count; i++) {
+      const warehouse = faker.helpers.arrayElement(allWarehouses);
+      const store = faker.helpers.arrayElement(allStores);
+      const createdByUser = faker.helpers.arrayElement(allUsers);
+      
+      // receivedById: 
+      // - null nếu PENDING
+      // - set nếu APPROVED, COMPLETED hoặc REJECTED (người duyệt)
+      const receivedById = (status !== 'PENDING') ? faker.helpers.arrayElement(allUsers).id : null;
+      
+      const exportFabric = {
+        id: exportFabricIndex, // Tạm thời để tracking
+        warehouseId: warehouse.id,
+        storeId: store.id,
+        createdById: createdByUser.id,
+        status: status,
+        receivedById: receivedById,
+        note: faker.datatype.boolean(0.5) ? taoGhiChuXuatKho() : null,
+      };
+      
+      exportFabricsToCreate.push(exportFabric);
+      
+      // Tạo items cho phiếu xuất này
+      const itemsCount = Math.min(CONFIG.EXPORT_ITEMS_PER_EXPORT, allFabrics.length);
+      const selectedFabrics = faker.helpers.arrayElements(allFabrics, itemsCount);
+      
       for (const fabric of selectedFabrics) {
-        exportItemsToCreate.push({
-          exportFabricId: exportFabric.id,
-          fabricId: fabric.id,
-          quantity: faker.number.int({ min: 5, max: 50 }),
-          price: null, // Chưa duyệt nên chưa có giá
-        });
-      }
-    } else if (exportFabric.status === 'APPROVED' || exportFabric.status === 'COMPLETED') {
-      // APPROVED/COMPLETED: Tạo nhiều items cho cùng 1 fabric (giả lập nhiều batch với giá khác nhau)
-      for (const fabric of selectedFabrics) {
-        const totalQuantity = faker.number.int({ min: 20, max: 100 });
-        const batchCount = faker.number.int({ min: 1, max: 3 }); // 1-3 batch cho mỗi fabric
+        const quantity = faker.number.int({ min: 10, max: 100 });
         
-        let remainingQty = totalQuantity;
-        for (let i = 0; i < batchCount; i++) {
-          const isLastBatch = i === batchCount - 1;
-          const batchQty = isLastBatch ? remainingQty : faker.number.int({ min: 5, max: Math.floor(remainingQty / (batchCount - i)) });
+        // Giá tùy theo status:
+        // - PENDING: null (chưa duyệt)
+        // - APPROVED/COMPLETED/REJECTED: lấy từ import items (giá nhập)
+        let price = null;
+        if (status !== 'PENDING') {
+          const fabricImportItems = allImportItems.filter(item => item.fabricId === fabric.id);
+          if (fabricImportItems.length > 0) {
+            price = faker.helpers.arrayElement(fabricImportItems).price;
+          } else {
+            price = fabric.sellingPrice || 100000;
+          }
+        }
+        
+        exportItemsToCreate.push({
+          exportFabricId: exportFabricIndex,
+          fabricId: fabric.id,
+          quantity: quantity,
+          price: price,
+        });
+        
+        // Chỉ cộng vào FabricStore nếu phiếu COMPLETED (đã giao thành công)
+        if (status === 'COMPLETED') {
+          const key = `${fabric.id}-${store.id}`;
           
-          // Lấy giá từ ImportFabricItem ngẫu nhiên
-          const randomImportItem = faker.helpers.arrayElement(
-            allImportItems.filter(item => item.fabricId === fabric.id)
-          );
-          const importPrice = randomImportItem?.price || faker.number.float({ min: 40000, max: 500000, multipleOf: 1000 });
+          // Theo logic trong exportFabric.service.js completeExportFabric():
+          // - uncutRolls = quantity (số cuộn vốn = số lượng)
+          // - totalMeters = quantity * fabric.length
+          // - totalValue = quantity * price (giá nhập)
+          const uncutRolls = quantity;
+          const totalMeters = quantity * (fabric.length || 1);
+          const totalValue = quantity * (price || 0);
           
-          exportItemsToCreate.push({
-            exportFabricId: exportFabric.id,
-            fabricId: fabric.id,
-            quantity: batchQty,
-            price: importPrice, // Giá nhập từ ImportFabricItem
-          });
+          if (!fabricStoreExportMap.has(key)) {
+            fabricStoreExportMap.set(key, {
+              uncutRolls: 0,
+              cuttingRollMeters: 0,
+              totalMeters: 0,
+              totalValue: 0
+            });
+          }
           
-          remainingQty -= batchQty;
+          const current = fabricStoreExportMap.get(key);
+          current.uncutRolls += uncutRolls;
+          current.totalMeters += totalMeters;
+          current.totalValue += totalValue;
+          // cuttingRollMeters vẫn = 0 khi nhập (chỉ tăng khi cắt)
         }
       }
-    } else if (exportFabric.status === 'REJECTED') {
-      // REJECTED: Có thể có hoặc không có items (không quan trọng vì đã từ chối)
-      for (const fabric of selectedFabrics) {
-        exportItemsToCreate.push({
-          exportFabricId: exportFabric.id,
-          fabricId: fabric.id,
-          quantity: faker.number.int({ min: 5, max: 50 }),
-          price: null,
-        });
-      }
+      
+      exportFabricIndex++;
     }
+  }
+  
+  // Loại bỏ field id tạm thời trước khi tạo
+  // eslint-disable-next-line no-unused-vars
+  const exportFabricsCreateData = exportFabricsToCreate.map(({ id, ...rest }) => rest);
+  
+  const exportFabricsResult = await prisma.exportFabric.createMany({ data: exportFabricsCreateData });
+  console.log(`✅ Created ${exportFabricsResult.count} export fabric records`);
+  
+  // Lấy ID thực của các export fabrics vừa tạo để update export items
+  const allExportFabrics = await prisma.exportFabric.findMany({ orderBy: { id: 'asc' } });
+  
+  // Cập nhật exportFabricId trong exportItems với ID thực
+  for (let i = 0; i < exportItemsToCreate.length; i++) {
+    const item = exportItemsToCreate[i];
+    item.exportFabricId = allExportFabrics[item.exportFabricId]?.id || allExportFabrics[0]?.id;
   }
   
   const exportItemsResult = await prisma.exportFabricItem.createMany({ data: exportItemsToCreate });
   console.log(`✅ Created ${exportItemsResult.count} export fabric items`);
+  
+  // Tạo UserActivity cho exports ngay sau khi tạo
+  console.log('\n📝 Creating user activities for exports...');
+  const exportActivities = [];
+  for (const exportFabric of allExportFabrics) {
+    // Activity cho người tạo export
+    exportActivities.push({
+      userId: exportFabric.createdById,
+      activityType: 'EXPORT_CREATED',
+      entityType: 'ExportFabric',
+      entityId: exportFabric.id,
+      description: `Tạo phiếu xuất vải #${exportFabric.id}`,
+      metadata: null,
+      createdAt: exportFabric.createdAt,
+    });
+    
+    // Activity cho người nhận (nếu export đã COMPLETED)
+    if (exportFabric.status === 'COMPLETED' && exportFabric.receivedById) {
+      exportActivities.push({
+        userId: exportFabric.receivedById,
+        activityType: 'EXPORT_COMPLETED',
+        entityType: 'ExportFabric',
+        entityId: exportFabric.id,
+        description: `Xác nhận nhận phiếu xuất vải #${exportFabric.id}`,
+        metadata: null,
+        createdAt: exportFabric.updatedAt,
+      });
+    }
+  }
+  if (exportActivities.length > 0) {
+    await prisma.userActivity.createMany({ data: exportActivities, skipDuplicates: true });
+    console.log(`✅ Created ${exportActivities.length} export activities`);
+  }
+  
+  // Cập nhật FabricStore dựa trên các phiếu xuất COMPLETED
+  console.log('\n📝 Updating fabric stores from completed exports...');
+  const fabricStoreOps = [];
+  
+  for (const [key, exportData] of fabricStoreExportMap.entries()) {
+    const [fabricId, storeId] = key.split('-').map(Number);
+    
+    // Kiểm tra FabricStore tồn tại
+    const existing = await prisma.fabricStore.findUnique({
+      where: {
+        fabricId_storeId: {
+          fabricId: parseInt(fabricId),
+          storeId: parseInt(storeId)
+        }
+      }
+    });
+    
+    if (existing) {
+      // Cập nhật (accumulate values)
+      fabricStoreOps.push(
+        prisma.fabricStore.update({
+          where: {
+            fabricId_storeId: {
+              fabricId: parseInt(fabricId),
+              storeId: parseInt(storeId)
+            }
+          },
+          data: {
+            uncutRolls: { increment: exportData.uncutRolls },
+            totalMeters: { increment: exportData.totalMeters },
+            totalValue: { increment: exportData.totalValue }
+          }
+        })
+      );
+    } else {
+      // Tạo mới
+      fabricStoreOps.push(
+        prisma.fabricStore.create({
+          data: {
+            fabricId: parseInt(fabricId),
+            storeId: parseInt(storeId),
+            uncutRolls: exportData.uncutRolls,
+            cuttingRollMeters: 0, // Chỉ = 0 khi mới nhập
+            totalMeters: exportData.totalMeters,
+            totalValue: exportData.totalValue
+          }
+        })
+      );
+    }
+  }
+  
+  if (fabricStoreOps.length > 0) {
+    await Promise.all(fabricStoreOps);
+    console.log(`✅ Updated/Created ${fabricStoreOps.length} fabric-store records from completed exports`);
+  } else {
+    console.log(`⚠️  No completed exports to populate fabric stores`);
+  }
 
   // 18. TẠO ORDERS
   console.log('\n📝 Preparing orders...');
@@ -1120,6 +1132,20 @@ async function main() {
   
   // Lấy tất cả orders vừa tạo
   const allOrders = await prisma.order.findMany({ orderBy: { id: 'asc' } });
+  
+  // Tạo UserActivity cho ORDER_CREATED ngay sau khi tạo orders
+  console.log('\n📝 Creating user activities for orders...');
+  const orderActivities = allOrders.map(order => ({
+    userId: order.userId,
+    activityType: 'ORDER_CREATED',
+    entityType: 'Order',
+    entityId: order.id,
+    description: `Tạo đơn hàng #${order.id}`,
+    metadata: null,
+    createdAt: order.orderDate,
+  }));
+  await prisma.userActivity.createMany({ data: orderActivities, skipDuplicates: true });
+  console.log(`✅ Created ${orderActivities.length} order activities`);
 
   // 19. TẠO ORDER ITEMS
   console.log('\n📝 Preparing order items...');
@@ -1261,10 +1287,41 @@ async function main() {
   
   const paymentsResult = await prisma.payment.createMany({ data: paymentsToCreate, skipDuplicates: true });
   console.log(`✅ Created ${paymentsResult.count} payments`);
+  
+  // Tạo UserActivity cho payments ngay sau khi tạo
+  console.log('\n📝 Creating user activities for payments...');
+  const allPaymentsWithInvoices = await prisma.payment.findMany({
+    include: {
+      invoice: {
+        include: {
+          order: true
+        }
+      }
+    }
+  });
+  
+  const paymentActivities = [];
+  for (const payment of allPaymentsWithInvoices) {
+    if (payment.invoice && payment.invoice.order && payment.status === 'SUCCESS') {
+      paymentActivities.push({
+        userId: payment.invoice.order.userId,
+        activityType: 'PAYMENT_MADE',
+        entityType: 'Payment',
+        entityId: payment.id,
+        description: `Thanh toán ${payment.amount.toLocaleString()} VNĐ cho đơn hàng #${payment.invoice.orderId}`,
+        metadata: null,
+        createdAt: payment.paymentDate,
+      });
+    }
+  }
+  if (paymentActivities.length > 0) {
+    await prisma.userActivity.createMany({ data: paymentActivities, skipDuplicates: true });
+    console.log(`✅ Created ${paymentActivities.length} payment activities`);
+  }
 
   // Lấy tổng số cho các bảng relationships
   console.log('\n📊 Counting total records...');
-  const [totalFabricShelves, totalFabricStores, totalImportFabrics, totalImportItems, totalExportFabrics, totalExportItems, totalWarehouseManages, totalOrders, totalOrderItems, totalInvoices, totalPayments] = await Promise.all([
+  const [totalFabricShelves, totalFabricStores, totalImportFabrics, totalImportItems, totalExportFabrics, totalExportItems, totalWarehouseManages, totalOrders, totalOrderItems, totalInvoices, totalPayments, totalActivities] = await Promise.all([
     prisma.fabricShelf.count(),
     prisma.fabricStore.count(),
     prisma.importFabric.count(),
@@ -1276,6 +1333,7 @@ async function main() {
     prisma.orderItem.count(),
     prisma.invoice.count(),
     prisma.payment.count(),
+    prisma.userActivity.count(),
   ]);
 
   // ANSI color codes
@@ -1302,16 +1360,17 @@ async function main() {
   console.log(`   - Shelves: ${colors.green}${shelvesResult.count} new${colors.reset} / ${colors.cyan}${allShelves.length} total${colors.reset}`);
   console.log(`   - Fabrics: ${colors.green}${fabricsResult.count} new${colors.reset} / ${colors.cyan}${allFabrics.length} total${colors.reset}`);
   console.log(`   - Fabric-Shelf Relationships: ${colors.green}${fabricShelvesResult.count} new${colors.reset} / ${colors.cyan}${totalFabricShelves} total${colors.reset}`);
-  console.log(`   - Fabric-Store Relationships: ${colors.green}${fabricStoresResult.count} new${colors.reset} / ${colors.cyan}${totalFabricStores} total${colors.reset}`);
   console.log(`   - Import Fabric Records: ${colors.green}${importFabricsResult.count} new${colors.reset} / ${colors.cyan}${totalImportFabrics} total${colors.reset}`);
   console.log(`   - Import Fabric Items: ${colors.green}${importItemsResult.count} new${colors.reset} / ${colors.cyan}${totalImportItems} total${colors.reset}`);
   console.log(`   - Export Fabric Records: ${colors.green}${exportFabricsResult.count} new${colors.reset} / ${colors.cyan}${totalExportFabrics} total${colors.reset}`);
   console.log(`   - Export Fabric Items: ${colors.green}${exportItemsResult.count} new${colors.reset} / ${colors.cyan}${totalExportItems} total${colors.reset}`);
+  console.log(`   - Fabric-Store Relationships: ${colors.cyan}${totalFabricStores} total${colors.reset} (from completed exports)`);
   console.log(`   - Warehouse Managers: ${colors.green}${warehouseManagesResult.count} new${colors.reset} / ${colors.cyan}${totalWarehouseManages} total${colors.reset}`);
   console.log(`   - Orders: ${colors.green}${ordersResult.count} new${colors.reset} / ${colors.cyan}${totalOrders} total${colors.reset}`);
   console.log(`   - Order Items: ${colors.green}${orderItemsResult.count} new${colors.reset} / ${colors.cyan}${totalOrderItems} total${colors.reset}`);
   console.log(`   - Invoices: ${colors.green}${invoicesResult.count} new${colors.reset} / ${colors.cyan}${totalInvoices} total${colors.reset}`);
   console.log(`   - Payments: ${colors.green}${paymentsResult.count} new${colors.reset} / ${colors.cyan}${totalPayments} total${colors.reset}`);
+  console.log(`   - User Activities: ${colors.cyan}${totalActivities} total${colors.reset}`);
   console.log('\n' + '='.repeat(60) + '\n');
 }
 

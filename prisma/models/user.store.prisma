@@ -1,0 +1,14 @@
+model UserStore {
+  id        Int       @id @default(autoincrement())
+  userId    String    @db.VarChar(36)
+  storeId   Int
+  
+  user      User      @relation("UserManagesStores", fields: [userId], references: [id], onDelete: Cascade)
+  store     Store     @relation("StoreManagers", fields: [storeId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, storeId])
+  @@map("user_stores")
+}

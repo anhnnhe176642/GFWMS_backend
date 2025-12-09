@@ -1,5 +1,6 @@
 import * as paymentRepository from '../repositories/payment.repository.js';
 import payOSService from './payos.service.js';
+import { userActivityService } from './userActivity.service.js';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 import QRCode from 'qrcode';
@@ -522,6 +523,15 @@ const processInvoicePaymentSuccess = async (invoice, transactionId, amount, webh
           }
         });
       }
+
+      // 6. Log user activity - PAYMENT_MADE
+      await userActivityService.logActivity(
+        invoice.order.userId,
+        'PAYMENT_MADE',
+        'Payment',
+        payment.id,
+        `Thanh toán ${amount.toLocaleString('vi-VN')} VNĐ cho hóa đơn #${invoice.id}`
+      );
     });
     
   } catch (error) {
@@ -538,7 +548,7 @@ const processInvoicePaymentSuccess = async (invoice, transactionId, amount, webh
 const processCreditInvoicePaymentSuccess = async (creditInvoice, transactionId, amount, webhookData) => {
   await prisma.$transaction(async (tx) => {
     // 1. Upsert Payment
-    await tx.payment. upsert({
+    const payment = await tx.payment. upsert({
       where: { transactionId },
       create: {
         creditInvoiceId: creditInvoice.id,
@@ -593,6 +603,15 @@ const processCreditInvoicePaymentSuccess = async (creditInvoice, transactionId, 
         creditUsed: { decrement: creditInvoice.totalCreditAmount }  // ✅ TRỪ creditUsed
       }
     });
+
+    // 6. Log user activity - PAYMENT_MADE for Credit Invoice
+    await userActivityService.logActivity(
+      creditInvoice.credit.userId,
+      'PAYMENT_MADE',
+      'Payment',
+      payment.id,
+      `Thanh toán ${amount.toLocaleString('vi-VN')} VNĐ cho hóa đơn credit tháng`
+    );
   });
 };
 

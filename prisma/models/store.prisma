@@ -8,6 +8,6 @@ model Store {
     fabrics     FabricStore[]
     exportFabrics ExportFabric[]
 
-    users         User[]   @relation("UserWorkAtStore")
+    managers      UserStore[]  @relation("StoreManagers")
     orders        Order[]   @relation("StoreOrders")
 }
