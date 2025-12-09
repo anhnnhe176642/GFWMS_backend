@@ -60,6 +60,7 @@ export class InvoiceRepository {
         select: {
           id: true,
           quantity: true,
+          saleUnit: true,
           price: true,
           createdAt: true,
           updatedAt: true,
@@ -94,7 +95,7 @@ export class InvoiceRepository {
   paidAmount: true,
   payment: { select: { id: true, paymentDate: true, amount: true, paymentMethod: true, transactionId: true, notes: true } },
   creditInvoiceId: true,
-  creditInvoice: { select: { id: true, totalAmount: true, invoiceDate: true } },
+  creditInvoice: { select: { id: true, totalCreditAmount: true, dueDate: true } },
   createdAt: true,
   updatedAt: true
 };

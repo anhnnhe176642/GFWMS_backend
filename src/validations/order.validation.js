@@ -93,7 +93,16 @@ export const createOfflineOrderSchema = Joi.object({
       'any.required': 'Phương thức thanh toán là bắt buộc'
     }),
   
-  payExcessAmount: Joi.boolean().optional(),
+  storeId: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'ID cửa hàng phải là số',
+      'number.positive': 'ID cửa hàng phải lớn hơn 0',
+      'number.integer': 'ID cửa hàng phải là số nguyên',
+      'any.required': 'ID cửa hàng là bắt buộc'
+    }),
   
   notes: Joi.string()
     .max(500)

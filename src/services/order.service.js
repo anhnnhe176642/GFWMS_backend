@@ -1,6 +1,7 @@
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 import { orderRepository } from '../repositories/order.repository.js';
 import { userActivityService } from './userActivity.service.js';
+import { storeAccessService } from './storeAccess.service.js';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -473,22 +474,19 @@ export const confirmPayment = async (orderId) => {
 //TẠO ĐƠN HÀNG OFFLINE (Staff)
 
 export const createOfflineOrder = async (orderData, staffId) => {
-  const { customerPhone, orderItems, paymentType, payExcessAmount, notes } = orderData;
+  const { customerPhone, orderItems, paymentType, notes, storeId } = orderData;
 
   const staff = await orderRepository.findUserById(staffId);
   if (!staff) {
     throw new NotFoundError('Không tìm thấy nhân viên');
   }
   
-  if (!staff.storeId) {
-    throw new BadRequestError('Nhân viên chưa được phân công cửa hàng');
-  }
-  
-  const storeId = staff.storeId;
+  // Kiểm tra quyền quản lý cửa hàng
+  await storeAccessService.ensureUserCanManageStore(staffId, storeId);
 
   const customer = await orderRepository.findUserByPhone(customerPhone);
   if (!customer) {
-    throw new NotFoundError(`Không tìm thấy khách hàng với SĐT ${customerPhone}`);
+    throw new NotFoundError(`Không tìm thấy khách hàng với SĐT ${customerPhone}`,'customerPhone');
   }
 
   const fabricIds = [...new Set(orderItems.map(item => item.fabricId))];
@@ -501,7 +499,7 @@ export const createOfflineOrder = async (orderData, staffId) => {
   if (paymentType === 'CASH') {
     return await createOfflineCashOrder(customer.id, staffId, processedItems, totalAmount, customerPhone, notes, storeId);
   } else {
-    return await createOfflineCreditOrder(customer, staffId, processedItems, totalAmount, customerPhone, payExcessAmount, notes, storeId);
+    return await createOfflineCreditOrder(customer, staffId, processedItems, totalAmount, customerPhone, notes, storeId);
   }
 };
 
@@ -544,7 +542,7 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
 };
 
 // Offline - CREDIT
-const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, customerPhone, payExcessAmount, notes, storeId) => {
+const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, customerPhone, notes, storeId) => {
   if (!customer.creditRegistration || customer.creditRegistration.status !== 'APPROVED') {
     throw new BadRequestError('Khách hàng không được phép mua nợ');
   }
@@ -552,9 +550,7 @@ const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, c
   const { creditAmount, excessAmount, requiresPayment } = calculateCreditSplit(totalAmount, creditLimit, creditUsed );
 
   if (requiresPayment) {
-    if (!payExcessAmount) {
-      throw new BadRequestError(`Đơn hàng vượt hạn mức ${excessAmount.toLocaleString('vi-VN')}đ. Khách cần thanh toán phần vượt.`);
-    }
+    // Tự động xử lý: khách sẽ thanh toán phần vượt hạn mức ngay
     return await createOfflineCreditOrderWithExcess(customer.id, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId);
   } else {
     return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount,creditAmount, customerPhone, notes, storeId);

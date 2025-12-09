@@ -448,13 +448,17 @@ export class OrderRepository {
         phone: true,
         email: true,
         role: true,
-        storeId: true,
-        store: {
+        managedStores: {
           select: {
-            id: true,
-            name: true,
-            address: true,
-            isActive: true
+            storeId: true,
+            store: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                isActive: true
+              }
+            }
           }
         }
       }

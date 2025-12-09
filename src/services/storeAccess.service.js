@@ -61,13 +61,18 @@ export class StoreAccessService {
 
   /**
    * Ensure user có quyền quản lý store (throw error nếu không)
+   * Kiểm tra: user quản lý cửa hàng cụ thể HOẶC có permission quản lý tất cả cửa hàng
    * @param {string} userId
    * @param {number} storeId
    * @throws {AppError}
    */
   async ensureUserCanManageStore(userId, storeId) {
-    const canManage = await this.canUserManageStore(userId, storeId);
-    if (!canManage) {
+    const [canManage, canManageAll] = await Promise.all([
+      this.canUserManageStore(userId, storeId),
+      this.isStoreManagerAll(userId)
+    ]);
+    
+    if (!canManage && !canManageAll) {
       throw new AppError('Bạn không có quyền quản lý cửa hàng này', 403);
     }
   }
