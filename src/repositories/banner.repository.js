@@ -10,6 +10,7 @@ class BannerRepository {
     id: true,
     title: true,
     imageUrl: true,
+    imagePublicId: true,
     description: true,
     startDate: true,
     endDate: true,

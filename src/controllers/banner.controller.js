@@ -87,3 +87,20 @@ export const deleteBanner = async (req, res, next) => {
     next(error);
   }
 };
+
+/**  Upload hoặc cập nhật ảnh Banner */
+export const uploadBannerImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const imageFile = req.file;
+
+    const data = await bannerService.uploadBannerImage(id, imageFile);
+
+    res.json({
+      message: 'Cập nhật ảnh banner thành công',
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
