@@ -5,6 +5,7 @@ import { exportFabricRepository } from '../repositories/exportFabric.repository.
 import { fabricRepository } from '../repositories/fabric.repository.js';
 import { warehouseRepository } from '../repositories/warehouse.repository.js';
 import { storeRepository } from '../repositories/store.repository.js';
+import { fabricShelfRepository } from '../repositories/fabricShelf.repository.js';
 import fabricStoreRepository from '../repositories/fabricStore.repository.js';
 import { userActivityService } from './userActivity.service.js';
 
@@ -28,6 +29,38 @@ export const getExportFabricDetailForStore = async (id) => {
 
   // Không trả thông tin kệ
   return exportFabric;
+};
+
+/** Lấy chi tiết phiếu xuất vải cho nhân viên kho, kèm gợi ý kệ */
+export const getExportFabricDetailForWarehouse = async (id) => {
+  const exportFabric = await exportFabricRepository.findById(id);
+
+  if (!exportFabric) throw new NotFoundError('Phiếu xuất vải không tồn tại');
+
+  const warehouseId = exportFabric.warehouseId;
+
+  const itemsWithShelfSuggestions = await Promise.all(
+    exportFabric.exportItems.map(async (item) => {
+      const shelves = await fabricShelfRepository.findByFabricIdInWarehouse(
+        item.fabricId,
+        warehouseId
+      );
+
+      return {
+        ...item,
+        shelfSuggestions: shelves.map(s => ({
+          shelfId: s.shelf.id,
+          shelfCode: s.shelf.code,
+          availableQuantity: s.quantity
+        }))
+      };
+    })
+  );
+
+  return {
+    ...exportFabric,
+    exportItems: itemsWithShelfSuggestions
+  };
 };
 
 

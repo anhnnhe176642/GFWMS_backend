@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getAllExportFabrics,
+  getExportFabricDetailForWarehouse,
   getExportFabricDetailForStore,
   createExportFabric,
   updateExportFabricStatus,
@@ -636,7 +637,79 @@ router.get(
   getExportFabricDetailForStore
 );
 
-
+/**
+ * @swagger
+ * /export-fabrics/warehouse/{id}:
+ *   get:
+ *     summary: Lấy chi tiết phiếu xuất vải cho kho (có gợi ý kệ)
+ *     tags: [ExportFabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của phiếu xuất vải
+ *     responses:
+ *       200:
+ *         description: Lấy chi tiết phiếu xuất thành công, kèm gợi ý kệ cho từng fabric
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin phiếu xuất vải cho kho thành công
+ *                 exportFabric:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     warehouseId:
+ *                       type: integer
+ *                     storeId:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, APPROVED, REJECTED, COMPLETED]
+ *                     exportItems:
+ *                       type: array
+ *                       description: Danh sách fabric với gợi ý kệ (shelfSuggestions)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                           quantity:
+ *                             type: integer
+ *                           price:
+ *                             type: number
+ *                           shelfSuggestions:
+ *                             type: array
+ *                             description: Danh sách kệ trong kho chứa fabric này
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 shelfId:
+ *                                   type: integer
+ *                                 shelfCode:
+ *                                   type: string
+ *                                 availableQuantity:
+ *                                   type: integer
+ *                                   description: Số lượng hiện có trên kệ
+ *       404:
+ *         description: Không tìm thấy phiếu xuất vải
+ */
+router.get(
+  '/warehouse/:id',
+  authenticateToken,
+  requirePermission(PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL_WAREHOUSE),
+  validate(exportFabricIdParamSchema, 'params'),
+  getExportFabricDetailForWarehouse
+);
 
 /**
  * @swagger
