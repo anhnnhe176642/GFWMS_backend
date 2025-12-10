@@ -70,3 +70,33 @@ export const updateRole = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Generate unique role name based on input
+ */
+export const generateUniqueName = async (req, res, next) => {
+  try {
+    const { input } = req.body;
+    
+    if (!input) {
+      return res.status(400).json({
+        message: 'Dữ liệu không hợp lệ',
+        errors: [
+          {
+            field: 'input',
+            message: 'Input là bắt buộc'
+          }
+        ]
+      });
+    }
+
+    const result = await roleService.generateUniqueName(input);
+    
+    res.json({
+      message: 'Tạo tên role duy nhất thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

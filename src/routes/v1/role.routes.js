@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllRoles, createRole, getRoleByName, deleteRole, updateRole } from '../../controllers/role.controller.js';
+import { getAllRoles, createRole, getRoleByName, deleteRole, updateRole, generateUniqueName } from '../../controllers/role.controller.js';
 import { 
   assignStoreToUser, 
   removeStoreFromUser, 
@@ -160,6 +160,80 @@ router.post('/',
   requirePermission(PERMISSIONS.ROLES.CREATE),
   validate(createRoleSchema, 'body'),
   createRole
+);
+
+/**
+ * @swagger
+ * /roles/generate-name:
+ *   post:
+ *     summary: Generate unique role name based on input
+ *     tags: [Roles]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - input
+ *             properties:
+ *               input:
+ *                 type: string
+ *                 description: Input string to generate role name from (e.g., "Manager Store", "Quản Lý Kho")
+ *                 example: Manager Store
+ *     responses:
+ *       200:
+ *         description: Unique role name generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - message
+ *                 - data
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Tạo tên role duy nhất thành công
+ *                 data:
+ *                   type: object
+ *                   required:
+ *                     - name
+ *                     - suggestion
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                       description: Generated unique role name
+ *                       example: manager_store
+ *                     suggestion:
+ *                       type: string
+ *                       description: Suggested name (same as name)
+ *                       example: manager_store
+ *                     baseName:
+ *                       type: string
+ *                       description: Original processed input
+ *                       example: manager_store
+ *       400:
+ *         description: Invalid input
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 errors:
+ *                   type: array
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.post('/generate-name',
+  requirePermission(PERMISSIONS.ROLES.CREATE),
+  generateUniqueName
 );
 
 /**

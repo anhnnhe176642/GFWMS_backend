@@ -47,6 +47,7 @@
     "sharp": "^0.34.5",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
+    "unidecode": "^1.1.0",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
