@@ -10,7 +10,12 @@ class FabricStoreController {
       const { storeId } = req.params;
 
       const queryParams = buildQueryParams(req.query, {
-        filterFields: []
+        filterFields: ['glossId', 'categoryId', 'colorId', 'supplierId'],
+        dateRangeConfig: {
+          fromField: 'createdFrom',
+          toField: 'createdTo',
+          targetField: 'createdAt'
+        }
       });
 
       const result = await fabricStoreService.getStoreFabrics(

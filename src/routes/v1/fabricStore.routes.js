@@ -54,12 +54,50 @@ const router = express.Router();
  *           type: string
  *         description: Tìm kiếm theo tên loại vải, màu, độ bóng, hoặc nhà cung cấp
  *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID loại vải (hỗ trợ nhiều giá trị, cách nhau bởi dấu phẩy)
+ *         example: "1,2,3"
+ *       - in: query
+ *         name: colorId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID màu vải (hỗ trợ nhiều giá trị, cách nhau bởi dấu phẩy)
+ *         example: "MAU001,MAU002"
+ *       - in: query
+ *         name: glossId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID độ bóng (hỗ trợ nhiều giá trị, cách nhau bởi dấu phẩy)
+ *         example: "1,2"
+ *       - in: query
+ *         name: supplierId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID nhà cung cấp (hỗ trợ nhiều giá trị, cách nhau bởi dấu phẩy)
+ *         example: "1,2,3"
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Lọc từ ngày (định dạng YYYY-MM-DD)
+ *         example: "2023-01-01"
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Lọc đến ngày (định dạng YYYY-MM-DD)
+ *         example: "2023-12-31"
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *           enum: [updatedAt, createdAt, totalValue, totalMeters, uncutRolls]
+ *           enum: [updatedAt, createdAt, totalValue, totalMeters, uncutRolls, cuttingRollMeters, fabric.category.name, fabric.color.name, fabric.gloss.description, fabric.supplier.name, store.name, fabric.sellingPrice, fabric.category.sellingPricePerMeter, fabric.category.sellingPricePerRoll]
  *           default: updatedAt
- *         description: Trường để sắp xếp
+ *         description: Trường để sắp xếp (hỗ trợ nested fields từ related data)
  *       - in: query
  *         name: order
  *         schema:

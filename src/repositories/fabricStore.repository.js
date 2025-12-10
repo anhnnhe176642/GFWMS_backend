@@ -105,9 +105,17 @@ class FabricStoreRepository {
     
     const baseWhere = { storeId };
     
+    const filterMapping = {
+      glossId: 'fabric.glossId',
+      categoryId: 'fabric.categoryId',
+      colorId: 'fabric.colorId',
+      supplierId: 'fabric.supplierId'
+    };
+    
     const filterWhere = buildWhereClause(
       { search, ...filters },
-      searchableFields
+      searchableFields,
+      filterMapping
     );
 
     const where = {

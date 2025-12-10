@@ -2,8 +2,52 @@ import Joi from 'joi';
 import {
   querySchema,
   createSortBySchema,
-  sortOrderSchema
+  sortOrderSchema,
+  createMultiValueFilterSchema,
+  pageSchema,
+  limitSchema,
+  searchSchema,
+  dateFromSchema,
+  dateToSchema
 } from './common.validation.js';
+
+/**
+ * ============================
+ * FIELD VALIDATIONS
+ * ============================
+ */
+
+const fabricGlossIdSchema = Joi.number()
+  .integer()
+  .positive()
+  .messages({
+    'number.base': 'ID độ bóng phải là số',
+    'number.positive': 'ID độ bóng phải lớn hơn 0'
+  });
+
+const fabricCategoryIdSchema = Joi.number()
+  .integer()
+  .positive()
+  .messages({
+    'number.base': 'ID loại vải phải là số',
+    'number.positive': 'ID loại vải phải lớn hơn 0'
+  });
+
+const fabricColorIdSchema = Joi.string()
+  .max(50)
+  .trim()
+  .messages({
+    'string.base': 'ID màu vải phải là chuỗi',
+    'string.max': 'ID màu vải không được vượt quá 50 ký tự'
+  });
+
+const fabricSupplierIdSchema = Joi.number()
+  .integer()
+  .positive()
+  .messages({
+    'number.base': 'ID nhà cung cấp phải là số',
+    'number.positive': 'ID nhà cung cấp phải lớn hơn 0'
+  });
 
 /**
  * ============================
@@ -110,6 +154,7 @@ export const fabricStoreParamsSchema = Joi.object({
 
 /**
  * Allowed fields for sorting fabric store
+ * Support nested fields for related data (fabric category, color, gloss, supplier, store, prices)
  */
 const allowedFabricStoreSortFields = [
   'updatedAt', 
@@ -117,13 +162,35 @@ const allowedFabricStoreSortFields = [
   'totalValue', 
   'totalMeters', 
   'uncutRolls',
-  'quantity'
+  'cuttingRollMeters',
+  'fabric.category.name',
+  'fabric.color.name',
+  'fabric.gloss.description',
+  'fabric.supplier.name',
+  'store.name',
+  'fabric.sellingPrice',
+  'fabric.category.sellingPricePerMeter',
+  'fabric.category.sellingPricePerRoll'
 ];
 
 /**
  * Advanced query schema cho fabric store với search, filter, sort
  */
 export const fabricStoreQuerySchema = querySchema.keys({
+  page: pageSchema,
+  limit: limitSchema,
+  search: searchSchema.optional(),
+  
   sortBy: createSortBySchema(allowedFabricStoreSortFields),
-  order: sortOrderSchema.optional()
+  order: sortOrderSchema.optional(),
+
+  glossId: createMultiValueFilterSchema(fabricGlossIdSchema, 'ID độ bóng'),
+  categoryId: createMultiValueFilterSchema(fabricCategoryIdSchema, 'ID loại vải'),
+  colorId: createMultiValueFilterSchema(fabricColorIdSchema, 'ID màu vải'),
+  supplierId: createMultiValueFilterSchema(fabricSupplierIdSchema, 'ID nhà cung cấp'),
+
+  createdFrom: dateFromSchema,
+  createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({
+    'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu'
+  })
 });
