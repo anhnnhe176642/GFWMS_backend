@@ -81,7 +81,8 @@ export const PERMISSIONS = {
     VIEW_AUDIT_LOGS:     { key: 'system:view_audit_logs',     description: 'Xem nhật ký kiểm tra hệ thống' },
     MANAGE_PERMISSIONS:  { key: 'system:manage_permissions',  description: 'Quản lý quyền hạn hệ thống' },
     MANAGE_ROLES:        { key: 'system:manage_roles',        description: 'Quản lý vai trò hệ thống' },
-    SYSTEM_CONFIG:       { key: 'system:config',              description: 'Cấu hình hệ thống' }
+    SYSTEM_CONFIG:       { key: 'system:config',              description: 'Cấu hình hệ thống' },
+    ADMIN_PAGE_ACCESS:   { key: 'system:admin',                description: 'Truy cập trang quản trị hệ thống' }
   },
 
     // Invoice Management 
