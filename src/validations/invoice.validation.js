@@ -40,7 +40,7 @@ export const idSchema = Joi.number().integer().positive().required().messages({
 });
 
 export const invoiceIdParamSchema = Joi.object({
-  id: idSchema
+  invoiceId: idSchema
 });
 
 export const creditInvoiceIdParamSchema = Joi.object({

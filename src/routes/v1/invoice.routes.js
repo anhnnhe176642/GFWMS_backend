@@ -154,7 +154,7 @@ router.get(
  */
 
 router.get(
-  '/:id',
+  '/:invoiceId',
   authenticateToken,
   requirePermission(PERMISSIONS.INVOICES.VIEW_DETAIL),
   validate(invoiceIdParamSchema, 'params'),
