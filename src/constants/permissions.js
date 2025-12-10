@@ -99,6 +99,10 @@ export const PERMISSIONS = {
     RECEIVE:                { key: 'exportFabric:receive',      description: 'Xác nhận nhận hàng từ cửa hàng' },
   },
 
+  EXPORT_FABRIC_REQUESTS: {
+    VIEW_LIST:              { key: 'exportFabricRequest:view_list',    description: 'Xem danh sách yêu cầu xuất vải' },
+  },
+
   STORES: {
     VIEW_LIST:           { key: 'store:view_list',           description: 'Xem danh sách cửa hàng' },
     VIEW_DETAIL:         { key: 'store:view_detail',         description: 'Xem chi tiết cửa hàng' },

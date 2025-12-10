@@ -130,6 +130,88 @@ router.get(
   getAllExportFabrics
 );
 
+
+/**
+ * @swagger
+ * /export-fabrics/requests:
+ *   get:
+ *     summary: Lấy danh sách yêu cầu xuất vải (có lọc và phân trang)
+ *     tags: [ExportFabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: string
+ *         description: Số trang cần lấy
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: string
+ *         description: Số lượng mục trên mỗi trang
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo hoặc tên kho, cửa hàng , hoặc tên người tạo/nhận đơn
+ *       - in: query
+ *         name: warehouseId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo kho xuất
+ *       - in: query
+ *         name: storeId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo cửa hàng nhận
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Lọc theo trạng thái yêu cầu xuất
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Trường để sắp xếp (id, createdAt, updatedAt, status)
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *         description: Thứ tự sắp xếp
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách yêu cầu xuất vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách yêu cầu xuất vải thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ExportFabricRequest'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/PaginationMeta'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.get(
+  '/requests',
+  authenticateToken,
+  requirePermission(PERMISSIONS.EXPORT_FABRIC_REQUESTS.VIEW_LIST),
+  validate(exportFabricQuerySchema, 'query'),
+  getAllExportFabrics
+);
+
 /**
  * @swagger
  * /export-fabrics/preview:
