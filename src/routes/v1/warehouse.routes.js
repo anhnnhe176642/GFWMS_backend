@@ -677,6 +677,14 @@ router.get('/:id/fabrics/:fabricId/pickup',
  *                 type: string
  *                 description: Địa chỉ kho
  *                 example: "1023 Đường Láng, Hà Nội"
+ *               latitude:
+ *                 type: number
+ *                 description: Vĩ độ của kho (latitude)
+ *                 example: 16.0583
+ *               longitude:
+ *                 type: number
+ *                 description: Kinh độ của kho (longitude)
+ *                 example: 108.2772
  *     responses:
  *       200:
  *         description: Success
@@ -751,6 +759,14 @@ router.get('/:id',
  *                 type: string
  *                 description: Warehouse address
  *                 example: "456 Đường Cầu Giấy, Hà Nội"
+ *               latitude:
+ *                 type: number
+ *                 description: Vĩ độ của kho (latitude)
+ *                 example: 16.0583
+ *               longitude:
+ *                 type: number
+ *                 description: Kinh độ của kho (longitude)
+ *                 example: 108.2772
  *               status:
  *                 type: string
  *                 description: Warehouse status (ACTIVE/INACTIVE)

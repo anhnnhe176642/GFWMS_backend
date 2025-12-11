@@ -12,6 +12,8 @@ export class WarehouseRepository {
     id: true,
     name: true,
     address: true,
+    latitude: true,
+    longitude: true,
     status: true,
     createdAt: true,
     updatedAt: true,

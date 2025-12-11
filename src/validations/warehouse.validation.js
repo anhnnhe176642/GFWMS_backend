@@ -28,10 +28,37 @@ export const warehouseAddressSchema = addressSchema
     'string.empty': 'Địa chỉ kho là bắt buộc'
   });
 
+/**
+ *  Warehouse Latitude Schema
+ */
+export const warehouseLatitudeSchema = Joi.number()
+  .min(-90)
+  .max(90)
+  .allow(null)
+  .messages({
+    'number.base': 'Vĩ độ (latitude) phải là số',
+    'number.min': 'Vĩ độ (latitude) phải lớn hơn hoặc bằng -90',
+    'number.max': 'Vĩ độ (latitude) phải nhỏ hơn hoặc bằng 90'
+  });
+
+/**
+ *  Warehouse Longitude Schema
+ */
+export const warehouseLongitudeSchema = Joi.number()
+  .min(-180)
+  .max(180)
+  .allow(null)
+  .messages({
+    'number.base': 'Kinh độ (longitude) phải là số',
+    'number.min': 'Kinh độ (longitude) phải lớn hơn hoặc bằng -180',
+    'number.max': 'Kinh độ (longitude) phải nhỏ hơn hoặc bằng 180'
+  });
 
 export const createWarehouseSchema = Joi.object({
   name: warehouseNameSchema,
-  address: warehouseAddressSchema
+  address: warehouseAddressSchema,
+  latitude: warehouseLatitudeSchema,
+  longitude: warehouseLongitudeSchema
 });
 
 export const warehouseStatusSchema = Joi.string()
@@ -50,6 +77,8 @@ export const updateWarehouseSchema = Joi.object({
     .trim()                    
     .disallow(null)          
     .required(),
+  latitude: warehouseLatitudeSchema,
+  longitude: warehouseLongitudeSchema,
   status: warehouseStatusSchema
     .disallow(null)
     .required()

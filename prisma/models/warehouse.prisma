@@ -2,6 +2,8 @@ model Warehouse {
     id        Int      @id @default(autoincrement())
     name      String   @db.VarChar(100) @unique
     address   String   @db.VarChar(255)
+    latitude    Float?    @db.Float
+    longitude   Float?    @db.Float
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     status    WarehouseStatus @default(ACTIVE)
