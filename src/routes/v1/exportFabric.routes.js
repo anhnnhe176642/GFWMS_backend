@@ -10,7 +10,7 @@ import {
   suggestAllocation,
   createBatchExportFabric
 } from '../../controllers/exportFabric.controller.js';
-import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { authenticateToken, requirePermission, requireWarehouseAccess, requireStoreAccess, requireWarehouseAccessFromBody, requireStoreAccessFromBody } from '../../middlewares/permission.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import {
   exportFabricIdParamSchema,
@@ -615,6 +615,7 @@ router.post(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.CREATE),
   validate(createBatchExportFabricSchema, 'body'),
+  requireStoreAccessFromBody,
   createBatchExportFabric
 );
 
@@ -895,6 +896,8 @@ router.post(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.CREATE),
   validate(createExportFabricSchema, 'body'),
+  requireWarehouseAccessFromBody,
+  requireStoreAccessFromBody,
   createExportFabric
 );
 
@@ -1075,6 +1078,12 @@ router.patch(
     { schema: exportFabricIdParamSchema, source: 'params' },
     { schema: approveExportFabricSchema, source: 'body' }
   ]),
+  requireWarehouseAccess(async (req) => {
+    // Lấy warehouseId từ export fabric record
+    const { id } = req.params;
+    const exportFabric = await (await import('../../repositories/exportFabric.repository.js')).exportFabricRepository.findById(parseInt(id));
+    return exportFabric?.warehouseId;
+  }),
   updateExportFabricStatus
 );
 
@@ -1148,6 +1157,12 @@ router.post(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.RECEIVE),
   validate(exportFabricIdParamSchema, 'params'),
+  requireStoreAccess(async (req) => {
+    // Lấy storeId từ export fabric record
+    const { id } = req.params;
+    const exportFabric = await (await import('../../repositories/exportFabric.repository.js')).exportFabricRepository.findById(parseInt(id));
+    return exportFabric?.storeId;
+  }),
   completeExportFabric
 );
 

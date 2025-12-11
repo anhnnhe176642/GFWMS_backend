@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { authenticateToken, requirePermission, requireWarehouseAccessFromBody, requireWarehouseAccess } from '../../middlewares/permission.middleware.js';
 import { createImportFabric, getAllImportFabrics, getImportFabricById, getFabricSellingPrice, updateImportFabricStatus  } from '../../controllers/importFabric.controller.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { createImportFabricSchema, importFabricQuerySchema, importFabricIdSchema, getFabricSellingPriceSchema, updateImportFabricStatusSchema } from '../../validations/importFabric.validation.js';
@@ -173,6 +173,7 @@ router.post('/',
   authenticateToken,
   requirePermission(PERMISSIONS.IMPORT_FABRICS.CREATE),
   validate(createImportFabricSchema),
+  requireWarehouseAccessFromBody,
   createImportFabric
 );
 
@@ -483,6 +484,12 @@ router.put('/:id/status',
   requirePermission(PERMISSIONS.FABRICS.ALLOCATE_TO_SHELF),
   validate(importFabricIdSchema, 'params'),
   validate(updateImportFabricStatusSchema, 'body'),
+  requireWarehouseAccess(async (req) => {
+    // Lấy warehouseId từ import fabric record
+    const { id } = req.params;
+    const importFabric = await (await import('../../repositories/importFabric.repository.js')).importFabricRepository.findById(parseInt(id));
+    return importFabric?.warehouseId;
+  }),
   updateImportFabricStatus
 );
 
