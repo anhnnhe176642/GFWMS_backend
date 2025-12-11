@@ -42,11 +42,67 @@ export const storeAddressSchema = addressSchema
   });
 
 /**
+ *  Store Location Schema
+ */
+export const storeLocationSchema = Joi.object({
+  lat: Joi.number()
+    .min(-90)
+    .max(90)
+    .required()
+    .messages({
+      'number.base': 'Vĩ độ (lat) phải là số',
+      'number.min': 'Vĩ độ (lat) phải lớn hơn hoặc bằng -90',
+      'number.max': 'Vĩ độ (lat) phải nhỏ hơn hoặc bằng 90',
+      'any.required': 'Vĩ độ (lat) là bắt buộc'
+    }),
+  lng: Joi.number()
+    .min(-180)
+    .max(180)
+    .required()
+    .messages({
+      'number.base': 'Kinh độ (lng) phải là số',
+      'number.min': 'Kinh độ (lng) phải lớn hơn hoặc bằng -180',
+      'number.max': 'Kinh độ (lng) phải nhỏ hơn hoặc bằng 180',
+      'any.required': 'Kinh độ (lng) là bắt buộc'
+    })
+}).messages({
+  'object.base': 'Location phải là một object'
+});
+
+/**
+ *  Store Latitude Schema
+ */
+export const storeLatitudeSchema = Joi.number()
+  .min(-90)
+  .max(90)
+  .allow(null)
+  .messages({
+    'number.base': 'Vĩ độ (latitude) phải là số',
+    'number.min': 'Vĩ độ (latitude) phải lớn hơn hoặc bằng -90',
+    'number.max': 'Vĩ độ (latitude) phải nhỏ hơn hoặc bằng 90'
+  });
+
+/**
+ *  Store Longitude Schema
+ */
+export const storeLongitudeSchema = Joi.number()
+  .min(-180)
+  .max(180)
+  .allow(null)
+  .messages({
+    'number.base': 'Kinh độ (longitude) phải là số',
+    'number.min': 'Kinh độ (longitude) phải lớn hơn hoặc bằng -180',
+    'number.max': 'Kinh độ (longitude) phải nhỏ hơn hoặc bằng 180'
+  });
+
+/**
  *  Create Store Schema
  */
 export const createStoreSchema = Joi.object({
   name: storeNameSchema,
-  address: storeAddressSchema
+  address: storeAddressSchema,
+  latitude: storeLatitudeSchema,
+  longitude: storeLongitudeSchema
 });
 
 /**
@@ -69,6 +125,8 @@ export const updateStoreSchema = Joi.object({
     .trim()
     .disallow(null)
     .required(),
+  latitude: storeLatitudeSchema,
+  longitude: storeLongitudeSchema,
   isActive: storeStatusSchema
     .disallow(null)
     .required()

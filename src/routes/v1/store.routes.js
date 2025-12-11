@@ -97,6 +97,14 @@ router.get('/',
  *                 type: string
  *                 description: Địa chỉ cửa hàng
  *                 example: "123 Đường Láng, Hà Nội"
+ *               latitude:
+ *                 type: number
+ *                 description: Vĩ độ của cửa hàng (latitude)
+ *                 example: 16.0583
+ *               longitude:
+ *                 type: number
+ *                 description: Kinh độ của cửa hàng (longitude)
+ *                 example: 108.2772
  *     responses:
  *       200:
  *         description: Thành công
@@ -169,6 +177,14 @@ router.get('/:id',
  *               address:
  *                 type: string
  *                 example: "456 Trần Duy Hưng, Hà Nội"
+ *               latitude:
+ *                 type: number
+ *                 description: Vĩ độ của cửa hàng (latitude)
+ *                 example: 16.0583
+ *               longitude:
+ *                 type: number
+ *                 description: Kinh độ của cửa hàng (longitude)
+ *                 example: 108.2772
  *               isActive:
  *                 type: boolean
  *                 example: false
