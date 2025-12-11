@@ -8,6 +8,7 @@ import { storeRepository } from '../repositories/store.repository.js';
 import { fabricShelfRepository } from '../repositories/fabricShelf.repository.js';
 import fabricStoreRepository from '../repositories/fabricStore.repository.js';
 import { userActivityService } from './userActivity.service.js';
+import { calculateHaversineDistance } from '../utils/distance-calculator.js';
 
 const prisma = new PrismaClient();
 
@@ -144,7 +145,7 @@ export const previewInventory = async (fabricItems) => {
  * 3. Cập nhật remaining needs, lặp lại đến khi hết
  * 4. Output: số kho ít nhất để xuất được toàn bộ danh sách vải
  */
-export const suggestOptimalAllocation = async (fabricItems) => {
+export const suggestOptimalAllocation = async (fabricItems, priority = 'MIN_WAREHOUSES', destinationLocation = null) => {
   const { fabrics } = await previewInventory(fabricItems);
 
   // Check đủ hàng không
@@ -157,13 +158,17 @@ export const suggestOptimalAllocation = async (fabricItems) => {
     }
   }
 
-  // Build warehouse data: warehouseId -> { name, stocks: Map<fabricId, currentStock> }
+  // Build warehouse data with location info
   const warehouseData = new Map();
   for (const fabric of fabrics) {
     for (const stock of fabric.availableStocks) {
       if (!warehouseData.has(stock.warehouseId)) {
+        // Fetch warehouse details with location info
+        const warehouse = await warehouseRepository.findById(stock.warehouseId);
         warehouseData.set(stock.warehouseId, {
           name: stock.warehouseName,
+          latitude: warehouse?.latitude || null,
+          longitude: warehouse?.longitude || null,
           stocks: new Map()
         });
       }
@@ -171,10 +176,26 @@ export const suggestOptimalAllocation = async (fabricItems) => {
     }
   }
 
-  // Remaining needs: fabricId -> quantity still needed
+  // Validate location data if using distance-based priority
+  if (priority === 'MIN_DISTANCE') {
+    if (!destinationLocation || destinationLocation.latitude === undefined || destinationLocation.longitude === undefined) {
+      throw new ValidationError('destinationLocation với latitude và longitude là bắt buộc khi priority = MIN_DISTANCE');
+    }
+
+    // Check if all warehouses have location
+    for (const [whId, data] of warehouseData) {
+      if (data.latitude === null || data.longitude === null) {
+        throw new ValidationError(
+          `Kho "${data.name}" (ID: ${whId}) không có thông tin tọa độ. Vui lòng cập nhật tọa độ kho trước khi sử dụng chế độ MIN_DISTANCE`
+        );
+      }
+    }
+  }
+
+  // Remaining needs
   const remainingNeeds = new Map(fabricItems.map(item => [item.fabricId, item.quantity]));
 
-  // Track allocation: fabricId -> warehouseId -> quantity to take
+  // Track allocation
   const allocationMap = new Map();
   for (const fabricId of remainingNeeds.keys()) {
     allocationMap.set(fabricId, new Map());
@@ -186,36 +207,155 @@ export const suggestOptimalAllocation = async (fabricItems) => {
     warehouseStocks.set(whId, new Map(data.stocks));
   }
 
-  /**
-   * Tính điểm cho 1 kho = tổng số lượng có thể lấy từ kho đó cho các items còn cần
-   * Điểm cao = kho đáp ứng được nhiều hơn
-   */
+  if (priority === 'MIN_DISTANCE') {
+    // Use distance-based algorithm
+    await suggestByMinDistance(
+      warehouseData,
+      warehouseStocks,
+      remainingNeeds,
+      allocationMap,
+      destinationLocation
+    );
+  } else {
+    // Use default min-warehouse greedy algorithm
+    suggestByMinWarehouses(
+      warehouseData,
+      warehouseStocks,
+      remainingNeeds,
+      allocationMap
+    );
+  }
+
+  // Build result with distance info
+  const result = fabrics.map(fabric => {
+    const fabricAllocations = allocationMap.get(fabric.fabricId) || new Map();
+    const availableStocksWithSelection = fabric.availableStocks.map(stock => {
+      const selected = fabricAllocations.has(stock.warehouseId);
+      const warehouseInfo = warehouseData.get(stock.warehouseId);
+      
+      let distance = null;
+      if (priority === 'MIN_DISTANCE' && destinationLocation && warehouseInfo) {
+        distance = calculateHaversineDistance(
+          warehouseInfo.latitude,
+          warehouseInfo.longitude,
+          destinationLocation.latitude,
+          destinationLocation.longitude
+        );
+      }
+
+      return {
+        warehouseId: stock.warehouseId,
+        warehouseName: stock.warehouseName,
+        currentStock: stock.currentStock,
+        distance, // Null if not using distance-based priority
+        selected,
+        takeQuantity: fabricAllocations.get(stock.warehouseId) || 0
+      };
+    });
+
+    // sắp xếp kho đã chọn lên trước
+    if (priority === 'MIN_DISTANCE') {
+      availableStocksWithSelection.sort((a, b) => {
+        if (a.selected !== b.selected) return b.selected ? 1 : -1;
+        if (a.selected && b.selected) {
+          return (a.distance || 0) - (b.distance || 0); // Sort selected by distance
+        }
+        return (a.distance || 0) - (b.distance || 0);
+      });
+    } else {
+      availableStocksWithSelection.sort((a, b) => {
+        if (a.selected !== b.selected) return b.selected ? 1 : -1;
+        return b.takeQuantity - a.takeQuantity;
+      });
+    }
+
+    return {
+      fabricId: fabric.fabricId,
+      fabric: fabric.fabric,
+      requestedQuantity: fabric.requestedQuantity,
+      availableStocks: availableStocksWithSelection,
+      totalAvailable: fabric.totalAvailable,
+      isSufficient: fabric.isSufficient
+    };
+  });
+
+  // Calculate summary distances if using distance-based priority
+  let allocationSummary = null;
+  if (priority === 'MIN_DISTANCE') {
+    allocationSummary = {
+      destinationLocation,
+      totalWarehouses: 0,
+      totalDistance: 0,
+      warehouseDetails: []
+    };
+
+    for (const [whId, data] of warehouseData) {
+      const hasAllocation = Array.from(allocationMap.values()).some(allocMap => allocMap.has(whId));
+      if (hasAllocation) {
+        const distance = calculateHaversineDistance(
+          data.latitude,
+          data.longitude,
+          destinationLocation.latitude,
+          destinationLocation.longitude
+        );
+        allocationSummary.totalWarehouses++;
+        allocationSummary.warehouseDetails.push({
+          warehouseId: whId,
+          warehouseName: data.name,
+          distance
+        });
+      }
+    }
+
+    // Sort by distance for cumulative calculation
+    allocationSummary.warehouseDetails.sort((a, b) => a.distance - b.distance);
+    
+    // Calculate cumulative/total distance
+    let cumulativeDistance = 0;
+    let prevLat = destinationLocation.latitude;
+    let prevLng = destinationLocation.longitude;
+
+    for (const detail of allocationSummary.warehouseDetails) {
+      const warehouse = warehouseData.get(detail.warehouseId);
+      const segmentDistance = calculateHaversineDistance(prevLat, prevLng, warehouse.latitude, warehouse.longitude);
+      detail.cumulativeDistance = parseFloat((cumulativeDistance + segmentDistance).toFixed(2));
+      cumulativeDistance = detail.cumulativeDistance;
+      prevLat = warehouse.latitude;
+      prevLng = warehouse.longitude;
+    }
+
+    allocationSummary.totalDistance = cumulativeDistance;
+  }
+
+  return { fabrics: result, ...(allocationSummary && { allocationSummary }) };
+};
+
+/**
+ * Suggest allocation using MIN_WAREHOUSES strategy (Greedy Set Cover)
+ * Ưu tiên chọn ít kho nhất
+ */
+const suggestByMinWarehouses = (warehouseData, warehouseStocks, remainingNeeds, allocationMap) => {
   const calculateWarehouseScore = (warehouseId) => {
     const stocks = warehouseStocks.get(warehouseId);
     if (!stocks) return 0;
 
     let score = 0;
-    let itemsCovered = 0; // Số fabric items có thể lấy từ kho này
+    let itemsCovered = 0;
 
     for (const [fabricId, needed] of remainingNeeds) {
       if (needed <= 0) continue;
       
       const available = stocks.get(fabricId) || 0;
       if (available > 0) {
-        // Điểm = số lượng có thể lấy
         score += Math.min(available, needed);
         itemsCovered++;
       }
     }
 
-    // Ưu tiên kho cover được nhiều items hơn (secondary sort)
-    // Score chính + bonus nhỏ cho số items covered
     return score + (itemsCovered * 0.001);
   };
 
-  // Greedy Set Cover: chọn kho có điểm cao nhất mỗi lần
   while (true) {
-    // Kiểm tra đã đủ chưa
     let allSatisfied = true;
     for (const [, needed] of remainingNeeds) {
       if (needed > 0) {
@@ -225,7 +365,6 @@ export const suggestOptimalAllocation = async (fabricItems) => {
     }
     if (allSatisfied) break;
 
-    // Tìm kho có điểm cao nhất
     let bestWarehouseId = null;
     let bestScore = 0;
 
@@ -238,11 +377,9 @@ export const suggestOptimalAllocation = async (fabricItems) => {
     }
 
     if (bestWarehouseId === null || bestScore === 0) {
-      // Không tìm được kho nào có thể đáp ứng thêm
       throw new ValidationError('Không thể phân bổ đủ số lượng từ các kho có sẵn');
     }
 
-    // Lấy từ kho này
     const stocks = warehouseStocks.get(bestWarehouseId);
     for (const [fabricId, needed] of remainingNeeds) {
       if (needed <= 0) continue;
@@ -250,46 +387,204 @@ export const suggestOptimalAllocation = async (fabricItems) => {
       const available = stocks.get(fabricId) || 0;
       if (available > 0) {
         const take = Math.min(available, needed);
-
-        // Cập nhật phân bổ
         allocationMap.get(fabricId).set(bestWarehouseId, take);
-
-        // Cập nhật nhu cầu còn lại
         remainingNeeds.set(fabricId, needed - take);
-
-        // Cập nhật tồn kho kho (để không bị tính lại)
         stocks.set(fabricId, available - take);
       }
     }
   }
+};
 
-  // Build result: fabric format với availableStocks đã thêm selected và takeQuantity
-  const result = fabrics.map(fabric => {
-    const fabricAllocations = allocationMap.get(fabric.fabricId) || new Map();
-    const availableStocksWithSelection = fabric.availableStocks.map(stock => ({
-      warehouseId: stock.warehouseId,
-      warehouseName: stock.warehouseName,
-      currentStock: stock.currentStock,
-      selected: fabricAllocations.has(stock.warehouseId),
-      takeQuantity: fabricAllocations.get(stock.warehouseId) || 0
-    }));
-    // sắp xếp kho đã chọn lên trước, sau đó theo số lượng lấy giảm dần
-    availableStocksWithSelection.sort((a, b) => {
-      if (a.selected !== b.selected) return b.selected ? 1 : -1;
-      return b.takeQuantity - a.takeQuantity;
-    });
+/**
+ * Suggest allocation using MIN_DISTANCE strategy - OPTIMIZED VERSION
+ * Tối ưu hóa tổng khoảng cách bằng cách tìm tập hợp kho có tổng khoảng cách nhỏ nhất
+ * 
+ * Thuật toán:
+ * 1. Sử dụng bit manipulation + BFS để duyệt tất cả tập hợp kho khả thi
+ * 2. Với mỗi tập hợp, kiểm tra xem có thể phục vụ hết nhu cầu không
+ * 3. Chọn tập hợp có tổng khoảng cách nhỏ nhất
+ * 4. Phân bổ vải từ tập hợp này sử dụng greedy (ưu tiên kho gần nhất)
+ */
+const suggestByMinDistance = async (warehouseData, warehouseStocks, remainingNeeds, allocationMap, destinationLocation) => {
+  const warehouseList = Array.from(warehouseData.entries());
+  const warehouseCount = warehouseList.length;
 
-    return {
-      fabricId: fabric.fabricId,
-      fabric: fabric.fabric,
-      requestedQuantity: fabric.requestedQuantity,
-      availableStocks: availableStocksWithSelection,
-      totalAvailable: fabric.totalAvailable,
-      isSufficient: fabric.isSufficient
-    };
+  // Calculate distance for each warehouse
+  const warehouseDistances = new Map();
+  const distanceArray = [];
+  
+  warehouseList.forEach(([whId, data], index) => {
+    const distance = calculateHaversineDistance(
+      data.latitude,
+      data.longitude,
+      destinationLocation.latitude,
+      destinationLocation.longitude
+    );
+    warehouseDistances.set(whId, distance);
+    distanceArray.push({ index, whId, distance });
   });
 
-  return { fabrics: result };
+  // Sort by distance for priority in allocation
+  distanceArray.sort((a, b) => a.distance - b.distance);
+
+  // Find optimal warehouse set using bit enumeration with branch pruning
+  // For small warehouse counts, enumerate all subsets
+  let optimalSet = null;
+  let minTotalDistance = Infinity;
+
+  // Only enumerate if warehouse count is reasonable (< 20)
+  if (warehouseCount <= 15) {
+    // Try all possible subsets of warehouses with branch pruning
+    for (let mask = 1; mask < (1 << warehouseCount); mask++) {
+      const selectedWarehouses = [];
+      let totalDistance = 0;
+
+      for (let i = 0; i < warehouseCount; i++) {
+        if (mask & (1 << i)) {
+          const whId = warehouseList[i][0];
+          selectedWarehouses.push(whId);
+          totalDistance += warehouseDistances.get(whId);
+          
+          // Branch pruning: nếu khoảng cách hiện tại đã lớn hơn tối ưu, bỏ qua
+          if (totalDistance >= minTotalDistance) {
+            break;
+          }
+        }
+      }
+
+      // Skip if already exceeded minimum distance (pruned)
+      if (totalDistance >= minTotalDistance) {
+        continue;
+      }
+
+      // Check if this set can fulfill all needs
+      const canFulfill = canFulfillAllNeeds(
+        selectedWarehouses,
+        warehouseData,
+        warehouseStocks,
+        remainingNeeds
+      );
+
+      if (canFulfill && totalDistance < minTotalDistance) {
+        minTotalDistance = totalDistance;
+        optimalSet = selectedWarehouses;
+      }
+    }
+
+    if (optimalSet === null) {
+      throw new ValidationError('Không thể phân bổ đủ số lượng từ các kho có sẵn');
+    }
+
+    // Allocate from optimal set (prefer closer warehouses first)
+    optimalSet.sort((whId1, whId2) => 
+      (warehouseDistances.get(whId1) || 0) - (warehouseDistances.get(whId2) || 0)
+    );
+
+    for (const warehouseId of optimalSet) {
+      const stocks = warehouseStocks.get(warehouseId);
+      
+      for (const [fabricId, needed] of remainingNeeds) {
+        if (needed <= 0) continue;
+
+        const available = stocks.get(fabricId) || 0;
+        if (available > 0) {
+          const take = Math.min(available, needed);
+          const current = allocationMap.get(fabricId).get(warehouseId) || 0;
+          allocationMap.get(fabricId).set(warehouseId, current + take);
+          remainingNeeds.set(fabricId, needed - take);
+          stocks.set(fabricId, available - take);
+        }
+      }
+    }
+  } else {
+    // For larger warehouse counts, use greedy: keep adding nearest warehouse until satisfied
+    const selectedWarehouses = [];
+    const tempNeeds = new Map(remainingNeeds);
+
+    for (const { whId } of distanceArray) {
+      // Check if this warehouse helps fulfill any remaining need
+      const stocks = warehouseStocks.get(whId);
+      let canHelp = false;
+
+      for (const [fabricId, needed] of tempNeeds) {
+        if (needed > 0) {
+          const available = stocks.get(fabricId) || 0;
+          if (available > 0) {
+            canHelp = true;
+            // Simulate allocation
+            tempNeeds.set(fabricId, needed - Math.min(available, needed));
+          }
+        }
+      }
+
+      if (canHelp) {
+        selectedWarehouses.push(whId);
+
+        // Check if all needs are satisfied
+        let allSatisfied = true;
+        for (const [, needed] of tempNeeds) {
+          if (needed > 0) {
+            allSatisfied = false;
+            break;
+          }
+        }
+
+        if (allSatisfied) break;
+      }
+    }
+
+    // Verify solution and allocate
+    if (!canFulfillAllNeeds(selectedWarehouses, warehouseData, warehouseStocks, remainingNeeds)) {
+      throw new ValidationError('Không thể phân bổ đủ số lượng từ các kho có sẵn');
+    }
+
+    // Allocate from selected warehouses (sorted by distance)
+    for (const warehouseId of selectedWarehouses) {
+      const stocks = warehouseStocks.get(warehouseId);
+      
+      for (const [fabricId, needed] of remainingNeeds) {
+        if (needed <= 0) continue;
+
+        const available = stocks.get(fabricId) || 0;
+        if (available > 0) {
+          const take = Math.min(available, needed);
+          const current = allocationMap.get(fabricId).get(warehouseId) || 0;
+          allocationMap.get(fabricId).set(warehouseId, current + take);
+          remainingNeeds.set(fabricId, needed - take);
+          stocks.set(fabricId, available - take);
+        }
+      }
+    }
+  }
+};
+
+/**
+ * Check if a set of warehouses can fulfill all fabric needs
+ */
+const canFulfillAllNeeds = (warehouseIds, warehouseData, warehouseStocks, remainingNeeds) => {
+  const tempStocks = new Map();
+  
+  // Copy stocks from selected warehouses
+  for (const whId of warehouseIds) {
+    const stocks = warehouseStocks.get(whId);
+    tempStocks.set(whId, new Map(stocks));
+  }
+
+  // Try to fulfill all needs
+  for (const [fabricId, needed] of remainingNeeds) {
+    let available = 0;
+    
+    for (const whId of warehouseIds) {
+      const stocks = tempStocks.get(whId);
+      available += stocks.get(fabricId) || 0;
+    }
+
+    if (available < needed) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 /**

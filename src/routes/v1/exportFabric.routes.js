@@ -18,6 +18,7 @@ import {
   createExportFabricSchema,
   approveExportFabricSchema,
   previewInventorySchema,
+  suggestAllocationSchema,
   createBatchExportFabricSchema
 } from '../../validations/exportFabric.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
@@ -361,12 +362,23 @@ router.post(
  * @swagger
  * /export-fabrics/suggest:
  *   post:
- *     summary: Gợi ý phân bổ tối ưu cho các fabric (Greedy Algorithm)
+ *     summary: Gợi ý phân bổ tối ưu cho các fabric (Greedy hoặc Distance-based)
  *     description: |
- *       Sử dụng thuật toán Greedy để gợi ý phân bổ tối ưu từ các kho.
- *       - Ưu tiên kho có tồn kho nhiều nhất cho mỗi loại vải
- *       - Trả về danh sách kho được chọn và số lượng từ mỗi kho
- *       - Cấu trúc dữ liệu giống preview nhưng thêm trường `selected` và `takeQuantity`
+ *       Gợi ý phân bổ vải tối ưu từ các kho dựa trên chiến lược ưu tiên:
+ *       
+ *       **Chiến lược 1: MIN_WAREHOUSES (mặc định)**
+ *       - Sử dụng thuật toán Greedy Set Cover
+ *       - Ưu tiên chọn ít kho nhất
+ *       - Ưu tiên kho có tồn kho nhiều nhất và cover được nhiều loại vải
+ *       - Không cần destinationLocation
+ *       
+ *       **Chiến lược 2: MIN_DISTANCE**
+ *       - Ưu tiên chọn các kho gần nhất đến điểm đến
+ *       - Sử dụng công thức Haversine để tính khoảng cách địa lý (km)
+ *       - Yêu cầu tất cả kho phải có tọa độ (latitude, longitude)
+ *       - Yêu cầu destinationLocation với latitude và longitude
+ *       - Trả về khoảng cách từ mỗi kho đến điểm đến
+ *       - Trả về tổng khoảng cách nếu lấy từ nhiều kho
  *     tags: [ExportFabrics]
  *     security:
  *       - bearerAuth: []
@@ -392,12 +404,47 @@ router.post(
  *                       type: integer
  *                     quantity:
  *                       type: integer
- *           example:
- *             fabricItems:
- *               - fabricId: 1
- *                 quantity: 100
- *               - fabricId: 2
- *                 quantity: 50
+ *               priority:
+ *                 type: string
+ *                 enum: [MIN_WAREHOUSES, MIN_DISTANCE]
+ *                 default: MIN_WAREHOUSES
+ *                 description: Chiến lược ưu tiên phân bổ
+ *               destinationLocation:
+ *                 type: object
+ *                 description: Tọa độ điểm đến (BẮT BUỘC khi priority = MIN_DISTANCE)
+ *                 properties:
+ *                   latitude:
+ *                     type: number
+ *                     minimum: -90
+ *                     maximum: 90
+ *                     description: Vĩ độ của điểm đến
+ *                   longitude:
+ *                     type: number
+ *                     minimum: -180
+ *                     maximum: 180
+ *                     description: Kinh độ của điểm đến
+ *           examples:
+ *             minWarehouses:
+ *               summary: Ưu tiên ít kho nhất
+ *               value:
+ *                 fabricItems:
+ *                   - fabricId: 1
+ *                     quantity: 100
+ *                   - fabricId: 2
+ *                     quantity: 50
+ *                 priority: MIN_WAREHOUSES
+ *             minDistance:
+ *               summary: Ưu tiên khoảng cách gần nhất
+ *               value:
+ *                 fabricItems:
+ *                   - fabricId: 1
+ *                     quantity: 100
+ *                   - fabricId: 2
+ *                     quantity: 50
+ *                 priority: MIN_DISTANCE
+ *                 destinationLocation:
+ *                   latitude: 10.7769
+ *                   longitude: 106.6869
  *     responses:
  *       200:
  *         description: Gợi ý phân bổ thành công
@@ -409,65 +456,73 @@ router.post(
  *                 message:
  *                   type: string
  *                   example: Gợi ý phân bổ thành công
- *                 fabrics:
- *                   type: array
- *                   description: Danh sách fabric với gợi ý phân bổ từng kho
- *                   items:
- *                     type: object
- *                     properties:
- *                       fabricId:
- *                         type: integer
- *                       fabric:
+ *                 warehouseAllocations:
+ *                   type: object
+ *                   properties:
+ *                     fabrics:
+ *                       type: array
+ *                       items:
  *                         type: object
- *                       requestedQuantity:
- *                         type: integer
- *                       availableStocks:
- *                         type: array
- *                         description: Danh sách kho với lựa chọn và số lượng phân bổ
- *                         items:
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                           fabric:
+ *                             type: object
+ *                           requestedQuantity:
+ *                             type: integer
+ *                           availableStocks:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 warehouseId:
+ *                                   type: integer
+ *                                 warehouseName:
+ *                                   type: string
+ *                                 currentStock:
+ *                                   type: integer
+ *                                 distance:
+ *                                   type: number
+ *                                   nullable: true
+ *                                   description: Khoảng cách (km) - chỉ có khi priority = MIN_DISTANCE
+ *                                 selected:
+ *                                   type: boolean
+ *                                   description: Kho này có được chọn hay không
+ *                                 takeQuantity:
+ *                                   type: integer
+ *                                   description: Số lượng lấy từ kho này
+ *                           totalAvailable:
+ *                             type: integer
+ *                           isSufficient:
+ *                             type: boolean
+ *                     allocationSummary:
+ *                       type: object
+ *                       nullable: true
+ *                       description: Tóm tắt khoảng cách (chỉ có khi priority = MIN_DISTANCE)
+ *                       properties:
+ *                         destinationLocation:
  *                           type: object
- *                           properties:
- *                             warehouseId:
- *                               type: integer
- *                             warehouseName:
- *                               type: string
- *                             currentStock:
- *                               type: integer
- *                             selected:
- *                               type: boolean
- *                               description: Kho này có được chọn hay không
- *                             takeQuantity:
- *                               type: integer
- *                               description: Số lượng lấy từ kho này (chỉ có khi selected=true)
- *                       totalAvailable:
- *                         type: integer
- *                       isSufficient:
- *                         type: boolean
- *             example:
- *               message: Gợi ý phân bổ thành công
- *               fabrics:
- *                 - fabricId: 1
- *                   fabric:
- *                     id: 1
- *                     category: {id: 1, name: "Vải linen"}
- *                     color: {id: 2, name: "Trắng"}
- *                   requestedQuantity: 100
- *                   availableStocks:
- *                     - warehouseId: 2
- *                       warehouseName: "Kho Miền Bắc"
- *                       currentStock: 400
- *                       selected: true
- *                       takeQuantity: 100
- *                     - warehouseId: 1
- *                       warehouseName: "Kho Miền Nam"
- *                       currentStock: 237
- *                       selected: false
- *                     - warehouseId: 3
- *                       warehouseName: "Kho Trung tâm"
- *                       currentStock: 163
- *                       selected: false
- *                   totalAvailable: 800
- *                   isSufficient: true
+ *                         totalWarehouses:
+ *                           type: integer
+ *                           description: Số kho được chọn
+ *                         totalDistance:
+ *                           type: number
+ *                           description: Tổng khoảng cách tính từ điểm đến qua các kho (km)
+ *                         warehouseDetails:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               warehouseId:
+ *                                 type: integer
+ *                               warehouseName:
+ *                                 type: string
+ *                               distance:
+ *                                 type: number
+ *                                 description: Khoảng cách từ điểm đến đến kho (km)
+ *                               cumulativeDistance:
+ *                                 type: number
+ *                                 description: Khoảng cách tích lũy nếu lấy từ các kho theo thứ tự
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -479,7 +534,7 @@ router.post(
   '/suggest',
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.CREATE),
-  validate(previewInventorySchema, 'body'),
+  validate(suggestAllocationSchema, 'body'),
   suggestAllocation
 );
 

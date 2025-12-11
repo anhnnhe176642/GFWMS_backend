@@ -85,13 +85,17 @@ export const previewInventory = async (req, res, next) => {
 };
 
 /**
- * Suggest optimal allocation - Gợi ý phân bổ tối ưu (Greedy)
+ * Suggest optimal allocation - Gợi ý phân bổ tối ưu (Greedy hoặc Distance-based)
  */
 export const suggestAllocation = async (req, res, next) => {
   try {
-    const { fabricItems } = req.body;
+    const { fabricItems, priority = 'MIN_WAREHOUSES', destinationLocation } = req.body;
 
-    const suggestions = await exportFabricService.suggestOptimalAllocation(fabricItems);
+    const suggestions = await exportFabricService.suggestOptimalAllocation(
+      fabricItems,
+      priority,
+      destinationLocation
+    );
 
     res.json({
       message: 'Gợi ý phân bổ thành công',

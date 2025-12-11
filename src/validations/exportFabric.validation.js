@@ -138,6 +138,45 @@ export const previewInventorySchema = Joi.object({
 
 /**
  * ============================
+ * SUGGEST ALLOCATION (WITH PRIORITY)
+ * ============================
+ */
+export const suggestAllocationSchema = Joi.object({
+  fabricItems: Joi.array().items(exportFabricItemSchema).min(1).required().messages({
+    'array.base': 'Danh sách vải (fabricItems) phải là mảng',
+    'array.min': 'Phải có ít nhất 1 loại vải',
+    'any.required': 'Danh sách vải (fabricItems) là bắt buộc'
+  }),
+  priority: Joi.string()
+    .valid('MIN_WAREHOUSES', 'MIN_DISTANCE')
+    .default('MIN_WAREHOUSES')
+    .messages({
+      'any.only': 'Priority phải là MIN_WAREHOUSES hoặc MIN_DISTANCE'
+    }),
+  destinationLocation: Joi.when('priority', {
+    is: 'MIN_DISTANCE',
+    then: Joi.object({
+      latitude: Joi.number().min(-90).max(90).required().messages({
+        'number.base': 'Latitude phải là số',
+        'number.min': 'Latitude phải lớn hơn hoặc bằng -90',
+        'number.max': 'Latitude phải nhỏ hơn hoặc bằng 90',
+        'any.required': 'Latitude là bắt buộc khi priority = MIN_DISTANCE'
+      }),
+      longitude: Joi.number().min(-180).max(180).required().messages({
+        'number.base': 'Longitude phải là số',
+        'number.min': 'Longitude phải lớn hơn hoặc bằng -180',
+        'number.max': 'Longitude phải nhỏ hơn hoặc bằng 180',
+        'any.required': 'Longitude là bắt buộc khi priority = MIN_DISTANCE'
+      })
+    }).required().messages({
+      'any.required': 'destinationLocation là bắt buộc khi priority = MIN_DISTANCE'
+    }),
+    otherwise: Joi.optional()
+  })
+});
+
+/**
+ * ============================
  * CREATE BATCH EXPORT FABRIC
  * ============================
  */
