@@ -138,3 +138,105 @@ export const fabricPickupQuerySchema = Joi.object({
       'any.only': 'Ưu tiên phải là: NEWEST_FIRST, OLDEST_FIRST, LOWEST_PRICE, HIGHEST_PRICE hoặc FEWEST_SHELVES'
     })
 });
+
+// Schema cho điều chỉnh số lượng vải trên kệ
+export const adjustFabricSchema = Joi.object({
+  fabricId: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID vải phải là một số',
+    'number.integer': 'ID vải phải là một số nguyên',
+    'number.positive': 'ID vải phải là một số dương',
+    'any.required': 'ID vải là bắt buộc'
+  }),
+  importId: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID lần nhập phải là một số',
+    'number.integer': 'ID lần nhập phải là một số nguyên',
+    'number.positive': 'ID lần nhập phải là một số dương',
+    'any.required': 'ID lần nhập là bắt buộc'
+  }),
+  quantity: Joi.number().integer().positive().required().messages({
+    'number.base': 'Số lượng phải là một số',
+    'number.integer': 'Số lượng phải là một số nguyên',
+    'number.positive': 'Số lượng phải là một số dương',
+    'any.required': 'Số lượng là bắt buộc'
+  }),
+  type: Joi.string().valid('IMPORT', 'DESTROY').required().messages({
+    'any.only': 'Loại điều chỉnh phải là IMPORT hoặc DESTROY',
+    'string.empty': 'Loại điều chỉnh không được để trống',
+    'any.required': 'Loại điều chỉnh là bắt buộc'
+  }),
+  reason: Joi.string().min(5).max(255).required().messages({
+    'string.min': 'Lý do phải có ít nhất 5 ký tự',
+    'string.max': 'Lý do không được vượt quá 255 ký tự',
+    'string.empty': 'Lý do không được để trống',
+    'any.required': 'Lý do là bắt buộc'
+  })
+});
+
+export const adjustFabricParamSchema = Joi.object({
+  shelfId: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID kệ phải là một số',
+    'number.integer': 'ID kệ phải là một số nguyên',
+    'number.positive': 'ID kệ phải là một số dương',
+    'any.required': 'ID kệ là bắt buộc'
+  })
+});
+
+// Schema cho xem lịch sử điều chỉnh vải
+const allowedAdjustFabricSortFields = [
+  'id',
+  'fabricId',
+  'shelfId',
+  'quantity',
+  'type',
+  'price',
+  'reason',
+  'userId',
+  'createdAt',
+  'updatedAt',
+  'shelf.code',
+  'shelf.warehouse.name',
+  'user.fullname'
+
+];
+
+export const adjustFabricHistoryQuerySchema = querySchema.keys({
+  search: Joi.string().max(255).optional().messages({
+    'string.max': 'Tìm kiếm không được vượt quá 255 ký tự'
+  }),
+  warehouseId: createMultiValueFilterSchema(
+    Joi.number().integer().positive(),
+    'ID kho'
+  ),
+  fabricId: createMultiValueFilterSchema(
+    Joi.number().integer().positive(),
+    'ID vải'
+  ),
+  shelfId: createMultiValueFilterSchema(
+    Joi.number().integer().positive(),
+    'ID kệ'
+  ),
+  categoryId: createMultiValueFilterSchema(
+    Joi.number().integer().positive(),
+    'ID loại vải'
+  ),
+  colorId: createMultiValueFilterSchema(
+    Joi.string().max(50),
+    'ID màu vải'
+  ),
+  supplierId: createMultiValueFilterSchema(
+    Joi.number().integer().positive(),
+    'ID nhà cung cấp'
+  ),
+  type: createMultiValueFilterSchema(
+    Joi.string().valid('IMPORT', 'DESTROY'),
+    'Loại điều chỉnh'
+  ),
+  userId: createMultiValueFilterSchema(
+    Joi.string().uuid(),
+    'ID người dùng'
+  ),
+  sortBy: createSortBySchema(allowedAdjustFabricSortFields),
+  order: sortOrderSchema,
+  createdFrom: dateFromSchema,
+  createdTo: dateToSchema
+});

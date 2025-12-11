@@ -1,4 +1,5 @@
 import { warehouseManagerRepository } from '../repositories/warehouseManager.repository.js';
+import { userRepository } from '../repositories/user.repository.js';
 import { ValidationError } from '../utils/errors.js';
 
 /**
@@ -74,4 +75,33 @@ export const removeAllWarehousesFromUser = async (userId) => {
   }
 
   return await warehouseManagerRepository.removeAllWarehousesFromUser(userId);
+};
+
+/**
+ * Check warehouse access with special permissions
+ * - User with warehouse:manager_all permission can access any warehouse
+ * - User with warehouse:manager permission must be assigned to the warehouse
+ * @param {string} userId - ID người dùng
+ * @param {number} warehouseId - ID kho
+ * @returns {Promise<boolean>} true nếu có quyền, false nếu không
+ */
+export const checkWarehouseAccess = async (userId, warehouseId) => {
+  if (!userId || !warehouseId) {
+    throw new ValidationError('userId và warehouseId không được để trống');
+  }
+
+  // Check if user has MANAGER_ALL permission (can access all warehouses)
+  const hasManagerAllPerm = await userRepository.hasPermission(userId, 'warehouse:manager_all');
+  if (hasManagerAllPerm) {
+    return true;
+  }
+
+  // Check if user has MANAGER permission (must be assigned to warehouse)
+  const hasManagerPerm = await userRepository.hasPermission(userId, 'warehouse:manager');
+  if (hasManagerPerm) {
+    // Check if user is assigned to this specific warehouse
+    return await warehouseManagerRepository.isUserAssignedToWarehouse(userId, warehouseId);
+  }
+
+  return false;
 };

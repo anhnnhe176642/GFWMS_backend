@@ -41,4 +41,7 @@ model User {
   
   // Activity tracking
   activities  UserActivity[]
+  
+  // Fabric adjustments
+  adjustedFabrics AdjustFabric[]
 }

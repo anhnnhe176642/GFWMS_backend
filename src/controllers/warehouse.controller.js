@@ -189,3 +189,53 @@ export const calculateFabricPickup = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Điều chỉnh số lượng vải trên kệ (tăng hoặc giảm)
+ */
+export const adjustFabricQuantity = async (req, res, next) => {
+  try {
+    const { shelfId } = req.params;
+    const { fabricId, importId, quantity, type, reason } = req.body;
+
+    const result = await warehouseService.adjustFabricQuantity({
+      shelfId: parseInt(shelfId),
+      fabricId: parseInt(fabricId),
+      importId: parseInt(importId),
+      quantity: parseInt(quantity),
+      type,
+      reason
+    }, req.user.id);
+
+    res.json({
+      message: 'Điều chỉnh số lượng vải thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Lấy lịch sử điều chỉnh số lượng vải trên kệ
+ */
+export const getAdjustFabricHistory = async (req, res, next) => {
+  try {
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['warehouseId', 'fabricId', 'shelfId', 'categoryId', 'colorId', 'supplierId', 'type', 'userId'],
+      dateRangeConfig: { 
+        fromField: 'createdFrom', 
+        toField: 'createdTo', 
+        targetField: 'createdAt' 
+      }
+    });
+
+    const result = await warehouseService.getAdjustFabricHistoryAdvanced(queryParams);
+    res.json({
+      message: 'Lấy lịch sử điều chỉnh vải thành công',
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

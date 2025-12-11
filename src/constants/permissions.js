@@ -127,6 +127,7 @@ export const PERMISSIONS = {
     CREATE:       { key: 'shelf:create',       description: 'Tạo kệ mới' },
     UPDATE:       { key: 'shelf:update',       description: 'Cập nhật thông tin kệ' },
     DELETE:       { key: 'shelf:delete',       description: 'Xóa kệ' },
+    ADJUST_FABRIC:{ key: 'shelf:adjust_fabric', description: 'Điều chỉnh số lượng vải trên kệ' },
   },
 
   // Order Management

@@ -19,6 +19,21 @@ export class WarehouseRepository {
     updatedAt: true,
   };
 
+  /**
+   * Kiểm tra xem người dùng có quyền truy cập kho hay không
+   */
+  async checkUserWarehouseAccess(userId, warehouseId) {
+    const access = await prisma.warehouseManage.findUnique({
+      where: {
+        userId_warehouseId: {
+          userId,
+          warehouseId: parseInt(warehouseId)
+        }
+      }
+    });
+    return !!access;
+  }
+
   async findById(id) {
     return await prisma.warehouse.findUnique({
       where: { id: parseInt(id) },
@@ -386,6 +401,305 @@ export class WarehouseRepository {
       batches,
       totalAvailable: batches.reduce((sum, b) => sum + b.availableQuantity, 0)
     };
+  }
+
+  /**
+   * Tìm kệ theo ID
+   */
+  async findShelfById(shelfId) {
+    return await prisma.shelf.findUnique({
+      where: { id: parseInt(shelfId) },
+      select: {
+        id: true,
+        code: true,
+        warehouseId: true,
+        currentQuantity: true,
+        maxQuantity: true
+      }
+    });
+  }
+
+  /**
+   * Tìm lần nhập theo ID
+   */
+  async findImportById(importId) {
+    return await prisma.importFabric.findUnique({
+      where: { id: parseInt(importId) },
+      select: {
+        id: true,
+        warehouseId: true,
+        importDate: true,
+        status: true,
+        totalPrice: true
+      }
+    });
+  }
+
+  /**
+   * Tìm FabricShelf record
+   */
+  async findFabricShelf(shelfId, fabricId, importId) {
+    return await prisma.fabricShelf.findUnique({
+      where: {
+        shelfId_fabricId_importId: {
+          shelfId: parseInt(shelfId),
+          fabricId: parseInt(fabricId),
+          importId: parseInt(importId)
+        }
+      },
+      select: {
+        shelfId: true,
+        fabricId: true,
+        importId: true,
+        quantity: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+  }
+
+  /**
+   * Điều chỉnh số lượng vải trên kệ
+   */
+  async adjustFabricQuantity(adjustmentData) {
+    const { shelfId, fabricId, importId, newQuantity, type, reason, userId, oldQuantity } = adjustmentData;
+
+    return await withPrismaErrorHandling(
+      async () => {
+        // Update FabricShelf quantity
+        const updatedFabricShelf = await prisma.fabricShelf.update({
+          where: {
+            shelfId_fabricId_importId: {
+              shelfId: parseInt(shelfId),
+              fabricId: parseInt(fabricId),
+              importId: parseInt(importId)
+            }
+          },
+          data: {
+            quantity: newQuantity,
+            updatedAt: new Date()
+          },
+          select: {
+            shelfId: true,
+            fabricId: true,
+            importId: true,
+            quantity: true,
+            fabric: {
+              select: {
+                id: true
+              }
+            },
+            shelf: {
+              select: {
+                id: true,
+                code: true
+              }
+            },
+            import: {
+              select: {
+                id: true,
+                importDate: true,
+                totalPrice: true
+              }
+            },
+            updatedAt: true
+          }
+        });
+
+        // Create AdjustFabric record for audit
+        const adjustRecord = await prisma.adjustFabric.create({
+          data: {
+            fabricId: parseInt(fabricId),
+            shelfId: parseInt(shelfId),
+            quantity: type === 'IMPORT' ? newQuantity - oldQuantity : oldQuantity - newQuantity,
+            type,
+            price: updatedFabricShelf.import.totalPrice || 0,
+            reason,
+            userId
+          },
+          select: {
+            id: true,
+            fabricId: true,
+            shelfId: true,
+            quantity: true,
+            type: true,
+            price: true,
+            reason: true,
+            userId: true,
+            createdAt: true,
+            updatedAt: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                fullname: true,
+                email: true
+              }
+            }
+          }
+        });
+
+        return {
+          adjustment: adjustRecord,
+          fabricShelf: {
+            shelfId: updatedFabricShelf.shelfId,
+            fabricId: updatedFabricShelf.fabricId,
+            importId: updatedFabricShelf.importId,
+            oldQuantity,
+            newQuantity: updatedFabricShelf.quantity,
+            change: type === 'IMPORT' ? newQuantity - oldQuantity : oldQuantity - newQuantity,
+            type,
+            fabric: updatedFabricShelf.fabric,
+            shelf: updatedFabricShelf.shelf,
+            updatedAt: updatedFabricShelf.updatedAt
+          }
+        };
+      },
+      {
+        'P2025': 'Không tìm thấy dữ liệu để điều chỉnh'
+      }
+    );
+  }
+
+  /**
+   * Tìm lịch sử điều chỉnh vải với advanced query (filter, sort, pagination)
+   */
+  async findAdjustFabricWithAdvancedQuery(queryOptions = {}) {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search = '',
+      sortBy = 'createdAt', 
+      order = 'desc',
+      filters = {}
+    } = queryOptions;
+
+    // Searchable fields for adjust fabric history
+    const searchableFields = ['reason', 'user.username', 'user.fullname', 'user.email', 'shelf.code'];
+
+    // Filter mapping để map fabric fields và warehouse field vào nested relation
+    const filterMapping = {
+      categoryId: 'fabric.categoryId',
+      colorId: 'fabric.colorId',
+      supplierId: 'fabric.supplierId',
+      warehouseId: 'shelf.warehouseId'
+    };
+
+    const where = buildWhereClause(
+      { search, ...filters },
+      searchableFields,
+      filterMapping
+    );
+
+    const select = {
+      id: true,
+      fabricId: true,
+      shelfId: true,
+      quantity: true,
+      type: true,
+      price: true,
+      reason: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          fullname: true,
+          email: true,
+          phone: true,
+          avatar: true,
+          address: true,
+          gender: true,
+          status: true
+        }
+      },
+      fabric: {
+        select: {
+          id: true,
+          thickness: true,
+          length: true,
+          width: true,
+          weight: true,
+          sellingPrice: true,
+          quantityInStock: true,
+          categoryId: true,
+          colorId: true,
+          supplierId: true,
+          glossId: true,
+          createdAt: true,
+          updatedAt: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              sellingPricePerMeter: true,
+              sellingPricePerRoll: true,
+              image: true
+            }
+          },
+          color: {
+            select: {
+              id: true,
+              name: true,
+              hexCode: true
+            }
+          },
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+              phone: true,
+              isActive: true
+            }
+          },
+          gloss: {
+            select: {
+              id: true,
+              description: true
+            }
+          }
+        }
+      },
+      shelf: {
+        select: {
+          id: true,
+          code: true,
+          warehouseId: true,
+          currentQuantity: true,
+          maxQuantity: true,
+          warehouse: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+              latitude: true,
+              longitude: true,
+              status: true
+            }
+          }
+        }
+      }
+    };
+
+    const { skip, take } = buildPagination(page, limit);
+    const orderBy = buildSort(sortBy, order);
+
+    const [data, total] = await Promise.all([
+      prisma.adjustFabric.findMany({
+        where,
+        skip,
+        take,
+        select,
+        orderBy
+      }),
+      prisma.adjustFabric.count({ where })
+    ]);
+
+    return formatPaginatedResponse(data, total, page, take);
   }
 }
 

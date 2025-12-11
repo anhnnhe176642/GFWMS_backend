@@ -1,5 +1,6 @@
 import { warehouseRepository } from '../repositories/warehouse.repository.js';
 import { fabricRepository } from '../repositories/fabric.repository.js';
+import { checkWarehouseAccess } from './warehouseManager.service.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 class WarehouseService {
   async getAllWarehousesAdvanced(queryOptions, userId = null) {
@@ -253,6 +254,98 @@ class WarehouseService {
       },
       shelves: Array.from(shelfMap.values())
     };
+  }
+
+  /**
+   * Điều chỉnh số lượng vải trên kệ (tăng hoặc giảm)
+   * @param {Object} params - Tham số điều chỉnh
+   * @param {number} params.shelfId - ID kệ
+   * @param {number} params.fabricId - ID loại vải
+   * @param {number} params.importId - ID lần nhập
+   * @param {number} params.quantity - Số lượng điều chỉnh
+   * @param {string} params.type - Loại: 'IMPORT' (tăng) hoặc 'DESTROY' (giảm)
+   * @param {string} params.reason - Lý do điều chỉnh
+   * @param {string} userId - ID người thực hiện
+   */
+  async adjustFabricQuantity(params, userId) {
+    const { shelfId, fabricId, importId, quantity, type, reason } = params;
+
+    // Validate shelf exists and get warehouse info
+    const shelf = await warehouseRepository.findShelfById(shelfId);
+    if (!shelf) {
+      throw new NotFoundError('Không tìm thấy kệ');
+    }
+
+    const warehouseId = shelf.warehouseId;
+
+    // Validate warehouse exists
+    const warehouse = await warehouseRepository.findById(warehouseId);
+    if (!warehouse) {
+      throw new NotFoundError('Không tìm thấy kho');
+    }
+
+    // Check warehouse access permission with special permissions
+    // User can access warehouse if they have MANAGER_ALL or MANAGER permission for this warehouse
+    const hasAccess = await checkWarehouseAccess(userId, warehouseId);
+    if (!hasAccess) {
+      throw new ValidationError('Bạn không có quyền truy cập kho này');
+    }
+
+    // Validate fabric exists
+    const fabric = await fabricRepository.findById(fabricId);
+    if (!fabric) {
+      throw new NotFoundError('Không tìm thấy vải');
+    }
+
+    // Validate import exists
+    const importRecord = await warehouseRepository.findImportById(importId);
+    if (!importRecord) {
+      throw new NotFoundError('Không tìm thấy lần nhập');
+    }
+    if (importRecord.warehouseId !== warehouseId) {
+      throw new ValidationError('Lần nhập không thuộc kho này');
+    }
+
+    // Get current fabric shelf record
+    const fabricShelf = await warehouseRepository.findFabricShelf(shelfId, fabricId, importId);
+    if (!fabricShelf) {
+      throw new NotFoundError('Không tìm thấy vải này trên kệ với lần nhập này');
+    }
+
+    // Calculate new quantity
+    let newQuantity;
+    if (type === 'IMPORT') {
+      newQuantity = fabricShelf.quantity + quantity;
+    } else if (type === 'DESTROY') {
+      newQuantity = fabricShelf.quantity - quantity;
+      // Prevent negative quantity
+      if (newQuantity < 0) {
+        throw new ValidationError(`Số lượng vải không đủ để giảm. Số lượng hiện tại: ${fabricShelf.quantity}, yêu cầu giảm: ${quantity}`,'quantity');
+      }
+    } else {
+      throw new ValidationError('Loại điều chỉnh không hợp lệ');
+    }
+
+    // Perform the adjustment with transaction
+    const result = await warehouseRepository.adjustFabricQuantity({
+      shelfId,
+      fabricId,
+      importId,
+      newQuantity,
+      type,
+      reason,
+      userId,
+      oldQuantity: fabricShelf.quantity
+    });
+
+    return result;
+  }
+
+  /**
+   * Lấy lịch sử điều chỉnh số lượng vải trên kệ với filter/sort/pagination
+   */
+  async getAdjustFabricHistoryAdvanced(queryOptions = {}) {
+    return await warehouseRepository.findAdjustFabricWithAdvancedQuery(queryOptions);
   }
   
 }

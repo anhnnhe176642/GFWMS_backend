@@ -8,7 +8,9 @@ import {
   getWarehouseFabrics,
   getWarehouseShelves,
   getWarehouseShelvesByFabric,
-  calculateFabricPickup
+  calculateFabricPickup,
+  adjustFabricQuantity,
+  getAdjustFabricHistory
 } from '../../controllers/warehouse.controller.js';
 import { authenticateToken, requirePermission, requireWarehouseAccess } from '../../middlewares/permission.middleware.js';
 import { validate} from '../../middlewares/validation.middleware.js';
@@ -18,7 +20,10 @@ import {
   warehouseQuerySchema,
   warehouseIdSchema,
   warehouseIdWithFabricIdSchema,
-  fabricPickupQuerySchema
+  fabricPickupQuerySchema,
+  adjustFabricSchema,
+  adjustFabricParamSchema,
+  adjustFabricHistoryQuerySchema
 } from '../../validations/warehouse.validation.js';
 import { fabricQuerySchema } from '../../validations/fabric.validation.js';
 import { shelfQuerySchema } from '../../validations/shelf.validation.js';
@@ -785,6 +790,380 @@ router.patch('/:id',
   requirePermission(PERMISSIONS.WAREHOUSES.UPDATE),
   requireWarehouseAccess(req => Promise.resolve(parseInt(req.params.id))),
   updateWarehouse
+);
+
+/**
+ * @swagger
+ * /warehouses/shelves/{shelfId}/adjust-fabric:
+ *   post:
+ *     summary: Điều chỉnh số lượng vải trên kệ (tăng hoặc giảm)
+ *     description: |
+ *       Điều chỉnh số lượng vải trên kệ theo loại (IMPORT - tăng hoặc DESTROY - giảm).
+ *       
+ *       Khi loại là IMPORT:
+ *       - Tăng số lượng vải của lô nhập tương ứng lên số lượng bằng với quantity
+ *       
+ *       Khi loại là DESTROY:
+ *       - Giảm số lượng vải của lô nhập tương ứng đi số lượng bằng với quantity
+ *       - Số lượng không thể âm (validation sẽ được kiểm tra)
+ *       
+ *       Tất cả các điều chỉnh đều được ghi lại trong bảng AdjustFabric để audit
+ *     tags: [Warehouses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shelfId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của kệ
+ *         example: 5
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fabricId:
+ *                 type: integer
+ *                 description: ID của loại vải cần điều chỉnh
+ *                 example: 10
+ *               importId:
+ *                 type: integer
+ *                 description: ID của lần nhập (batch) cần điều chỉnh
+ *                 example: 3
+ *               quantity:
+ *                 type: integer
+ *                 description: Số lượng điều chỉnh
+ *                 example: 5
+ *               type:
+ *                 type: string
+ *                 enum: [IMPORT, DESTROY]
+ *                 description: |
+ *                   Loại điều chỉnh:
+ *                   - IMPORT: Tăng số lượng
+ *                   - DESTROY: Giảm số lượng
+ *                 example: "IMPORT"
+ *               reason:
+ *                 type: string
+ *                 description: Lý do điều chỉnh (tối thiểu 5 ký tự)
+ *                 example: "Nhập thêm do đơn hàng tăng"
+ *     responses:
+ *       200:
+ *         description: Điều chỉnh số lượng vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Điều chỉnh số lượng vải thành công"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     adjustment:
+ *                       type: object
+ *                       description: Thông tin bản ghi điều chỉnh được tạo
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         fabricId:
+ *                           type: integer
+ *                           example: 10
+ *                         shelfId:
+ *                           type: integer
+ *                           example: 5
+ *                         quantity:
+ *                           type: integer
+ *                           description: Số lượng được điều chỉnh (giá trị dương)
+ *                           example: 5
+ *                         type:
+ *                           type: string
+ *                           example: "IMPORT"
+ *                         price:
+ *                           type: number
+ *                           description: Giá tương ứng từ lần nhập
+ *                           example: 150000
+ *                         reason:
+ *                           type: string
+ *                           example: "Nhập thêm do đơn hàng tăng"
+ *                         userId:
+ *                           type: string
+ *                           example: "user-uuid"
+ *                         user:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             username:
+ *                               type: string
+ *                             fullname:
+ *                               type: string
+ *                             email:
+ *                               type: string
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                     fabricShelf:
+ *                       type: object
+ *                       description: Thông tin vải trên kệ sau khi điều chỉnh
+ *                       properties:
+ *                         shelfId:
+ *                           type: integer
+ *                           example: 5
+ *                         fabricId:
+ *                           type: integer
+ *                           example: 10
+ *                         importId:
+ *                           type: integer
+ *                           example: 3
+ *                         oldQuantity:
+ *                           type: integer
+ *                           description: Số lượng trước khi điều chỉnh
+ *                           example: 10
+ *                         newQuantity:
+ *                           type: integer
+ *                           description: Số lượng sau khi điều chỉnh
+ *                           example: 15
+ *                         change:
+ *                           type: integer
+ *                           description: Độ thay đổi (+ tăng, - giảm)
+ *                           example: 5
+ *                         type:
+ *                           type: string
+ *                           example: "IMPORT"
+ *                         fabric:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: integer
+ *                             code:
+ *                               type: string
+ *                             name:
+ *                               type: string
+ *                         shelf:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: integer
+ *                             code:
+ *                               type: string
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *       400:
+ *         description: |
+ *           Lỗi validation:
+ *           - Số lượng âm
+ *           - Loại điều chỉnh không hợp lệ
+ *           - Lý do quá ngắn hoặc quá dài
+ *       401:
+ *         description: Không có quyền xác thực
+ *       403:
+ *         description: Không có quyền điều chỉnh vải trên kệ
+ *       404:
+ *         description: Không tìm thấy kho, kệ, vải hoặc lần nhập
+ *       422:
+ *         description: |
+ *           Lỗi validation dữ liệu:
+ *           - Số lượng không đủ để giảm (DESTROY)
+ *           - Vải không có trên lô nhập này
+ *       500:
+ *         description: Lỗi server
+ */
+router.post('/shelves/:shelfId/adjust-fabric',
+  validate(adjustFabricParamSchema, 'params'),
+  validate(adjustFabricSchema, 'body'),
+  requirePermission(PERMISSIONS.SHELVES.ADJUST_FABRIC),
+  adjustFabricQuantity
+);
+
+/**
+ * @swagger
+ * /warehouses/shelves/adjust-fabric-history:
+ *   get:
+ *     summary: Lấy lịch sử điều chỉnh số lượng vải trên kệ (hỗ trợ lọc, tìm kiếm, sắp xếp, phân trang)
+ *     description: |
+ *       Lấy danh sách lịch sử tất cả các điều chỉnh số lượng vải trên các kệ với các tùy chọn lọc, tìm kiếm, sắp xếp và phân trang.
+ *       Hỗ trợ lọc theo: loại điều chỉnh (IMPORT/DESTROY), fabricId, shelfId, userId và ngày tạo.
+ *       Hỗ trợ sắp xếp theo bất kỳ trường nào: id, fabricId, shelfId, quantity, type, price, reason, userId, createdAt, updatedAt.
+ *     tags: [Warehouses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Số trang cần lấy
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng bản ghi trên một trang
+ *         example: 10
+ *       - in: query
+ *         name: fabricId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID vải (hỗ trợ một hoặc nhiều giá trị cách nhau bởi dấu phẩy)
+ *         example: "1,2,3"
+ *       - in: query
+ *         name: shelfId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID kệ (hỗ trợ một hoặc nhiều giá trị cách nhau bởi dấu phẩy)
+ *         example: "5,6"
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *         description: Lọc theo loại điều chỉnh (IMPORT hoặc DESTROY, hỗ trợ cách nhau bởi dấu phẩy)
+ *         example: "IMPORT,DESTROY"
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: |
+ *           Trường để sắp xếp (id, fabricId, shelfId, quantity, type, price, reason, userId, createdAt, updatedAt)
+ *         example: "createdAt"
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Thứ tự sắp xếp
+ *         example: "desc"
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Lọc theo ngày tạo từ (YYYY-MM-DD)
+ *         example: "2024-01-01"
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Lọc theo ngày tạo đến (YYYY-MM-DD)
+ *         example: "2024-12-31"
+ *     responses:
+ *       200:
+ *         description: Lấy lịch sử điều chỉnh vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy lịch sử điều chỉnh vải thành công"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       fabricId:
+ *                         type: integer
+ *                         example: 10
+ *                       shelfId:
+ *                         type: integer
+ *                         example: 5
+ *                       quantity:
+ *                         type: integer
+ *                         description: Số lượng thay đổi
+ *                         example: 5
+ *                       type:
+ *                         type: string
+ *                         enum: [IMPORT, DESTROY]
+ *                         example: "IMPORT"
+ *                       price:
+ *                         type: number
+ *                         description: Giá tiền của điều chỉnh
+ *                         example: 100000
+ *                       reason:
+ *                         type: string
+ *                         example: "Nhập lô hàng từ nhà cung cấp A"
+ *                       userId:
+ *                         type: integer
+ *                         example: 1
+ *                       user:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           username:
+ *                             type: string
+ *                           fullname:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                       fabric:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           thickness:
+ *                             type: number
+ *                           length:
+ *                             type: number
+ *                           width:
+ *                             type: number
+ *                           weight:
+ *                             type: number
+ *                       shelf:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           code:
+ *                             type: string
+ *                           warehouseId:
+ *                             type: integer
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *                     total:
+ *                       type: integer
+ *                       example: 100
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 10
+ *       400:
+ *         description: Lỗi validation
+ *       401:
+ *         description: Không có quyền xác thực
+ *       500:
+ *         description: Lỗi server
+ */
+router.get('/shelves/adjust-fabric-history',
+  validate(adjustFabricHistoryQuerySchema, 'query'),
+  requirePermission(PERMISSIONS.SHELVES.ADJUST_FABRIC),
+  getAdjustFabricHistory
 );
 
 /**
