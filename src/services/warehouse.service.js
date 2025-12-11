@@ -316,11 +316,16 @@ class WarehouseService {
     let newQuantity;
     if (type === 'IMPORT') {
       newQuantity = fabricShelf.quantity + quantity;
+      // Check if new quantity exceeds shelf max capacity
+      const maxCanAdd = shelf.maxQuantity - shelf.currentQuantity;
+      if (quantity > maxCanAdd) {
+        throw new ValidationError(`Kệ chỉ có thể thêm tối đa ${maxCanAdd} cái vải. Yêu cầu thêm: ${quantity}`, 'quantity');
+      }
     } else if (type === 'DESTROY') {
       newQuantity = fabricShelf.quantity - quantity;
       // Prevent negative quantity
-      if (newQuantity < 0) {
-        throw new ValidationError(`Số lượng vải không đủ để giảm. Số lượng hiện tại: ${fabricShelf.quantity}, yêu cầu giảm: ${quantity}`,'quantity');
+      if (quantity > fabricShelf.quantity) {
+        throw new ValidationError(`Số lượng vải không đủ để giảm. Chỉ có thể giảm tối đa ${fabricShelf.quantity} cái. Yêu cầu giảm: ${quantity}`, 'quantity');
       }
     } else {
       throw new ValidationError('Loại điều chỉnh không hợp lệ');

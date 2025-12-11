@@ -466,6 +466,14 @@ export class WarehouseRepository {
 
     return await withPrismaErrorHandling(
       async () => {
+        // Calculate quantity change based on type
+        let quantityChange;
+        if (type === 'IMPORT') {
+          quantityChange = newQuantity - oldQuantity; // Positive number
+        } else {
+          quantityChange = -(oldQuantity - newQuantity); // Negative number
+        }
+
         // Update FabricShelf quantity
         const updatedFabricShelf = await prisma.fabricShelf.update({
           where: {
@@ -484,15 +492,11 @@ export class WarehouseRepository {
             fabricId: true,
             importId: true,
             quantity: true,
-            fabric: {
-              select: {
-                id: true
-              }
-            },
             shelf: {
               select: {
                 id: true,
-                code: true
+                code: true,
+                warehouseId: true
               }
             },
             import: {
@@ -506,12 +510,58 @@ export class WarehouseRepository {
           }
         });
 
+        // Update Shelf.currentQuantity (handle both positive and negative changes)
+        await prisma.shelf.update({
+          where: { id: parseInt(shelfId) },
+          data: {
+            currentQuantity: {
+              increment: quantityChange
+            },
+            updatedAt: new Date()
+          }
+        });
+
+        // Update Fabric.quantityInStock (handle both positive and negative changes)
+        await prisma.fabric.update({
+          where: { id: parseInt(fabricId) },
+          data: {
+            quantityInStock: {
+              increment: quantityChange
+            },
+            updatedAt: new Date()
+          }
+        });
+
+        // Update or create WarehouseFabricStock
+        const warehouseId = updatedFabricShelf.shelf.warehouseId;
+        
+        // Try to update existing record, if not exists, create new one
+        await prisma.warehouseFabricStock.upsert({
+          where: {
+            warehouseId_fabricId: {
+              warehouseId: parseInt(warehouseId),
+              fabricId: parseInt(fabricId)
+            }
+          },
+          update: {
+            currentStock: {
+              increment: quantityChange
+            },
+            updatedAt: new Date()
+          },
+          create: {
+            warehouseId: parseInt(warehouseId),
+            fabricId: parseInt(fabricId),
+            currentStock: newQuantity
+          }
+        });
+
         // Create AdjustFabric record for audit
         const adjustRecord = await prisma.adjustFabric.create({
           data: {
             fabricId: parseInt(fabricId),
             shelfId: parseInt(shelfId),
-            quantity: type === 'IMPORT' ? newQuantity - oldQuantity : oldQuantity - newQuantity,
+            quantity: Math.abs(quantityChange),
             type,
             price: updatedFabricShelf.import.totalPrice || 0,
             reason,
@@ -547,10 +597,13 @@ export class WarehouseRepository {
             importId: updatedFabricShelf.importId,
             oldQuantity,
             newQuantity: updatedFabricShelf.quantity,
-            change: type === 'IMPORT' ? newQuantity - oldQuantity : oldQuantity - newQuantity,
+            change: quantityChange,
             type,
-            fabric: updatedFabricShelf.fabric,
-            shelf: updatedFabricShelf.shelf,
+            shelf: {
+              id: updatedFabricShelf.shelf.id,
+              code: updatedFabricShelf.shelf.code,
+              warehouseId: updatedFabricShelf.shelf.warehouseId
+            },
             updatedAt: updatedFabricShelf.updatedAt
           }
         };
