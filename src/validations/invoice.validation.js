@@ -61,7 +61,7 @@ export const paginationQuerySchema = Joi.object({
 const allowedInvoiceSortFields = [
   'id',
   'invoiceDate',
-  'dueDate',
+  'invoiceStatus',
   'totalAmount',
   'createdAt',
   'updatedAt'

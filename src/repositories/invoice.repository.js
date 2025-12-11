@@ -170,7 +170,7 @@ export class InvoiceRepository {
     const selectOptions = detail ? this.#invoiceDetailSelectOptions : this.#invoiceListSelectOptions;
 
     // Các field có thể search
-    const searchableFields = ['order.user.username', 'order.user.email'];
+    const searchableFields = ['order.user.username', 'order.user.email','order.user.fullname'];
 
     // Xây dựng where clause từ search + filters
     const where = buildWhereClause({ search, ...filters }, searchableFields);
