@@ -148,8 +148,8 @@ export const dobSchema = Joi.date()
 export const roleSchema = Joi.string()
   .max(10)
   .messages({
-    'string.max': 'Role name không được vượt quá 10 ký tự',
-    'any.required': 'Role là bắt buộc'
+    'string.max': 'Tên Vai trò không được vượt quá 10 ký tự',
+    'any.required': 'Vai trò là bắt buộc'
   }).uppercase();
 
 // Avatar validation
