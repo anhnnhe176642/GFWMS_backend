@@ -24,7 +24,7 @@ const router = express.Router();
  * @swagger
  * /fabric-color:
  *   get:
- *     summary: Lấy danh sách màu vải (có phân trang và tìm kiếm)
+ *     summary: Lấy danh sách màu vải (có phân trang, tìm kiếm, lọc theo color family, tìm kiếm theo hex tương tự)
  *     tags: [FabricColor]
  *     security:
  *       - bearerAuth: []
@@ -55,6 +55,24 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Thứ tự sắp xếp (asc hoặc desc)
+ *       - in: query
+ *         name: colorFamily
+ *         schema:
+ *           type: string
+ *           enum: [Đỏ, Cam, Vàng, Xanh lá, Xanh dương, Tím, Hồng, Đen, Trắng, Xám]
+ *         description: Lọc theo nhóm màu (được tính từ mã hex tự động)
+ *       - in: query
+ *         name: hexSearchColor
+ *         schema:
+ *           type: string
+ *         description: Mã hex để tìm kiếm màu tương tự (#RRGGBB, #RGB hoặc RRGGBB)
+ *         example: '#3b82f6'
+ *       - in: query
+ *         name: hexSearchRange
+ *         schema:
+ *           type: number
+ *         description: Tốc độ tương tự (0-100, cao hơn = tương tự hơn)
+ *         example: 50
  *     responses:
  *       200:
  *         description: Lấy danh sách màu vải thành công

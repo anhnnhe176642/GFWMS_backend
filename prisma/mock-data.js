@@ -403,7 +403,7 @@ async function main() {
   // 3. TẠO FABRIC COLORS
   console.log('\n📝 Preparing fabric colors...');
   const existingColors = await prisma.fabricColor.findMany({ select: { id: true, name: true } });
-  const existingColorNames = new Set(existingColors.map(c => c.name));
+  //const existingColorNames = new Set(existingColors.map(c => c.name));
   
   // Danh sách màu cơ bản với hex codes
   const basicColors = [
@@ -420,15 +420,89 @@ async function main() {
   ];
   
   const colorsToCreate = [];
+  const existingHexCodes = new Set(existingColors.map(c => c.id)); // Sử dụng ID để kiểm tra, nhưng tạo name unique
+  
+  // Helper function to get color name from hex
+  const getColorNameFromHex = (hex, index) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    
+    // Tính độ sáng
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const saturation = Math.max(r, g, b) - Math.min(r, g, b);
+    
+    // Xác định màu chính dựa trên RGB dominance
+    let baseColor = '';
+    if (saturation < 30) {
+      // Xám, đen, trắng
+      if (brightness < 50) return `Đen #${index}`;
+      if (brightness > 200) return `Trắng #${index}`;
+      return `Xám #${index}`;
+    }
+    
+    // Tìm channel có giá trị cao nhất
+    const max = Math.max(r, g, b);
+    if (max === r && r > g && r > b) baseColor = 'Đỏ';
+    else if (max === g && g > r && g > b) baseColor = 'Xanh Lá';
+    else if (max === b && b > r && b > g) baseColor = 'Xanh Dương';
+    else if (r > 200 && g > 150 && b < 100) baseColor = 'Cam';
+    else if (r > 150 && g < 100 && b > 150) baseColor = 'Tím';
+    else if (r > 200 && g > 180 && b < 80) baseColor = 'Vàng';
+    else if (r > 150 && g < 100 && b < 100) baseColor = 'Nâu';
+    else if (r > 150 && g < 150 && b > 100) baseColor = 'Hồng';
+    else baseColor = 'Xanh Dương';
+    
+    // Xác định độ sâu màu với nhiều mức khác nhau
+    let shade = '';
+    if (brightness > 220) shade = 'Siêu Nhạt';
+    else if (brightness > 180) shade = 'Nhạt';
+    else if (brightness > 140) shade = 'Sáng';
+    else if (brightness < 40) shade = 'Siêu Đậm';
+    else if (brightness < 80) shade = 'Đậm';
+    else if (brightness < 120) shade = 'Tối';
+    
+    // Thêm index để đảm bảo duy nhất
+    if (shade) {
+      return `${baseColor} ${shade} #${index}`;
+    }
+    return `${baseColor} #${index}`;
+  };
+  
   for (let i = 0; i < CONFIG.FABRIC_COLORS; i++) {
     const colorId = `MAU${String(i + 1).padStart(3, '0')}`;
     const colorInfo = basicColors[i % basicColors.length];
-    const name = i < basicColors.length ? colorInfo.name : taoTenMauSac(i);
-    const hexCode = i < basicColors.length ? colorInfo.hex : null;
     
-    if (!existingColorNames.has(name)) {
+    let hexCode;
+    if (i < basicColors.length) {
+      hexCode = colorInfo.hex;
+    } else {
+      // Tạo biến thể của màu cơ bản bằng cách điều chỉnh RGB
+      const baseHex = colorInfo.hex;
+      const r = parseInt(baseHex.slice(1, 3), 16);
+      const g = parseInt(baseHex.slice(3, 5), 16);
+      const b = parseInt(baseHex.slice(5, 7), 16);
+      
+      // Điều chỉnh mỗi channel bằng cách thêm/trừ một giá trị ngẫu nhiên
+      const adjust = () => {
+        const offset = Math.floor(Math.random() * 51) - 25; // -25 đến +25
+        return offset;
+      };
+      
+      const newR = Math.max(0, Math.min(255, r + adjust()));
+      const newG = Math.max(0, Math.min(255, g + adjust()));
+      const newB = Math.max(0, Math.min(255, b + adjust()));
+      
+      hexCode = `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`.toUpperCase();
+    }
+    
+    // Kiểm tra trùng lặp dựa vào colorId (hay có thể là hexCode)
+    if (!existingHexCodes.has(colorId)) {
+      // Tạo tên màu dựa vào hexCode với index để đảm bảo duy nhất
+      const name = i < basicColors.length ? colorInfo.name : getColorNameFromHex(hexCode, i);
+      
       colorsToCreate.push({ id: colorId, name, hexCode });
-      existingColorNames.add(name);
+      existingHexCodes.add(colorId);
     }
   }
   

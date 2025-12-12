@@ -1,7 +1,7 @@
 import * as fabricColorService from '../services/fabricColor.service.js';
 import { buildQueryParams } from '../utils/filter-builder.js';
 
-/**  Lấy danh sách FabricColor (hỗ trợ filter, sort, pagination) */
+/**  Lấy danh sách FabricColor (hỗ trợ filter, sort, pagination, color family, hex similarity) */
 export const getAllFabricColors = async (req, res, next) => {
   try {
     const queryParams = buildQueryParams(req.query, {
@@ -12,6 +12,13 @@ export const getAllFabricColors = async (req, res, next) => {
         targetField: 'createdAt'
       }
     });
+
+    // Thêm colorFamily vào params để repository xử lý
+    queryParams.colorFamily = req.query.colorFamily || null;
+    
+    // Thêm hex similarity search params
+    queryParams.hexSearchColor = req.query.hexSearchColor || null;
+    queryParams.hexSearchRange = req.query.hexSearchRange ? parseInt(req.query.hexSearchRange) : null;
 
     const result = await fabricColorService.getAllFabricColorsAdvanced(queryParams);
 
