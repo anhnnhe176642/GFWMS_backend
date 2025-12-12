@@ -195,8 +195,10 @@ const allowedAdjustFabricSortFields = [
   'updatedAt',
   'shelf.code',
   'shelf.warehouse.name',
-  'user.fullname'
-
+  'user.fullname',
+  'fabric.category.name',
+  'fabric.color.name',
+  'fabric.supplier.name',
 ];
 
 export const adjustFabricHistoryQuerySchema = querySchema.keys({
