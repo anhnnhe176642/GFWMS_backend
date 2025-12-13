@@ -10,4 +10,5 @@ model FabricShelf {
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
     @@id([shelfId, fabricId, importId])
+    @@map("fabric_shelf")
 }
