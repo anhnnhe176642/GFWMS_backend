@@ -7,7 +7,8 @@ import {
   cutFabricSchema,
   fabricStoreQuerySchema,
   storeIdSchema,
-  fabricStoreParamsSchema
+  fabricStoreParamsSchema,
+  allocateFabricByGreedySchema
 } from '../../validations/fabricStore.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
@@ -514,6 +515,177 @@ router.post(
   validate(storeIdSchema, 'params'),
   validate(cutFabricSchema, 'body'),
   fabricStoreController.cutFabric
+);
+
+/**
+ * @swagger
+ * /fabric-store/allocate:
+ *   post:
+ *     summary: Phân bổ vải bằng thuật toán tham lam (Greedy Algorithm)
+ *     description: |
+ *       Tìm các vải theo categoryId (bắt buộc) và optional filters (colorId, glossId, thickness, width, length).
+ *       Sau đó, sử dụng thuật toán tham lam để lấy vải từ những cái có tồn kho nhiều nhất trước.
+ *       Trả về danh sách các fabric ID cùng số lượng lấy từ mỗi cái, sao cho tổng = input quantity.
+ *       
+ *       Required fields: categoryId, quantity, unit (cuộn/mét), storeId
+ *       Optional fields: colorId, glossId, thickness, width, length
+ *     tags: [FabricStore]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - categoryId
+ *               - quantity
+ *               - unit
+ *               - storeId
+ *             properties:
+ *               categoryId:
+ *                 type: integer
+ *                 description: ID loại vải (bắt buộc)
+ *                 example: 1
+ *               quantity:
+ *                 type: integer
+ *                 description: Số lượng cần lấy (bắt buộc)
+ *                 minimum: 1
+ *                 example: 100
+ *               unit:
+ *                 type: string
+ *                 enum: [ROLL, METER]
+ *                 description: Đơn vị (ROLL = cuộn, METER = mét) (bắt buộc)
+ *                 example: "METER"
+ *               storeId:
+ *                 type: integer
+ *                 description: ID cửa hàng (bắt buộc)
+ *                 example: 1
+ *               colorId:
+ *                 type: string
+ *                 description: ID màu vải (tùy chọn)
+ *                 example: "RED"
+ *               glossId:
+ *                 type: integer
+ *                 description: ID độ bóng (tùy chọn)
+ *                 example: 1
+ *               thickness:
+ *                 type: number
+ *                 description: Độ dày (tùy chọn)
+ *                 example: 1.5
+ *               width:
+ *                 type: number
+ *                 description: Chiều rộng (tùy chọn)
+ *                 example: 150
+ *               length:
+ *                 type: number
+ *                 description: Chiều dài (tùy chọn)
+ *                 example: 100
+ *           example:
+ *             categoryId: 1
+ *             quantity: 100
+ *             unit: "METER"
+ *             storeId: 1
+ *             colorId: "RED"
+ *     responses:
+ *       200:
+ *         description: Phân bổ vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Phân bổ vải thành công
+ *                 allocations:
+ *                   type: array
+ *                   description: Danh sách vải được phân bổ
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       fabricId:
+ *                         type: integer
+ *                         description: ID vải
+ *                       quantity:
+ *                         type: integer
+ *                         description: Số lượng lấy từ vải này
+ *                       unit:
+ *                         type: string
+ *                         enum: [ROLL, METER]
+ *                         description: Đơn vị (ROLL = cuộn, METER = mét)
+ *                       available:
+ *                         type: integer
+ *                         description: Tổng tồn kho của vải này (theo đơn vị)
+ *                       uncutRolls:
+ *                         type: integer
+ *                         description: Số cuộn chưa cắt
+ *                       totalMeters:
+ *                         type: number
+ *                         description: Tổng số mét
+ *                       cuttingRollMeters:
+ *                         type: number
+ *                         description: Số mét của cuộn đang cắt
+ *                       fabricInfo:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           category:
+ *                             type: string
+ *                           categoryId:
+ *                             type: integer
+ *                           color:
+ *                             type: string
+ *                           colorId:
+ *                             type: string
+ *                           gloss:
+ *                             type: string
+ *                           glossId:
+ *                             type: integer
+ *                           thickness:
+ *                             type: number
+ *                           width:
+ *                             type: number
+ *                           length:
+ *                             type: number
+ *                       pricing:
+ *                         type: object
+ *                         description: Thông tin giá bán
+ *                         properties:
+ *                           sellingPricePerRoll:
+ *                             type: number
+ *                             description: Giá bán theo cuộn (từ fabric.sellingPrice nếu có, else từ category.sellingPricePerRoll)
+ *                           sellingPricePerMeter:
+ *                             type: number
+ *                             description: Giá bán theo mét (từ category.sellingPricePerMeter)
+ *                           estimatedValue:
+ *                             type: number
+ *                             description: Giá trị dự kiến = quantity * (sellingPricePerRoll hoặc sellingPricePerMeter tùy đơn vị)
+ *                 totalQuantity:
+ *                   type: integer
+ *                   description: Tổng số lượng phân bổ
+ *                 unit:
+ *                   type: string
+ *                   enum: [ROLL, METER]
+ *                   description: Đơn vị (ROLL = cuộn, METER = mét)
+ *                 totalValue:
+ *                   type: number
+ *                   description: Tổng giá trị = sum(allocations[].pricing.estimatedValue)
+ *                 storeId:
+ *                   type: integer
+ *                   description: ID cửa hàng
+ *                 storeName:
+ *                   type: string
+ *                   description: Tên cửa hàng
+ *       400:
+ *         description: Dữ liệu không hợp lệ hoặc không đủ tồn kho
+ *       404:
+ *         description: Không tìm thấy vải hoặc cửa hàng
+ */
+router.post(
+  '/allocate',
+  validate(allocateFabricByGreedySchema, 'body'),
+  fabricStoreController.allocateFabricsByGreedy
 );
 
 export default router;

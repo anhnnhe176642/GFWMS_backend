@@ -236,6 +236,144 @@ class FabricStoreService {
       }
     };
   }
+
+  /**
+   * Allocate fabrics bằng greedy algorithm
+   * Tìm các fabric theo categoryId và optional filters
+   * Lấy vải có tồn kho nhiều nhất trước (theo đơn vị tương ứng)
+   * 
+   * @param {Object} params - {categoryId, quantity, unit, storeId, colorId?, glossId?, thickness?, width?, length?}
+   * @returns {Promise<Object>} - {allocations: [{fabricId, quantity, unit, fabric info}], totalQuantity}
+   */
+  async allocateFabricsByGreedyAlgorithm(params) {
+    const {
+      categoryId,
+      quantity,
+      unit,
+      storeId,
+      colorId,
+      glossId,
+      thickness,
+      width,
+      length
+    } = params;
+
+    // Validate store exists
+    const store = await storeRepository.findById(storeId);
+    if (!store) {
+      throw new NotFoundError(`Cửa hàng (ID ${storeId}) không tồn tại`);
+    }
+
+    // Build filters object (chỉ include nếu có giá trị)
+    const filters = {};
+    if (colorId) filters.colorId = colorId;
+    if (glossId) filters.glossId = glossId;
+    if (thickness !== undefined) filters.thickness = thickness;
+    if (width !== undefined) filters.width = width;
+    if (length !== undefined) filters.length = length;
+
+    // Lấy danh sách fabrics trong store theo categoryId và filters
+    const fabricsInStore = await fabricStoreRepository.findFabricsInStoreByFilters(
+      storeId,
+      categoryId,
+      filters
+    );
+
+    if (fabricsInStore.length === 0) {
+      throw new NotFoundError(
+        'Không tìm thấy vải trong cửa hàng này với các điều kiện lọc đã chỉ định'
+      );
+    }
+
+    // Build allocation list với tồn kho theo đơn vị
+    const allocationCandidates = fabricsInStore.map(item => ({
+      fabricId: item.fabricId,
+      fabricInfo: item.fabric,
+      available: unit === 'ROLL' ? item.uncutRolls : item.totalMeters,
+      uncutRolls: item.uncutRolls,
+      totalMeters: item.totalMeters,
+      cuttingRollMeters: item.cuttingRollMeters
+    }));
+
+    // Sort theo tồn kho nhiều nhất trước (descending)
+    allocationCandidates.sort((a, b) => b.available - a.available);
+
+    // Greedy algorithm: lấy vải từ những cái có tồn kho nhiều nhất
+    const allocations = [];
+    let remainingQuantity = quantity;
+
+    for (const candidate of allocationCandidates) {
+      if (remainingQuantity <= 0) break;
+
+      const quantityToTake = Math.min(remainingQuantity, candidate.available);
+      
+      // Tính giá bán theo quy tắc:
+      // - Giá bán theo cuộn: fabric.sellingPrice nếu not null, else category.sellingPricePerRoll
+      // - Giá bán theo mét: category.sellingPricePerMeter
+      const sellingPricePerRoll = candidate.fabricInfo.sellingPrice !== null 
+        ? candidate.fabricInfo.sellingPrice 
+        : candidate.fabricInfo.category?.sellingPricePerRoll || 0;
+      const sellingPricePerMeter = candidate.fabricInfo.category?.sellingPricePerMeter || 0;
+
+      // Tính tổng giá trị dự kiến
+      let estimatedValue = 0;
+      if (unit === 'ROLL') {
+        estimatedValue = quantityToTake * sellingPricePerRoll;
+      } else {
+        estimatedValue = quantityToTake * sellingPricePerMeter;
+      }
+      
+      allocations.push({
+        fabricId: candidate.fabricId,
+        fabricInfo: {
+          id: candidate.fabricInfo.id,
+          category: candidate.fabricInfo.category?.name,
+          categoryId: candidate.fabricInfo.category?.id,
+          color: candidate.fabricInfo.color?.name,
+          colorId: candidate.fabricInfo.color?.id,
+          gloss: candidate.fabricInfo.gloss?.description,
+          glossId: candidate.fabricInfo.gloss?.id,
+          thickness: candidate.fabricInfo.thickness,
+          width: candidate.fabricInfo.width,
+          length: candidate.fabricInfo.length
+        },
+        pricing: {
+          sellingPricePerRoll,
+          sellingPricePerMeter,
+          estimatedValue
+        },
+        quantity: quantityToTake,
+        unit,
+        available: candidate.available,
+        uncutRolls: candidate.uncutRolls,
+        totalMeters: candidate.totalMeters,
+        cuttingRollMeters: candidate.cuttingRollMeters
+      });
+
+      remainingQuantity -= quantityToTake;
+    }
+
+    // Check if we have enough inventory
+    if (remainingQuantity > 0) {
+      const totalAvailable = allocationCandidates.reduce((sum, c) => sum + c.available, 0);
+      throw new ValidationError(
+        `Không đủ tồn kho. Cần: ${quantity} ${unit}, Có: ${totalAvailable} ${unit}`
+      );
+    }
+
+    // Tính tổng giá trị từ tất cả allocations
+    const totalValue = allocations.reduce((sum, item) => sum + item.pricing.estimatedValue, 0);
+
+    return {
+      message: 'Phân bổ vải thành công',
+      allocations,
+      totalQuantity: quantity,
+      unit,
+      totalValue,
+      storeId,
+      storeName: store.name
+    };
+  }
 }
 
 export default new FabricStoreService();

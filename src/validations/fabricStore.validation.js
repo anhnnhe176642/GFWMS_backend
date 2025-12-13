@@ -194,3 +194,61 @@ export const fabricStoreQuerySchema = querySchema.keys({
     'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu'
   })
 });
+
+/**
+ * Validation cho allocate fabric by greedy algorithm
+ * Request body: categoryId (required), quantity (required), unit (required), storeId (required)
+ *              colorId, glossId, thickness, width, length (optional)
+ */
+const quantitySchema = Joi.number()
+  .integer()
+  .positive()
+  .required()
+  .messages({
+    'number.base': 'Số lượng phải là số',
+    'number.integer': 'Số lượng phải là số nguyên',
+    'number.positive': 'Số lượng phải lớn hơn 0',
+    'any.required': 'Số lượng là bắt buộc'
+  });
+
+const unitSchema = Joi.string()
+  .valid('ROLL', 'METER')
+  .required()
+  .messages({
+    'string.base': 'Đơn vị phải là chuỗi',
+    'any.only': 'Đơn vị phải là "ROLL" hoặc "METER"',
+    'any.required': 'Đơn vị là bắt buộc'
+  });
+
+const thicknessSchema = Joi.number()
+  .positive()
+  .messages({
+    'number.base': 'Độ dày phải là số',
+    'number.positive': 'Độ dày phải lớn hơn 0'
+  });
+
+const widthSchema = Joi.number()
+  .positive()
+  .messages({
+    'number.base': 'Chiều rộng phải là số',
+    'number.positive': 'Chiều rộng phải lớn hơn 0'
+  });
+
+const lengthSchema = Joi.number()
+  .positive()
+  .messages({
+    'number.base': 'Chiều dài phải là số',
+    'number.positive': 'Chiều dài phải lớn hơn 0'
+  });
+
+export const allocateFabricByGreedySchema = Joi.object({
+  categoryId: fabricCategoryIdSchema,
+  quantity: quantitySchema,
+  unit: unitSchema,
+  storeId: storeIdParamSchema,
+  colorId: fabricColorIdSchema.optional(),
+  glossId: fabricGlossIdSchema.optional(),
+  thickness: thicknessSchema.optional(),
+  width: widthSchema.optional(),
+  length: lengthSchema.optional()
+}).required();

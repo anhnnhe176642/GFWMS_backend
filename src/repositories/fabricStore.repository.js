@@ -282,6 +282,47 @@ class FabricStoreRepository {
       })
     );
   }
+
+  /**
+   * Tìm fabrics trong store theo categoryId và optional filters
+   * Dùng cho greedy allocation algorithm
+   * @param {number} storeId - ID của store
+   * @param {number} categoryId - ID category (required)
+   * @param {Object} filters - Optional filters {colorId, glossId, thickness, width, length}
+   * @returns {Promise<Array>} - Array các FabricStore records
+   */
+  async findFabricsInStoreByFilters(storeId, categoryId, filters = {}) {
+    const whereClause = {
+      storeId,
+      fabric: {
+        categoryId
+      }
+    };
+
+    // Thêm optional filters vào where clause
+    if (filters.colorId) {
+      whereClause.fabric.colorId = filters.colorId;
+    }
+    if (filters.glossId) {
+      whereClause.fabric.glossId = filters.glossId;
+    }
+    if (filters.thickness !== undefined) {
+      whereClause.fabric.thickness = filters.thickness;
+    }
+    if (filters.width !== undefined) {
+      whereClause.fabric.width = filters.width;
+    }
+    if (filters.length !== undefined) {
+      whereClause.fabric.length = filters.length;
+    }
+
+    return await withPrismaErrorHandling(
+      () => prisma.fabricStore.findMany({
+        where: whereClause,
+        select: this.#fabricStoreSelectOptions
+      })
+    );
+  }
 }
 
 export default new FabricStoreRepository();

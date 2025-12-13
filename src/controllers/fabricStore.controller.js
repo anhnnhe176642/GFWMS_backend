@@ -99,6 +99,31 @@ class FabricStoreController {
       next(error);
     }
   }
+
+  /**
+   * Allocate fabrics bằng greedy algorithm
+   */
+  async allocateFabricsByGreedy(req, res, next) {
+    try {
+      const { categoryId, quantity, unit, storeId, colorId, glossId, thickness, width, length } = req.body;
+
+      const result = await fabricStoreService.allocateFabricsByGreedyAlgorithm({
+        categoryId: parseInt(categoryId),
+        quantity: parseInt(quantity),
+        unit,
+        storeId: parseInt(storeId),
+        colorId,
+        glossId: glossId ? parseInt(glossId) : undefined,
+        thickness: thickness ? parseFloat(thickness) : undefined,
+        width: width ? parseFloat(width) : undefined,
+        length: length ? parseFloat(length) : undefined
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new FabricStoreController();
