@@ -474,7 +474,7 @@ export const confirmPayment = async (orderId) => {
 //TẠO ĐƠN HÀNG OFFLINE (Staff)
 
 export const createOfflineOrder = async (orderData, staffId) => {
-  const { customerPhone, orderItems, paymentType, notes, storeId } = orderData;
+  const { customerPhone, orderItems, paymentType,paymentMethod = 'DIRECT', notes, storeId } = orderData;
 
   const staff = await orderRepository.findUserById(staffId);
   if (!staff) {
@@ -497,24 +497,24 @@ export const createOfflineOrder = async (orderData, staffId) => {
   const totalAmount = calculateTotalAmount(processedItems);
 
   if (paymentType === 'CASH') {
-    return await createOfflineCashOrder(customer.id, staffId, processedItems, totalAmount, customerPhone, notes, storeId);
+    return await createOfflineCashOrder(customer.id, staffId, processedItems, totalAmount, customerPhone,paymentMethod,storeId, notes);
   } else {
-    return await createOfflineCreditOrder(customer, staffId, processedItems, totalAmount, customerPhone, notes, storeId);
+    return await createOfflineCreditOrder(customer, staffId, processedItems, totalAmount, customerPhone,paymentMethod,storeId, notes);
   }
 };
 
 // Offline - CASH
-const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, customerPhone, notes, storeId) => {
+const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, customerPhone,paymentMethod, storeId, notes) => {
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId: customerId,
-      status: 'DELIVERED',
+      status: 'PENDING',
       totalAmount,
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
       storeId,
-      notes: notes || 'Mua tại cửa hàng - Trả tiền ngay'
+      notes: notes || 'Mua tại cửa hàng - Chờ thanh toán'
     },
     items.map(item => ({
       fabricId: item.fabricId,
@@ -524,12 +524,13 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
       costPrice: item.costPrice
     })),
     {
-      invoiceStatus: 'PAID',
+      invoiceStatus: 'UNPAID',
       totalAmount,
-      paidAmount: totalAmount,
+      paidAmount: 0,
       creditAmount: 0,
       paymentType: 'CASH',
-      notes: 'Đã thanh toán tại cửa hàng'
+      paymentDeadline:  new Date(Date.now() + 15 * 60 * 1000),
+      notes: 'Thanh toán tại cửa hàng số tiền : ' + totalAmount + 'đ'
     },
     createDeductStockCallback(items),
     false
@@ -537,12 +538,20 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
 
   return {
     order,
-    message: 'Tạo đơn hàng thành công. Đã giao hàng cho khách.'
+    requiresPayment: true,
+    paymentInstructions: {
+      invoiceId:  order.invoice.id,
+      amount: totalAmount,
+      method: paymentMethod, // 'QR' hoặc 'DIRECT'
+    },
+    message:  paymentMethod === 'QR' 
+      ? 'Vui lòng tạo mã QR để thanh toán' 
+      : 'Vui lòng xác nhận khách hàng đã thanh toán'
   };
 };
 
 // Offline - CREDIT
-const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, customerPhone, notes, storeId) => {
+const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, customerPhone,paymentMethod = 'DIRECT', storeId, notes) => {
   if (!customer.creditRegistration || customer.creditRegistration.status !== 'APPROVED') {
     throw new BadRequestError('Khách hàng không được phép mua nợ');
   }
@@ -551,14 +560,14 @@ const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, c
 
   if (requiresPayment) {
     // Tự động xử lý: khách sẽ thanh toán phần vượt hạn mức ngay
-    return await createOfflineCreditOrderWithExcess(customer.id, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId);
+    return await createOfflineCreditOrderWithExcess(customer.id, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone,paymentMethod, storeId, notes);
   } else {
-    return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount,creditAmount, customerPhone, notes, storeId);
+    return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount,creditAmount, customerPhone,paymentMethod, storeId,notes);
   }
 };
 
 // Offline - CREDIT trong hạn mức
-const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmount, creditAmount, customerPhone, notes, storeId) => {
+const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmount, creditAmount, customerPhone,paymentMethod, storeId, notes) => {
   //                                                                                    
   const creditInvoice = await getOrCreateMonthlyCreditInvoice(customerId);
 
@@ -611,19 +620,19 @@ const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmo
 };
 
 // Offline - CREDIT vượt hạn mức
-const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId) => {
+const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone,paymentMethod, storeId, notes) => {
   const creditInvoice = await getOrCreateMonthlyCreditInvoice(customerId)
 
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId: customerId,
-      status: 'DELIVERED',
+      status: 'PENDING',
       totalAmount,
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
       storeId,
-      notes: notes || `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Đã thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
+      notes: notes || `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Chờ thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
     },
     items.map(item => ({
       fabricId: item.fabricId,
@@ -633,14 +642,14 @@ const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, to
       costPrice: item.costPrice
     })),
     {
-      invoiceStatus: 'CREDIT',
+      invoiceStatus: 'UNPAID',
       totalAmount,
-      paidAmount: excessAmount,
+      paidAmount: 0,
       creditAmount,
       paymentType: 'CREDIT',
-      paymentDeadline: creditInvoice. dueDate,
+      paymentDeadline: new Date(Date.now() + 15 * 60 * 1000),
       creditInvoiceId: creditInvoice.id,
-      notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ | Đã thanh toán: ${excessAmount.toLocaleString('vi-VN')}đ`
+      notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ | Cần thanh toán: ${excessAmount.toLocaleString('vi-VN')}đ`
     },
     createDeductStockCallback(items),
     true
@@ -657,8 +666,17 @@ const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, to
 
   return {
     order,
+    requiresPayment: true,
+    excessAmount,
     creditInvoiceId: creditInvoice.id,
-    message: `Tạo đơn hàng thành công. Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Đã thanh toán ${excessAmount.toLocaleString('vi-VN')}đ.`
+    paymentInstructions: {
+      invoiceId: order.invoice.id,
+      amount: excessAmount, // thanh toán phần vượt
+      method: paymentMethod,
+    },
+    message: paymentMethod === 'QR'
+      ? `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ. Vui lòng tạo mã QR để thanh toán phần vượt ${excessAmount.toLocaleString('vi-VN')}đ`
+      : `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ. Vui lòng xác nhận khách hàng đã thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
   };
 };
 

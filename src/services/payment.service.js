@@ -502,10 +502,12 @@ const processInvoicePaymentSuccess = async (invoice, transactionId, amount, webh
       
       
       // 4. Update Order
+      const order = invoice.order;
+      const newOrderStatus = order.isOffline ? 'DELIVERED' : 'PROCESSING';
       const updatedOrder = await tx.order.update({
         where: { id: invoice.orderId },
         data: {
-          status: 'PROCESSING'
+          status: newOrderStatus
         }
       });
       console.log('[Webhook] Order updated:', {
@@ -794,7 +796,7 @@ export const checkCreditInvoicePaymentStatus = async (creditInvoiceId) => {
     throw new NotFoundError('Không tìm thấy Credit Invoice');
   }
   
-  // 2. ✅ Lấy TẤT CẢ payment của Credit Invoice (không filter invoiceId)
+  // 2. Lấy TẤT CẢ payment của Credit Invoice (không filter invoiceId)
   const allPayments = await prisma.payment.findMany({
     where: { 
       creditInvoiceId: parseInt(creditInvoiceId)
@@ -802,7 +804,7 @@ export const checkCreditInvoicePaymentStatus = async (creditInvoiceId) => {
     orderBy: { createdAt: 'desc' }
   });
   
-  // 3. ✅ Filter trong JavaScript (tìm payment có invoiceId = null)
+  // 3. Filter trong JavaScript (tìm payment có invoiceId = null)
   const creditPayment = allPayments.find(p => p.invoiceId === null);
   
   // 4. Nếu chưa có payment gom tháng
@@ -832,5 +834,117 @@ export const checkCreditInvoicePaymentStatus = async (creditInvoiceId) => {
     transactionId: creditPayment.transactionId,
     
     invoiceCount: creditInvoice.invoice.length
+  };
+};
+
+/**
+ * Xác nhận thanh toán offline (DIRECT) qua invoiceId
+ */
+export const confirmOfflinePayment = async (invoiceId, paymentData) => {
+  const { confirmed, amountPaid } = paymentData;
+  
+  if (! confirmed) {
+    throw new BadRequestError('Thanh toán chưa được xác nhận');
+  }
+
+  // Tìm invoice trước, sau đó lấy order
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { 
+      order: {
+        include: {
+          orderItems: {
+            include: {
+              fabric: {
+                include: {
+                  category: true,
+                  color: true,
+                  gloss: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (!invoice) {
+    throw new NotFoundError('Không tìm thấy hóa đơn');
+  }
+
+  const order = invoice.order;
+  if (!order) {
+    throw new NotFoundError('Không tìm thấy đơn hàng');
+  }
+
+  if (! order.isOffline) {
+    throw new BadRequestError('Đơn hàng này không phải đơn offline');
+  }
+
+  if (order. status !== 'PENDING') {
+    throw new BadRequestError(`Đơn hàng đã ở trạng thái ${order.status}, không thể xác nhận thanh toán`);
+  }
+
+  // Kiểm tra số tiền
+  const expectedAmount = invoice.totalAmount - invoice.creditAmount;
+  if (Math.abs(amountPaid - expectedAmount) > 0.01) {
+    throw new BadRequestError(
+      `Số tiền không khớp. Cần thanh toán: ${expectedAmount.toLocaleString('vi-VN')}đ, nhận được:  ${amountPaid.toLocaleString('vi-VN')}đ`
+    );
+  }
+
+  // Cập nhật trong transaction
+  const result = await prisma.$transaction(async (tx) => {
+    // Tạo payment record
+    await tx.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        amount: amountPaid,
+        paymentMethod: 'CASH_OFFLINE',
+        status: 'SUCCESS',
+        paymentDate: new Date(),
+        notes: 'Thanh toán tiền mặt tại cửa hàng'
+      }
+    });
+
+    // Xác định invoice status
+    const newInvoiceStatus = invoice.creditAmount > 0 ?  'CREDIT' : 'PAID';
+
+    // Update Invoice
+    await tx.invoice.update({
+      where: { id:  invoice.id },
+      data: {
+        invoiceStatus: newInvoiceStatus,
+        paidAmount: amountPaid
+      }
+    });
+
+    // Update Order
+    const updatedOrder = await tx.order.update({
+      where: { id: order. id },
+      data: { status: 'DELIVERED' },
+      include: {
+        invoice:  true,
+        orderItems: {
+          include: {
+            fabric: {
+              include: {
+                category: true,
+                color: true,
+                gloss:  true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return updatedOrder;
+  });
+
+  return {
+    order: result,
+    message: 'Xác nhận thanh toán thành công số tiền ' + amountPaid+'đ. Đơn hàng đã hoàn tất.'
   };
 };
