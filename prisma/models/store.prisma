@@ -9,6 +9,7 @@ model Store {
     isActive    Boolean   @default(true)
     fabrics     FabricStore[]
     exportFabrics ExportFabric[]
+    fabricCustomers FabricCustomerStore[]
 
     managers      UserStore[]  @relation("StoreManagers")
     orders        Order[]   @relation("StoreOrders")

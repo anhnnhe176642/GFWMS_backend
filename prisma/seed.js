@@ -147,9 +147,10 @@ async function main() {
   console.log('- User: username="user", password="user123"');
   console.log('- Staff: username="staff", password="staff123"');
 
-  // 4. Tạo triggers cho WarehouseFabricStock
+  // 4. Tạo triggers cho WarehouseFabricStock và FabricCustomer
   console.log('\nCreating database triggers...');
   await createWarehouseFabricStockTriggers();
+  await createFabricCustomerTriggers();
   console.log('Triggers created successfully!');
 }
 
@@ -277,6 +278,266 @@ async function createWarehouseFabricStockTriggers() {
     console.log('✓ All triggers and procedures created successfully');
   } catch (error) {
     console.error('Error connecting to MySQL for triggers:', error.message);
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
+/**
+ * Tạo triggers cho FabricCustomer và FabricCustomerStore
+ * Đồng bộ dữ liệu khi có thay đổi trong fabric_store
+ */
+async function createFabricCustomerTriggers() {
+  let connection;
+  try {
+    // Parse DATABASE_URL
+    const databaseUrl = new URL(process.env.DATABASE_URL);
+    const config = {
+      host: databaseUrl.hostname,
+      user: databaseUrl.username,
+      password: databaseUrl.password,
+      database: databaseUrl.pathname.slice(1),
+      port: databaseUrl.port ? parseInt(databaseUrl.port) : 3306
+    };
+
+    connection = await mysql.createConnection(config);
+    console.log('✓ Connected to MySQL for FabricCustomer trigger creation');
+
+    // Mảng các SQL statements cho FabricCustomer
+    const fabricCustomerTriggerStatements = [
+      // Trigger INSERT vào fabric_store -> Tạo/cập nhật FabricCustomer và FabricCustomerStore
+      `CREATE TRIGGER IF NOT EXISTS trg_fabric_store_after_insert
+      AFTER INSERT ON fabric_store
+      FOR EACH ROW
+      BEGIN
+          DECLARE v_fabric_customer_id INT;
+          DECLARE v_existing_customer_id INT;
+          
+          -- Tìm kiếm FabricCustomer có cùng thuộc tính với Fabric
+          SELECT fc.id INTO v_existing_customer_id
+          FROM fabric_customer fc
+          INNER JOIN fabric f ON f.id = NEW.fabricId
+          WHERE fc.thickness = f.thickness
+            AND fc.glossId = f.glossId
+            AND fc.width = f.width
+            AND fc.length = f.length
+            AND fc.categoryId = f.categoryId
+            AND fc.colorId = f.colorId
+          LIMIT 1;
+          
+          IF v_existing_customer_id IS NOT NULL THEN
+              -- Cập nhật FabricCustomer nếu đã tồn tại
+              SET v_fabric_customer_id = v_existing_customer_id;
+              UPDATE fabric_customer
+              SET totalUncut = totalUncut + NEW.uncutRolls,
+                  totalCuttingMeters = totalCuttingMeters + NEW.cuttingRollMeters,
+                  totalMeters = (totalUncut + NEW.uncutRolls) * length + (totalCuttingMeters + NEW.cuttingRollMeters),
+                  updatedAt = NOW()
+              WHERE id = v_fabric_customer_id;
+              
+              -- Cập nhật hoặc tạo FabricCustomerStore
+              INSERT INTO fabric_customer_store (fabricCustomerId, storeId, uncutRolls, cuttingRollMeters, createdAt, updatedAt)
+              VALUES (v_fabric_customer_id, NEW.storeId, NEW.uncutRolls, NEW.cuttingRollMeters, NOW(), NOW())
+              ON DUPLICATE KEY UPDATE
+                  uncutRolls = uncutRolls + NEW.uncutRolls,
+                  cuttingRollMeters = cuttingRollMeters + NEW.cuttingRollMeters,
+                  updatedAt = NOW();
+          ELSE
+              -- Tạo mới FabricCustomer từ Fabric
+              INSERT INTO fabric_customer (thickness, glossId, width, length, categoryId, colorId, totalUncut, totalCuttingMeters, totalMeters, createdAt, updatedAt)
+              SELECT f.thickness, f.glossId, f.width, f.length, f.categoryId, f.colorId, 
+                     NEW.uncutRolls, NEW.cuttingRollMeters, NEW.uncutRolls * f.length + NEW.cuttingRollMeters, NOW(), NOW()
+              FROM fabric f
+              WHERE f.id = NEW.fabricId;
+              
+              -- Lấy ID của FabricCustomer vừa tạo
+              SET v_fabric_customer_id = LAST_INSERT_ID();
+              
+              -- Tạo FabricCustomerStore
+              INSERT INTO fabric_customer_store (fabricCustomerId, storeId, uncutRolls, cuttingRollMeters, createdAt, updatedAt)
+              VALUES (v_fabric_customer_id, NEW.storeId, NEW.uncutRolls, NEW.cuttingRollMeters, NOW(), NOW());
+          END IF;
+      END`,
+
+      // Trigger UPDATE fabric_store -> Cập nhật FabricCustomer và FabricCustomerStore
+      `CREATE TRIGGER IF NOT EXISTS trg_fabric_store_after_update
+      AFTER UPDATE ON fabric_store
+      FOR EACH ROW
+      BEGIN
+          DECLARE v_fabric_customer_id INT;
+          DECLARE v_existing_customer_id INT;
+          DECLARE v_uncut_diff INT;
+          DECLARE v_cutting_diff FLOAT;
+          DECLARE v_new_total_uncut INT;
+          DECLARE v_new_total_cutting FLOAT;
+          DECLARE v_length FLOAT;
+          
+          -- Tính sự khác biệt
+          SET v_uncut_diff = NEW.uncutRolls - OLD.uncutRolls;
+          SET v_cutting_diff = NEW.cuttingRollMeters - OLD.cuttingRollMeters;
+          
+          -- Tìm kiếm FabricCustomer có cùng thuộc tính
+          SELECT fc.id, fc.length INTO v_existing_customer_id, v_length
+          FROM fabric_customer fc
+          INNER JOIN fabric f ON f.id = NEW.fabricId
+          WHERE fc.thickness = f.thickness
+            AND fc.glossId = f.glossId
+            AND fc.width = f.width
+            AND fc.length = f.length
+            AND fc.categoryId = f.categoryId
+            AND fc.colorId = f.colorId
+          LIMIT 1;
+          
+          IF v_existing_customer_id IS NOT NULL THEN
+              SET v_fabric_customer_id = v_existing_customer_id;
+              SET v_new_total_uncut = GREATEST(0, (SELECT totalUncut FROM fabric_customer WHERE id = v_fabric_customer_id) + v_uncut_diff);
+              SET v_new_total_cutting = GREATEST(0, (SELECT totalCuttingMeters FROM fabric_customer WHERE id = v_fabric_customer_id) + v_cutting_diff);
+              
+              -- Cập nhật FabricCustomer
+              UPDATE fabric_customer
+              SET totalUncut = v_new_total_uncut,
+                  totalCuttingMeters = v_new_total_cutting,
+                  totalMeters = v_new_total_uncut * v_length + v_new_total_cutting,
+                  updatedAt = NOW()
+              WHERE id = v_fabric_customer_id;
+              
+              -- Cập nhật FabricCustomerStore
+              UPDATE fabric_customer_store
+              SET uncutRolls = GREATEST(0, uncutRolls + v_uncut_diff),
+                  cuttingRollMeters = GREATEST(0, cuttingRollMeters + v_cutting_diff),
+                  updatedAt = NOW()
+              WHERE fabricCustomerId = v_fabric_customer_id
+                AND storeId = NEW.storeId;
+          END IF;
+      END`,
+
+      // Trigger DELETE fabric_store -> Cập nhật FabricCustomer và xóa FabricCustomerStore nếu cần
+      `CREATE TRIGGER IF NOT EXISTS trg_fabric_store_after_delete
+      AFTER DELETE ON fabric_store
+      FOR EACH ROW
+      BEGIN
+          DECLARE v_fabric_customer_id INT;
+          DECLARE v_existing_customer_id INT;
+          DECLARE v_new_total_uncut INT;
+          DECLARE v_new_total_cutting FLOAT;
+          DECLARE v_length FLOAT;
+          
+          -- Tìm kiếm FabricCustomer có cùng thuộc tính
+          SELECT fc.id, fc.length INTO v_existing_customer_id, v_length
+          FROM fabric_customer fc
+          INNER JOIN fabric f ON f.id = OLD.fabricId
+          WHERE fc.thickness = f.thickness
+            AND fc.glossId = f.glossId
+            AND fc.width = f.width
+            AND fc.length = f.length
+            AND fc.categoryId = f.categoryId
+            AND fc.colorId = f.colorId
+          LIMIT 1;
+          
+          IF v_existing_customer_id IS NOT NULL THEN
+              SET v_fabric_customer_id = v_existing_customer_id;
+              SET v_new_total_uncut = GREATEST(0, (SELECT totalUncut FROM fabric_customer WHERE id = v_fabric_customer_id) - OLD.uncutRolls);
+              SET v_new_total_cutting = GREATEST(0, (SELECT totalCuttingMeters FROM fabric_customer WHERE id = v_fabric_customer_id) - OLD.cuttingRollMeters);
+              
+              -- Cập nhật FabricCustomer
+              UPDATE fabric_customer
+              SET totalUncut = v_new_total_uncut,
+                  totalCuttingMeters = v_new_total_cutting,
+                  totalMeters = v_new_total_uncut * v_length + v_new_total_cutting,
+                  updatedAt = NOW()
+              WHERE id = v_fabric_customer_id;
+              
+              -- Xóa FabricCustomerStore
+              DELETE FROM fabric_customer_store
+              WHERE fabricCustomerId = v_fabric_customer_id
+                AND storeId = OLD.storeId;
+          END IF;
+      END`,
+
+      // Procedure đồng bộ lại toàn bộ dữ liệu
+      `CREATE PROCEDURE IF NOT EXISTS sp_sync_fabric_customer()
+      BEGIN
+          -- Xóa toàn bộ dữ liệu cũ
+          DELETE FROM fabric_customer_store;
+          DELETE FROM fabric_customer;
+          
+          -- Tạo FabricCustomer từ các bản ghi FabricStore duy nhất
+          INSERT INTO fabric_customer (thickness, glossId, width, length, categoryId, colorId, totalUncut, totalCuttingMeters, totalMeters, createdAt, updatedAt)
+          SELECT DISTINCT 
+              f.thickness,
+              f.glossId,
+              f.width,
+              f.length,
+              f.categoryId,
+              f.colorId,
+              0,
+              0,
+              0,
+              NOW(),
+              NOW()
+          FROM fabric f
+          WHERE EXISTS (
+              SELECT 1 FROM fabric_store fs WHERE fs.fabricId = f.id
+          );
+          
+          -- Tạo FabricCustomerStore từ FabricStore
+          INSERT INTO fabric_customer_store (fabricCustomerId, storeId, uncutRolls, cuttingRollMeters, createdAt, updatedAt)
+          SELECT 
+              fc.id,
+              fs.storeId,
+              fs.uncutRolls,
+              fs.cuttingRollMeters,
+              NOW(),
+              NOW()
+          FROM fabric_store fs
+          INNER JOIN fabric f ON fs.fabricId = f.id
+          INNER JOIN fabric_customer fc ON 
+              fc.thickness = f.thickness
+              AND fc.glossId = f.glossId
+              AND fc.width = f.width
+              AND fc.length = f.length
+              AND fc.categoryId = f.categoryId
+              AND fc.colorId = f.colorId;
+          
+          -- Cập nhật tổng số lượng và totalMeters trong FabricCustomer
+          UPDATE fabric_customer fc
+          SET fc.totalUncut = (
+              SELECT SUM(fcs.uncutRolls) 
+              FROM fabric_customer_store fcs 
+              WHERE fcs.fabricCustomerId = fc.id
+          ),
+          fc.totalCuttingMeters = (
+              SELECT SUM(fcs.cuttingRollMeters) 
+              FROM fabric_customer_store fcs 
+              WHERE fcs.fabricCustomerId = fc.id
+          ),
+          fc.totalMeters = (
+              SELECT SUM(fcs.uncutRolls * fc.length + fcs.cuttingRollMeters)
+              FROM fabric_customer_store fcs
+              WHERE fcs.fabricCustomerId = fc.id
+          ),
+          fc.updatedAt = NOW();
+      END`
+    ];
+
+    // Thực hiện từng statement
+    for (const statement of fabricCustomerTriggerStatements) {
+      try {
+        await connection.query(statement);
+        const triggerName = statement.match(/(?:TRIGGER|PROCEDURE)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)/)?.[1];
+        console.log(`✓ Created: ${triggerName}`);
+      } catch (error) {
+        if (!error.message.includes('already exists')) {
+          console.error(`Error creating trigger:`, error.message);
+        }
+      }
+    }
+
+    console.log('✓ All FabricCustomer triggers and procedures created successfully');
+  } catch (error) {
+    console.error('Error connecting to MySQL for FabricCustomer triggers:', error.message);
   } finally {
     if (connection) {
       await connection.end();

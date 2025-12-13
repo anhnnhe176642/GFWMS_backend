@@ -7,4 +7,5 @@ model FabricColor {
     updatedAt DateTime @updatedAt
     @@map("fabric_color")
     Fabric Fabric[]
+    FabricCustomer FabricCustomer[]
 }

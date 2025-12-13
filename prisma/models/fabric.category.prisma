@@ -9,5 +9,6 @@ model FabricCategory {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   Fabric           Fabric[]
+  FabricCustomer   FabricCustomer[]
   @@map("fabric_category")
 }

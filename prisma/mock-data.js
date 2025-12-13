@@ -62,6 +62,30 @@ const tenThanhPho = [
   'Đà Lạt', 'Phan Thiết', 'Rạch Giá', 'Long Xuyên', 'Mỹ Tho'
 ];
 
+// Tọa độ thành phố Việt Nam (latitude, longitude)
+const toadoThanhPho = {
+  'TP. Hồ Chí Minh': { latitude: 10.7769, longitude: 106.7009 },
+  'Hà Nội': { latitude: 21.0285, longitude: 105.8542 },
+  'Đà Nẵng': { latitude: 16.0544, longitude: 108.2022 },
+  'Hải Phòng': { latitude: 20.8449, longitude: 106.6881 },
+  'Cần Thơ': { latitude: 10.0452, longitude: 105.7469 },
+  'Biên Hòa': { latitude: 10.9599, longitude: 106.8240 },
+  'Nha Trang': { latitude: 12.2383, longitude: 109.1967 },
+  'Huế': { latitude: 16.4637, longitude: 107.5909 },
+  'Buôn Ma Thuột': { latitude: 12.6642, longitude: 108.0317 },
+  'Quy Nhơn': { latitude: 13.7794, longitude: 109.2287 },
+  'Vũng Tàu': { latitude: 10.3577, longitude: 107.0842 },
+  'Thái Nguyên': { latitude: 21.5968, longitude: 105.8442 },
+  'Nam Định': { latitude: 20.4278, longitude: 106.1753 },
+  'Thanh Hóa': { latitude: 19.8074, longitude: 105.7778 },
+  'Vinh': { latitude: 18.6867, longitude: 104.7618 },
+  'Đà Lạt': { latitude: 11.9404, longitude: 108.4427 },
+  'Phan Thiết': { latitude: 10.9266, longitude: 107.0304 },
+  'Rạch Giá': { latitude: 10.0073, longitude: 104.7762 },
+  'Long Xuyên': { latitude: 10.3625, longitude: 105.4167 },
+  'Mỹ Tho': { latitude: 10.3426, longitude: 106.3728 }
+};
+
 // Tên công ty vải
 const tenCongTyVai = [
   'Dệt May Việt Tiến', 'Vải Phong Phú', 'Dệt Thành Công', 'Vải Đông Á', 'Dệt Nam Định',
@@ -576,12 +600,16 @@ async function main() {
   const warehousesToCreate = [];
   for (let i = 0; i < CONFIG.WAREHOUSES; i++) {
     const name = taoTenKho(i);
+    const thanhPho = faker.helpers.arrayElement(tenThanhPho);
+    const toadoThanhPhoItem = toadoThanhPho[thanhPho];
     
     if (!existingWarehouseNames.has(name)) {
       warehousesToCreate.push({
         name,
         address: taoDiaChiVietNam(),
         status: faker.helpers.arrayElement(['ACTIVE', 'INACTIVE']),
+        latitude: toadoThanhPhoItem ? toadoThanhPhoItem.latitude + faker.number.float({ min: -0.1, max: 0.1 }) : null,
+        longitude: toadoThanhPhoItem ? toadoThanhPhoItem.longitude + faker.number.float({ min: -0.1, max: 0.1 }) : null,
       });
       existingWarehouseNames.add(name);
     }
@@ -597,11 +625,15 @@ async function main() {
   const storesToCreate = [];
   for (let i = 0; i < CONFIG.STORES; i++) {
     const name = taoTenCuaHang(i);
+    const thanhPho = faker.helpers.arrayElement(tenThanhPho);
+    const toadoThanhPhoItem = toadoThanhPho[thanhPho];
     
     storesToCreate.push({
       name,
       address: taoDiaChiVietNam(),
       isActive: faker.datatype.boolean(0.9),
+      latitude: toadoThanhPhoItem ? toadoThanhPhoItem.latitude + faker.number.float({ min: -0.1, max: 0.1 }) : null,
+      longitude: toadoThanhPhoItem ? toadoThanhPhoItem.longitude + faker.number.float({ min: -0.1, max: 0.1 }) : null,
     });
   }
   

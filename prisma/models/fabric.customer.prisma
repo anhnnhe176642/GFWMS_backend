@@ -1,0 +1,44 @@
+model FabricCustomer {
+    id                      Int      @id @default(autoincrement())
+    
+    // Cloned properties from Fabric
+    thickness               Float
+    glossId                 Int
+    gloss                   FabricGloss @relation(fields: [glossId], references: [id])
+    width                   Float
+    length                  Float
+    categoryId              Int
+    category                FabricCategory @relation(fields: [categoryId], references: [id])
+    colorId                 String  @db.VarChar(50)
+    color                   FabricColor @relation(fields: [colorId], references: [id])
+    
+    // Stock information
+    totalUncut              Int       @default(0)  // Tổng số lượng cuộn còn nguyên chưa cắt
+    totalCuttingMeters      Float     @default(0)  // Tổng số mét còn lại sau khi cắt dở
+    totalMeters             Float     @default(0)  // Tổng số mét = (totalUncut * length) + totalCuttingMeters (tính tự động)
+    
+    // Relationships
+    fabricCustomerStores    FabricCustomerStore[]
+    
+    createdAt               DateTime  @default(now())
+    updatedAt               DateTime  @updatedAt
+    
+    @@map("fabric_customer")
+}
+
+model FabricCustomerStore {
+    fabricCustomerId        Int
+    storeId                 Int
+    
+    uncutRolls              Int       @default(0)  // Số cuộn vải chưa cắt
+    cuttingRollMeters       Float     @default(0)  // Số mét còn lại của cuộn đang cắt dở
+    
+    createdAt               DateTime  @default(now())
+    updatedAt               DateTime  @updatedAt
+    
+    fabricCustomer          FabricCustomer @relation(fields: [fabricCustomerId], references: [id])
+    store                   Store     @relation(fields: [storeId], references: [id])
+    
+    @@id([fabricCustomerId, storeId])
+    @@map("fabric_customer_store")
+}

@@ -12,4 +12,5 @@ model FabricStore {
     store       Store     @relation(fields: [storeId], references: [id])
 
     @@id([fabricId, storeId])
+    @@map("fabric_store")
 }
