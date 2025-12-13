@@ -316,6 +316,19 @@ const CONFIG = {
   PAYMENT_PERCENTAGE: parseFloat(process.env.MOCK_PAYMENT_PERCENTAGE) || 0.8,
 };
 
+// =============================================
+// FABRIC DIMENSIONS - 10 UNIQUE VALUES EACH
+// =============================================
+
+// Độ dày vải (mm)
+const thicknessValues = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
+
+// Chiều dài vải (m)
+const lengthValues = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+// Chiều rộng vải (m)
+const widthValues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5];
+
 async function main() {
   console.log('🚀 Starting optimized mock data generation...\n');
   
@@ -630,10 +643,10 @@ async function main() {
   
   for (let i = 0; i < CONFIG.FABRICS; i++) {
     fabricsToCreate.push({
-      thickness: faker.number.float({ min: 0.1, max: 5.0, multipleOf: 0.1 }),
+      thickness: faker.helpers.arrayElement(thicknessValues),
       glossId: faker.helpers.arrayElement(allGlosses).id,
-      length: faker.number.float({ min: 10, max: 100, multipleOf: 0.5 }),
-      width: faker.number.float({ min: 1, max: 5, multipleOf: 0.1 }),
+      length: faker.helpers.arrayElement(lengthValues),
+      width: faker.helpers.arrayElement(widthValues),
       weight: faker.number.float({ min: 0.5, max: 10, multipleOf: 0.1 }),
       sellingPrice: faker.number.float({ min: 50000, max: 500000, multipleOf: 1000 }),
       quantityInStock: 0, // Ban đầu chưa có hàng, sẽ tăng khi nhập kho
