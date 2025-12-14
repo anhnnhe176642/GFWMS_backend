@@ -382,21 +382,28 @@ class FabricStoreService {
 
         // Cập nhật current inventory cho lần phân bổ tiếp theo
         // Khi lấy theo ROLL: giảm uncutRolls và totalMeters (theo số mét của những cuộn lấy đi)
-        // Khi lấy theo METER: giảm totalMeters, uncutRolls không thay đổi (vì lấy từ các cuộn hiện có)
+        // Khi lấy theo METER: 
+        //   - Giảm totalMeters
+        //   - Nếu lấy từ uncutRolls (totalMeters = uncutRolls × length), cần giảm uncutRolls tương ứng
         let newUncutRolls = candidate.uncutRolls;
         let newTotalMeters = candidate.totalMeters;
+        const metersPerRoll = candidate.fabricInfo.length || 0;
 
         if (unit === 'ROLL') {
           // Lấy theo cuộn: giảm uncutRolls
           newUncutRolls = candidate.uncutRolls - quantityToTake;
           // Giảm totalMeters theo số mét của những cuộn đó
-          // Giả sử tất cả uncutRolls đều có độ dài = fabric.length
-          const metersPerRoll = candidate.fabricInfo.length || 0;
           newTotalMeters = candidate.totalMeters - (quantityToTake * metersPerRoll);
         } else {
           // Lấy theo mét: giảm totalMeters
           newTotalMeters = candidate.totalMeters - quantityToTake;
-          // uncutRolls không thay đổi (vì logic là lấy từ cuttingRollMeters trước, rồi từ uncutRolls)
+          
+          // Nếu tất cả totalMeters đều từ uncutRolls (cuttingRollMeters = 0), cần giảm uncutRolls
+          if (candidate.cuttingRollMeters === 0 && metersPerRoll > 0) {
+            // Số cuộn bị consume = ceiling(quantityToTake / metersPerRoll)
+            const rollsConsumed = Math.ceil(quantityToTake / metersPerRoll);
+            newUncutRolls = Math.max(0, candidate.uncutRolls - rollsConsumed);
+          }
         }
         
         currentInventory.set(candidate.fabricId, {
