@@ -69,8 +69,9 @@ export const updateImportFabricStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    const userId = req.user?.id;
 
-    const result = await importFabricService.updateStatus(id, status);
+    const result = await importFabricService.updateStatus(id, status, userId);
 
     res.json({
       message: 'Cập nhật trạng thái phiếu nhập thành công',

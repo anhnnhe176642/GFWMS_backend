@@ -32,11 +32,16 @@ model User {
   receivedExports    ExportFabric[]    @relation("ReceivedExportFabric")
   uploadedYoloModels YoloModel[]
 
-  storeId   Int? 
-  store     Store?    @relation("UserWorkAtStore", fields: [storeId], references: [id])
+  managedStores  UserStore[]   @relation("UserManagesStores")
 
   wishlist Wishlist[]
   YoloDatasetImage YoloDatasetImage[]
 
   creditRequests  CreditRequest[]
+  
+  // Activity tracking
+  activities  UserActivity[]
+  
+  // Fabric adjustments
+  adjustedFabrics AdjustFabric[]
 }

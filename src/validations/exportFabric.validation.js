@@ -43,7 +43,7 @@ const exportStoreIdSchema = Joi.number()
 // Status
 const exportStatusSchema = Joi.string()
   .uppercase()
-  .valid('PENDING', 'APPROVED', 'REJECTED')
+  .valid('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED', 'CANCELLED')
   .default('PENDING')
   .trim()
   .messages({
@@ -74,7 +74,7 @@ export const paginationQuerySchema = Joi.object({
  * QUERY (FILTER + SORT)
  * ============================
  */
-const allowedExportFabricSortFields = ['createdAt', 'updatedAt', 'status','warehouseId','storeId'];
+const allowedExportFabricSortFields = ['id', 'createdAt', 'updatedAt', 'status','warehouse.name', 'store.name'];
 
 export const exportFabricQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedExportFabricSortFields),
@@ -125,29 +125,122 @@ export const createExportFabricSchema = Joi.object({
 
 /**
  * ============================
+ * PREVIEW INVENTORY
+ * ============================
+ */
+export const previewInventorySchema = Joi.object({
+  fabricItems: Joi.array().items(exportFabricItemSchema).min(1).required().messages({
+    'array.base': 'Danh sách vải (fabricItems) phải là mảng',
+    'array.min': 'Phải có ít nhất 1 loại vải',
+    'any.required': 'Danh sách vải (fabricItems) là bắt buộc'
+  })
+});
+
+/**
+ * ============================
+ * SUGGEST ALLOCATION (WITH PRIORITY)
+ * ============================
+ */
+export const suggestAllocationSchema = Joi.object({
+  fabricItems: Joi.array().items(exportFabricItemSchema).min(1).required().messages({
+    'array.base': 'Danh sách vải (fabricItems) phải là mảng',
+    'array.min': 'Phải có ít nhất 1 loại vải',
+    'any.required': 'Danh sách vải (fabricItems) là bắt buộc'
+  }),
+  priority: Joi.string()
+    .valid('MIN_WAREHOUSES', 'MIN_DISTANCE')
+    .default('MIN_WAREHOUSES')
+    .messages({
+      'any.only': 'Priority phải là MIN_WAREHOUSES hoặc MIN_DISTANCE'
+    }),
+  destinationLocation: Joi.when('priority', {
+    is: 'MIN_DISTANCE',
+    then: Joi.object({
+      latitude: Joi.number().min(-90).max(90).required().messages({
+        'number.base': 'Latitude phải là số',
+        'number.min': 'Latitude phải lớn hơn hoặc bằng -90',
+        'number.max': 'Latitude phải nhỏ hơn hoặc bằng 90',
+        'any.required': 'Latitude là bắt buộc khi priority = MIN_DISTANCE'
+      }),
+      longitude: Joi.number().min(-180).max(180).required().messages({
+        'number.base': 'Longitude phải là số',
+        'number.min': 'Longitude phải lớn hơn hoặc bằng -180',
+        'number.max': 'Longitude phải nhỏ hơn hoặc bằng 180',
+        'any.required': 'Longitude là bắt buộc khi priority = MIN_DISTANCE'
+      })
+    }).required().messages({
+      'any.required': 'destinationLocation là bắt buộc khi priority = MIN_DISTANCE'
+    }),
+    otherwise: Joi.optional()
+  })
+});
+
+/**
+ * ============================
+ * CREATE BATCH EXPORT FABRIC
+ * ============================
+ */
+const warehouseAllocationSchema = Joi.object({
+  warehouseId: Joi.number().integer().positive().required().messages({
+    'number.base': 'Mã kho phải là số',
+    'number.integer': 'Mã kho phải là số nguyên',
+    'number.positive': 'Mã kho phải lớn hơn 0',
+    'any.required': 'Vui lòng chọn kho'
+  }),
+  items: Joi.array().items(exportFabricItemSchema).min(1).required().messages({
+    'array.base': 'Danh sách vải (items) phải là mảng',
+    'array.min': 'Mỗi phân bổ kho phải có ít nhất 1 loại vải',
+    'any.required': 'Danh sách vải (items) là bắt buộc'
+  })
+});
+
+export const createBatchExportFabricSchema = Joi.object({
+  storeId: exportStoreIdSchema,
+  note: Joi.string().max(255).allow(null, '').messages({
+    'string.max': 'Ghi chú tối đa 255 ký tự'
+  }),
+  warehouseAllocations: Joi.array().items(warehouseAllocationSchema).min(1).required().messages({
+    'array.base': 'Danh sách phân bổ kho (warehouseAllocations) phải là mảng',
+    'array.min': 'Phải có ít nhất 1 phân bổ kho',
+    'any.required': 'Danh sách phân bổ kho (warehouseAllocations) là bắt buộc'
+  })
+});
+
+/**
+ * ============================
  * APPROVE / REJECT EXPORT FABRIC
  * ============================
  */
 
-// Chọn kệ cho từng exportItem
-const exportItemShelfSelectionSchema = Joi.object({
-  fabricId: Joi.number().integer().positive().required().messages({
-    'number.base': 'Mã vải phải là số',
-    'number.integer': 'Mã vải phải là số nguyên',
-    'number.positive': 'Mã vải phải lớn hơn 0',
-    'any.required': 'Vui lòng chọn vải'
+// Chi tiết một batch cần lấy (chỉ essentials - system sẽ query mấy cái khác)
+const batchPickupDetailSchema = Joi.object({
+  importId: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID lô nhập (importId) phải là số',
+    'any.required': 'Vui lòng chỉ định importId'
   }),
   shelfId: Joi.number().integer().positive().required().messages({
-    'number.base': 'Mã kệ phải là số',
-    'number.integer': 'Mã kệ phải là số nguyên',
-    'number.positive': 'Mã kệ phải lớn hơn 0',
-    'any.required': 'Vui lòng chọn kệ'
+    'number.base': 'ID kệ (shelfId) phải là số',
+    'any.required': 'Vui lòng chỉ định shelfId'
   }),
-  quantityToTake: Joi.number().integer().positive().required().messages({
-    'number.base': 'Số lượng lấy phải là số',
-    'number.integer': 'Số lượng lấy phải là số nguyên',
-    'number.positive': 'Số lượng lấy phải lớn hơn 0',
-    'any.required': 'Vui lòng nhập số lượng lấy từ kệ'
+  pickQuantity: Joi.number().integer().positive().required().messages({
+    'number.base': 'Số lượng (pickQuantity) phải là số',
+    'number.integer': 'Số lượng phải là số nguyên',
+    'number.positive': 'Số lượng phải lớn hơn 0',
+    'any.required': 'Vui lòng nhập số lượng cần lấy'
+  })
+});
+
+// Chi tiết batch cho một loại vải
+const fabricBatchPickupSchema = Joi.object({
+  fabricId: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID vải (fabricId) phải là số',
+    'number.positive': 'ID vải phải lớn hơn 0',
+    'any.required': 'Vui lòng chỉ định fabricId'
+  }),
+  batches: Joi.array().items(batchPickupDetailSchema).min(1).required().messages({
+    'array.base': 'Danh sách batch phải là mảng',
+    'array.min': 'Phải có ít nhất 1 batch',
+    'any.required': 'Danh sách batch là bắt buộc'
   })
 });
 
@@ -161,14 +254,23 @@ export const approveExportFabricSchema = Joi.object({
       'any.only': 'Trạng thái chỉ được là: APPROVED hoặc REJECTED',
       'any.required': 'Trạng thái là bắt buộc'
     }),
-  itemShelfSelections: Joi.array()
-    .items(exportItemShelfSelectionSchema)
+  batchPickupDetails: Joi.array()
+    .items(fabricBatchPickupSchema)
     .when('status', {
       is: 'APPROVED',
       then: Joi.required().messages({
-        'any.required': 'Danh sách chọn kệ là bắt buộc khi duyệt phiếu APPROVED'
+        'any.required': 'Chi tiết batch (importId, shelfId, pickQuantity) là bắt buộc khi duyệt'
       }),
       otherwise: Joi.forbidden()
+    }),
+  note: Joi.string()
+    .max(500)
+    .when('status', {
+      is: 'REJECTED',
+      then: Joi.required().messages({
+        'any.required': 'Lý do từ chối là bắt buộc'
+      }),
+      otherwise: Joi.optional()
     })
 });
 

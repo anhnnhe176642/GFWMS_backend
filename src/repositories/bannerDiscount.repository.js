@@ -31,7 +31,7 @@ class BannerDiscountRepository {
       sellingPrice: true,
       quantityInStock: true,
       category: { select: { id: true, name: true } },
-      color: { select: { id: true, name: true } },
+      color: { select: { id: true, name: true, hexCode: true } },
       supplier: { select: { id: true, name: true } },
     }
   }

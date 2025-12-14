@@ -3,9 +3,12 @@ model FabricCategory {
   name             String    @db.VarChar(100) @unique
   description      String?   @db.VarChar(255)
   sellingPricePerMeter Float
-  sellingPricePerRoll  Float 
+  sellingPricePerRoll  Float
+  image            String?   @db.LongText
+  imagePublicId    String?   @db.VarChar(255)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   Fabric           Fabric[]
+  FabricCustomer   FabricCustomer[]
   @@map("fabric_category")
 }

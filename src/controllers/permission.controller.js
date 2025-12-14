@@ -12,3 +12,18 @@ export const getAllPermissions = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getPermissionsByUserId = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    const userPermissions = await permissionService.getPermissionsByUserId(userId);
+    
+    res.json({
+      message: 'Lấy danh sách quyền của người dùng thành công',
+      data: userPermissions
+    });
+  } catch (error) {
+    next(error);
+  }
+};

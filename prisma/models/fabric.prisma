@@ -15,12 +15,13 @@ model Fabric {
     supplierId      Int
     supplier        Supplier @relation(fields: [supplierId], references: [id])
     fabricShelf     FabricShelf[]
-    destroyFabric   DestroyFabric[]
+    adjustFabric   AdjustFabric[]
     fabricStores    FabricStore[]
     importItems    ImportFabricItem[]
     exportItems    ExportFabricItem[]
     orderItems    OrderItem[]
     bannerDiscounts BannerDiscount[]
+    warehouseStocks WarehouseFabricStock[]
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
 

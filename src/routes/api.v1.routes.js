@@ -5,12 +5,14 @@ import authRoutes from './v1/auth.routes.js';
 import roleRoutes from './v1/role.routes.js';
 import permissionRoutes from './v1/permission.routes.js';
 import warehouseRoutes from './v1/warehouse.routes.js';
+import warehouseManagerRoutes from './v1/warehouseManager.routes.js';
 import fabricRoutes from './v1/fabric.routes.js'; 
 import fabricGlossRouters from './v1/fabricgloss.routes.js'; 
 import fabricColorRouters from './v1/fabricColor.routes.js'; 
 import fabricCategoryRouters from './v1/fabricCategory.routes.js'; 
 import supplierRouters from './v1/supplier.routes.js';
-
+import fabricStoreRoutes from './v1/fabricStore.routes.js';
+import fabricCustomerRoutes from './v1/fabricCustomer.routes.js';
 
 import importFabricRoutes from './v1/importFabric.routes.js';
 import invoiceRouters from './v1/invoice.routes.js';
@@ -39,11 +41,14 @@ router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
 router.use('/permissions', permissionRoutes);
 router.use('/warehouses', warehouseRoutes);
+router.use('/warehouse-managers', warehouseManagerRoutes);
 router.use('/fabrics', fabricRoutes);
 router.use('/fabric-gloss', fabricGlossRouters);
 router.use('/fabric-color', fabricColorRouters);
 router.use('/fabric-category', fabricCategoryRouters);
 router.use('/supplier', supplierRouters);
+router.use('/fabric-store', fabricStoreRoutes);
+router.use('/fabric-customers', fabricCustomerRoutes);
 router.use('/import-fabrics', importFabricRoutes);
 router.use('/invoices', invoiceRouters);
 

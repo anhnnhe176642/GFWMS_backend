@@ -1,5 +1,7 @@
 enum ExportStatus {
     PENDING
     APPROVED
+    COMPLETED
     REJECTED
+    CANCELLED
 }

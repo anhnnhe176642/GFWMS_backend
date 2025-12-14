@@ -28,6 +28,8 @@ router.use(authenticateToken);
  *     summary: Lấy danh sách kệ với hỗ trợ lọc, tìm kiếm và phân trang
  *     description: |
  *       Lấy danh sách tất cả các kệ trong hệ thống với các tùy chọn lọc, tìm kiếm và sắp xếp nâng cao.
+ *       Hỗ trợ lọc theo ID vải (một hoặc nhiều) để tìm những kệ chứa vải cụ thể.
+ *       Hỗ trợ gom nhóm vải trên kệ theo các thuộc tính của vải (danh mục, màu sắc, độ bóng, nhà cung cấp).
  *     tags: [Shelves]
  *     security:
  *       - bearerAuth: []
@@ -57,25 +59,47 @@ router.use(authenticateToken);
  *         description: Lọc theo ID kho hàng (hỗ trợ nhiều ID, cách nhau bởi dấu phẩy). Ví dụ "1" hoặc "1,2,3"
  *         example: "1,2,3"
  *       - in: query
+ *         name: fabricId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo ID vải (hỗ trợ nhiều ID, cách nhau bởi dấu phẩy). Tìm những kệ chứa vải với ID này. Ví dụ "5" hoặc "5,10,15"
+ *         example: "5,10"
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Trường dùng để sắp xếp
+ *         description: Trường dùng để sắp xếp (id, code, currentQuantity, maxQuantity, warehouseId, createdAt, updatedAt)
+ *         example: "createdAt"
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
  *         description: Thứ tự sắp xếp (asc = tăng, desc = giảm)
+ *         example: "desc"
  *       - in: query
  *         name: createdFrom
  *         schema:
  *           type: string
- *         description: Lọc kệ được tạo từ ngày này
+ *           format: date-time
+ *         description: Lọc kệ được tạo từ ngày này (ISO 8601 format)
+ *         example: "2025-01-01T00:00:00Z"
  *       - in: query
  *         name: createdTo
  *         schema:
  *           type: string
- *         description: Lọc kệ được tạo đến ngày này
+ *           format: date-time
+ *         description: Lọc kệ được tạo đến ngày này (ISO 8601 format)
+ *         example: "2025-12-31T23:59:59Z"
+ *       - in: query
+ *         name: groupBy
+ *         schema:
+ *           type: string
+ *         description: |
+ *           Gom nhóm vải trên kệ theo các thuộc tính (hỗ trợ nhiều, cách nhau bởi dấu phẩy).
+ *           Các giá trị cho phép: categoryId, colorId, glossId, supplierId
+ *           Ví dụ: "categoryId" gom nhóm theo danh mục vải
+ *           Ví dụ: "categoryId,colorId" gom nhóm theo danh mục và màu sắc
+ *         example: "categoryId,colorId"
  *     responses:
  *       200:
  *         description: Lấy danh sách kệ thành công
@@ -90,9 +114,64 @@ router.use(authenticateToken);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Shelf'
+ *                     oneOf:
+ *                       - $ref: '#/components/schemas/Shelf'
+ *                       - $ref: '#/components/schemas/ShelfGrouped'
  *                 pagination:
  *                   $ref: '#/components/schemas/Pagination'
+ *             examples:
+ *               ungrouped:
+ *                 summary: Danh sách kệ bình thường
+ *                 value:
+ *                   message: "Lấy danh sách kệ thành công"
+ *                   data:
+ *                     - id: 1
+ *                       code: "K001"
+ *                       currentQuantity: 150
+ *                       maxQuantity: 500
+ *                       warehouseId: 1
+ *                       createdAt: "2025-11-06T10:30:00Z"
+ *                       updatedAt: "2025-11-06T10:30:00Z"
+ *                       fabricShelf:
+ *                         - fabricId: 5
+ *                           quantity: 30
+ *                           fabric:
+ *                             id: 5
+ *                             thickness: 0.5
+ *                             length: 100
+ *                             width: 1.5
+ *                             weight: 2.5
+ *                   pagination:
+ *                     page: 1
+ *                     limit: 10
+ *                     total: 25
+ *                     totalPages: 3
+ *               grouped:
+ *                 summary: Danh sách kệ gom nhóm theo danh mục vải
+ *                 value:
+ *                   message: "Lấy danh sách kệ gom nhóm thành công"
+ *                   data:
+ *                     - id: 1
+ *                       code: "K001"
+ *                       currentQuantity: 150
+ *                       maxQuantity: 500
+ *                       warehouseId: 1
+ *                       createdAt: "2025-11-06T10:30:00Z"
+ *                       updatedAt: "2025-11-06T10:30:00Z"
+ *                       fabricGroups:
+ *                         - category:
+ *                             id: "2"
+ *                             name: "Cotton"
+ *                           totalQuantity: 80
+ *                         - category:
+ *                             id: "3"
+ *                             name: "Polyester"
+ *                           totalQuantity: 70
+ *                   pagination:
+ *                     page: 1
+ *                     limit: 10
+ *                     total: 5
+ *                     totalPages: 1
  *       400:
  *         description: |
  *           Dữ liệu query không hợp lệ. 
@@ -100,8 +179,10 @@ router.use(authenticateToken);
  *           - Page phải là số nguyên dương
  *           - Limit phải là số nguyên dương
  *           - WarehouseId phải là số nguyên hợp lệ
- *           - SortBy phải là trường hợp lệ (id, code, currentQuantity, maxQuantity, warehouseId, createdAt, updatedAt)
+ *           - FabricId phải là số nguyên hợp lệ
+ *           - SortBy phải là trường hợp lệ
  *           - Order phải là asc hoặc desc
+ *           - GroupBy chỉ hỗ trợ: categoryId, colorId, glossId, supplierId
  *         content:
  *           application/json:
  *             schema:
@@ -114,13 +195,20 @@ router.use(authenticateToken);
  *                   errors:
  *                     - field: "page"
  *                       message: "page phải là số nguyên dương"
- *               invalidWarehouseId:
- *                 summary: ID kho không hợp lệ
+ *               invalidFabricId:
+ *                 summary: ID vải không hợp lệ
  *                 value:
  *                   message: "Dữ liệu không hợp lệ"
  *                   errors:
- *                     - field: "warehouseId"
- *                       message: "warehouseId phải là số nguyên"
+ *                     - field: "fabricId"
+ *                       message: "ID vải phải là số nguyên"
+ *               invalidGroupBy:
+ *                 summary: GroupBy không hợp lệ
+ *                 value:
+ *                   message: "Dữ liệu không hợp lệ"
+ *                   errors:
+ *                     - field: "groupBy"
+ *                       message: "Các trường group by không hợp lệ: invalidField. Cho phép: categoryId, colorId, glossId, supplierId"
  *       401:
  *         description: |
  *           Không có quyền truy cập.

@@ -25,9 +25,17 @@ export const idParamSchema = Joi.object({
  *   QUERY FILTER (GET LIST)
  * ---------------------------------------------------*/
 const allowedSortFields = [
+  'user.username',
+  'user.fullname',
+  'user.email',
+  'approver.username',
+  'approver.fullname',
   'createdAt',
   'updatedAt',
   'creditLimit',
+  'creditUsed',
+  'approvalDate',
+  'isLocked',
   'status'
 ];
 
@@ -35,12 +43,15 @@ export const creditRegistrationQuerySchema = querySchema.keys({
   page: pageSchema,
   limit: limitSchema,
 
-  status: Joi.string()
+  status: createMultiValueFilterSchema(Joi.string()
     .valid('PENDING', 'APPROVED', 'REJECTED')
     .optional()
     .messages({
       'any.only': 'Status phải là PENDING, APPROVED hoặc REJECTED'
-    }),
+    })),
+  isLocked: createMultiValueFilterSchema(Joi.boolean().messages({
+    'boolean.base': 'isLocked phải là giá trị boolean'
+  })),
 
   search: Joi.string().trim().optional().messages({
     'string.base': 'Từ khóa tìm kiếm phải là chuỗi'

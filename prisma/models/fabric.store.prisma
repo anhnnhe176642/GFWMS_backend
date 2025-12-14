@@ -1,12 +1,16 @@
 model FabricStore {
-    fabricId    Int
-    storeId     Int
-    quantity    Int       @default(0)
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
+    fabricId            Int
+    storeId             Int
+    totalValue          Float     @default(0)  // Tổng giá trị vải hiện tại trong cửa hàng
+    totalMeters         Float     @default(0)  // Tổng số mét vải
+    uncutRolls          Int       @default(0)  // Số cuộn vải chưa cắt
+    cuttingRollMeters   Float     @default(0)  // Số mét còn lại của cuộn đang cắt dở
+    createdAt           DateTime  @default(now())
+    updatedAt           DateTime  @updatedAt
 
     fabric      Fabric    @relation(fields: [fabricId], references: [id])
     store       Store     @relation(fields: [storeId], references: [id])
 
     @@id([fabricId, storeId])
+    @@map("fabric_store")
 }

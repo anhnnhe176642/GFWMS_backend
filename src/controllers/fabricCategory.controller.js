@@ -87,3 +87,20 @@ export const deleteFabricCategory = async (req, res, next) => {
     next(error);
   }
 };
+
+/**  Upload hoặc cập nhật ảnh loại vải */
+export const uploadCategoryImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const imageFile = req.file;
+
+    const data = await fabricCategoryService.uploadCategoryImage(id, imageFile);
+
+    res.json({
+      message: 'Cập nhật ảnh loại vải thành công',
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -10,6 +10,7 @@ class BannerRepository {
     id: true,
     title: true,
     imageUrl: true,
+    imagePublicId: true,
     description: true,
     startDate: true,
     endDate: true,
@@ -38,7 +39,7 @@ class BannerRepository {
             sellingPrice: true,
             quantityInStock: true,
             category: { select: { id: true, name: true } },
-            color: { select: { id: true, name: true } }
+            color: { select: { id: true, name: true, hexCode: true } }
           }
         }
       }

@@ -4,7 +4,8 @@ import {
   createCreditInvoicePaymentQR,
   handlePayOSWebhook,
   checkInvoicePaymentStatus,
-  checkCreditInvoicePaymentStatus
+  checkCreditInvoicePaymentStatus,
+  confirmOfflinePayment
 } from '../../controllers/payment.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
@@ -154,6 +155,48 @@ router.get(
   authenticateToken,
   validate(creditInvoiceIdParamSchema, 'params'),
   checkCreditInvoicePaymentStatus
+);
+
+
+/**
+ * @swagger
+ * /invoices/{invoiceId}/confirm-offline-payment:
+ *   post:
+ *     summary: Xác nhận thanh toán offline bằng tiền mặt
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name:  invoiceId
+ *         required: true
+ *         schema:  
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:  
+ *         application/json: 
+ *           schema: 
+ *             type: object
+ *             required:
+ *               - confirmed
+ *               - amountPaid
+ *             properties:
+ *               confirmed:  
+ *                 type:  boolean
+ *                 example:  true
+ *               amountPaid:
+ *                 type: number
+ *                 example: 500000
+ *     responses: 
+ *       200:
+ *         description:  Xác nhận thanh toán thành công
+ */
+router.post(
+  '/invoices/:invoiceId/confirm-offline-payment',
+  authenticateToken,
+  validate(invoiceIdParamSchema, 'params'),
+  confirmOfflinePayment
 );
 
 export default router;

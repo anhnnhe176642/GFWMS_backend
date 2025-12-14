@@ -3,7 +3,6 @@ import fs from 'fs/promises';
 import fsSync from 'fs';
 import archiver from 'archiver';
 import extractZip from 'extract-zip';
-import { fileURLToPath } from 'url';
 import yoloDatasetRepository from '../repositories/yoloDataset.repository.js';
 import { NotFoundError, ValidationError, InternalServerError } from '../utils/errors.js';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
@@ -16,12 +15,9 @@ import {
   remapDetectionsToAnnotations
 } from '../utils/yolo-format.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 class YoloDatasetService {
   constructor() {
-    this.datasetsBasePath = path.join(__dirname, '../datasets');
+    this.datasetsBasePath = path.join(process.cwd(), 'datasets');
   }
 
   /**

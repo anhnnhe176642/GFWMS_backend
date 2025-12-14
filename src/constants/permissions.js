@@ -42,7 +42,7 @@ export const PERMISSIONS = {
     VIEW_DETAIL:  { key: 'warehouse:view_detail',  description: 'Xem chi tiết kho' },
     CREATE:       { key: 'warehouse:create',       description: 'Tạo kho mới' },
     UPDATE:       { key: 'warehouse:update',       description: 'Cập nhật thông tin kho' },
-    DELETE:       { key: 'warehouse:delete',       description: 'Xóa kho (soft delete)' },
+    DELETE:       { key: 'warehouse:delete',       description: 'Xóa kho' },
     MANAGE_STATUS:{ key: 'warehouse:manage_status',description: 'Quản lý trạng thái kho' }
   },
 
@@ -81,7 +81,8 @@ export const PERMISSIONS = {
     VIEW_AUDIT_LOGS:     { key: 'system:view_audit_logs',     description: 'Xem nhật ký kiểm tra hệ thống' },
     MANAGE_PERMISSIONS:  { key: 'system:manage_permissions',  description: 'Quản lý quyền hạn hệ thống' },
     MANAGE_ROLES:        { key: 'system:manage_roles',        description: 'Quản lý vai trò hệ thống' },
-    SYSTEM_CONFIG:       { key: 'system:config',              description: 'Cấu hình hệ thống' }
+    SYSTEM_CONFIG:       { key: 'system:config',              description: 'Cấu hình hệ thống' },
+    ADMIN_PAGE_ACCESS:   { key: 'system:admin',                description: 'Truy cập trang quản trị hệ thống' }
   },
 
     // Invoice Management 
@@ -93,24 +94,40 @@ export const PERMISSIONS = {
   EXPORT_FABRICS: {
     VIEW_LIST:              { key: 'exportFabric:view_list',    description: 'Xem danh sách các đơn yêu cầu xuất kho' },
     VIEW_DETAIL:            { key: 'exportFabric:view_detail',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
-    VIEW_DETAIL_WAREHOUSE:  { key: 'exportFabric:view_detail',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
+    VIEW_DETAIL_WAREHOUSE:  { key: 'exportFabric:view_detail_warehouse',  description: 'Xem chi tiết các đơn yêu cầu xuất kho' },
     CREATE:                 { key: 'exportFabric:create',       description: 'Tạo đơn yêu cầu xuất kho mới' },
-    CHANGE_STATUS:            { key: 'exportFabric:change_status',      description: 'Thay đổi trạng thái đơn' },
+    CHANGE_STATUS:          { key: 'exportFabric:change_status',description: 'Thay đổi trạng thái đơn' },
+    RECEIVE:                { key: 'exportFabric:receive',      description: 'Xác nhận nhận hàng từ cửa hàng' },
+  },
+
+  EXPORT_FABRIC_REQUESTS: {
+    VIEW_LIST:              { key: 'exportFabricRequest:view_list',    description: 'Xem danh sách yêu cầu xuất vải' },
   },
 
   STORES: {
-    VIEW_LIST:    { key: 'store:view_list',    description: 'Xem danh sách cửa hàng' },
-    VIEW_DETAIL:  { key: 'store:view_detail',  description: 'Xem chi tiết cửa hàng' },
-    CREATE:       { key: 'store:create',       description: 'Tạo cửa hàng mới' },
-    UPDATE:       { key: 'store:update',       description: 'Cập nhật thông tin cửa hàng' },
-    DELETE:       { key: 'store:delete',       description: 'Xóa cửa hàng (soft delete)' },
+    VIEW_LIST:           { key: 'store:view_list',           description: 'Xem danh sách cửa hàng' },
+    VIEW_DETAIL:         { key: 'store:view_detail',         description: 'Xem chi tiết cửa hàng' },
+    CREATE:              { key: 'store:create',              description: 'Tạo cửa hàng mới' },
+    UPDATE:              { key: 'store:update',              description: 'Cập nhật thông tin cửa hàng' },
+    DELETE:              { key: 'store:delete',              description: 'Xóa cửa hàng' },
+    MANAGER:             { key: 'store:manager',             description: 'Là quản lý cửa hàng (quản lý cửa hàng cụ thể được assign)' },
+    MANAGER_ALL:         { key: 'store:manager_all',         description: 'Quản lý tất cả cửa hàng (quyền cao cấp)' },
+    MANAGE_MANAGERS:     { key: 'store:manage_managers',     description: 'Quản lý người quản lý cửa hàng' }
   },
+
+  WAREHOUSES_MANAGER: {
+    MANAGER:             { key: 'warehouse:manager',         description: 'Là quản lý kho (quản lý kho cụ thể được assign)' },
+    MANAGER_ALL:         { key: 'warehouse:manager_all',     description: 'Quản lý tất cả kho (quyền cao cấp)' },
+    MANAGE_MANAGERS:     { key: 'warehouse:manage_managers', description: 'Quản lý người quản lý kho' }
+  },
+
   SHELVES: {
     VIEW_LIST:    { key: 'shelf:view_list',    description: 'Xem danh sách kệ trong kho' },
     VIEW_DETAIL:  { key: 'shelf:view_detail',  description: 'Xem chi tiết kệ' },
     CREATE:       { key: 'shelf:create',       description: 'Tạo kệ mới' },
     UPDATE:       { key: 'shelf:update',       description: 'Cập nhật thông tin kệ' },
-    DELETE:       { key: 'shelf:delete',       description: 'Xóa kệ (soft delete)' },
+    DELETE:       { key: 'shelf:delete',       description: 'Xóa kệ' },
+    ADJUST_FABRIC:{ key: 'shelf:adjust_fabric', description: 'Điều chỉnh số lượng vải trên kệ' },
   },
 
   // Order Management
@@ -148,7 +165,7 @@ export const PERMISSIONS = {
     VIEW_DETAIL:  { key: 'banner:view_detail',  description: 'Xem chi tiết banner' },
     CREATE:       { key: 'banner:create',       description: 'Tạo banner mới' },
     UPDATE:       { key: 'banner:update',       description: 'Cập nhật thông tin banner' },
-    DELETE:       { key: 'banner:delete',       description: 'Xóa banner (soft delete)' },
+    DELETE:       { key: 'banner:delete',       description: 'Xóa banner' },
   },
 
   BANNER_DISCOUNT: {
@@ -156,7 +173,7 @@ export const PERMISSIONS = {
     VIEW_DETAIL:  { key: 'banner_discount:view_detail',  description: 'Xem chi tiết banner_discount' },
     CREATE:       { key: 'banner_discount:create',       description: 'Tạo banner_discount mới' },
     UPDATE:       { key: 'banner_discount:update',       description: 'Cập nhật thông tin banner_discount' },
-    DELETE:       { key: 'banner_discount:delete',       description: 'Xóa banner_discount (soft delete)' },
+    DELETE:       { key: 'banner_discount:delete',       description: 'Xóa banner_discount' },
   },
 
   CREADIT_REGISTRATION: {

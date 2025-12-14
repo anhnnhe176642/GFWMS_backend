@@ -4,7 +4,8 @@ import {
   getBannerById,
   createBanner,
   updateBanner,
-  deleteBanner
+  deleteBanner,
+  uploadBannerImage
 } from '../../controllers/banner.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
 import { requirePermission } from '../../middlewares/permission.middleware.js';
@@ -16,6 +17,7 @@ import {
   bannerIdParamSchema,
   bannerQuerySchema
 } from '../../validations/banner.validation.js';
+import { uploadCategoryImage as multerUploadBannerImage, handleCategoryImageUploadError } from '../../middlewares/upload.middleware.js';
 
 const router = express.Router();
 
@@ -241,6 +243,108 @@ router.delete(
   requirePermission(PERMISSIONS.BANNER.DELETE),
   validate(bannerIdParamSchema, 'params'),
   deleteBanner
+);
+
+/**
+ * @swagger
+ * /banner/{id}/image:
+ *   put:
+ *     summary: Upload or update banner image
+ *     tags: [Banner]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Banner ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - image
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Banner image file (max 10MB, JPEG/PNG/GIF/WEBP)
+ *     responses:
+ *       200:
+ *         description: Banner image updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - message
+ *                 - data
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Cập nhật ảnh banner thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     title:
+ *                       type: string
+ *                       example: Summer Sale
+ *                     imageUrl:
+ *                       type: string
+ *                       description: Image URL from Cloudinary
+ *                     imagePublicId:
+ *                       type: string
+ *                       description: Cloudinary public ID for image
+ *       400:
+ *         description: Validation error or file error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ *             examples:
+ *               noFile:
+ *                 summary: No file uploaded
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: image
+ *                       message: Ảnh banner là bắt buộc
+ *               invalidFileType:
+ *                 summary: Invalid file type
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: image
+ *                       message: Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WEBP)
+ *               fileTooLarge:
+ *                 summary: File size exceeds limit
+ *                 value:
+ *                   message: Dữ liệu không hợp lệ
+ *                   errors:
+ *                     - field: image
+ *                       message: Kích thước file không được vượt quá 10MB
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.put(
+  '/:id/image',
+  authenticateToken,
+  requirePermission(PERMISSIONS.BANNER.UPDATE),
+  validate(bannerIdParamSchema, 'params'),
+  multerUploadBannerImage,
+  handleCategoryImageUploadError,
+  uploadBannerImage
 );
 
 export default router;

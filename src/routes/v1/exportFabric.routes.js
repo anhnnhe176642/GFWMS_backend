@@ -4,15 +4,22 @@ import {
   getExportFabricDetailForWarehouse,
   getExportFabricDetailForStore,
   createExportFabric,
-  updateExportFabricStatus
+  updateExportFabricStatus,
+  completeExportFabric,
+  previewInventory,
+  suggestAllocation,
+  createBatchExportFabric
 } from '../../controllers/exportFabric.controller.js';
-import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { authenticateToken, requirePermission, requireWarehouseAccess, requireStoreAccess, requireWarehouseAccessFromBody, requireStoreAccessFromBody } from '../../middlewares/permission.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import {
   exportFabricIdParamSchema,
   exportFabricQuerySchema,
   createExportFabricSchema,
-  approveExportFabricSchema
+  approveExportFabricSchema,
+  previewInventorySchema,
+  suggestAllocationSchema,
+  createBatchExportFabricSchema
 } from '../../validations/exportFabric.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
@@ -124,11 +131,554 @@ router.get(
   getAllExportFabrics
 );
 
+
+/**
+ * @swagger
+ * /export-fabrics/requests:
+ *   get:
+ *     summary: Lấy danh sách yêu cầu xuất vải (có lọc và phân trang)
+ *     tags: [ExportFabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: string
+ *         description: Số trang cần lấy
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: string
+ *         description: Số lượng mục trên mỗi trang
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo hoặc tên kho, cửa hàng , hoặc tên người tạo/nhận đơn
+ *       - in: query
+ *         name: warehouseId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo kho xuất
+ *       - in: query
+ *         name: storeId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo cửa hàng nhận
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Lọc theo trạng thái yêu cầu xuất
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Trường để sắp xếp (id, createdAt, updatedAt, status)
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *         description: Thứ tự sắp xếp
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách yêu cầu xuất vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách yêu cầu xuất vải thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ExportFabricRequest'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/PaginationMeta'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.get(
+  '/requests',
+  authenticateToken,
+  requirePermission(PERMISSIONS.EXPORT_FABRIC_REQUESTS.VIEW_LIST),
+  validate(exportFabricQuerySchema, 'query'),
+  getAllExportFabrics
+);
+
+/**
+ * @swagger
+ * /export-fabrics/preview:
+ *   post:
+ *     summary: Xem tồn kho theo warehouse cho danh sách fabric
+ *     description: Trả về thông tin tồn kho theo từng kho cho các loại vải được yêu cầu. Dữ liệu được nhóm theo fabric, mỗi fabric có danh sách các kho có tồn kho.
+ *     tags: [ExportFabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fabricItems
+ *             properties:
+ *               fabricItems:
+ *                 type: array
+ *                 description: Danh sách các fabric cần kiểm tra tồn kho
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - fabricId
+ *                     - quantity
+ *                   properties:
+ *                     fabricId:
+ *                       type: integer
+ *                       description: ID của fabric
+ *                     quantity:
+ *                       type: integer
+ *                       description: Số lượng yêu cầu
+ *           example:
+ *             fabricItems:
+ *               - fabricId: 1
+ *                 quantity: 100
+ *               - fabricId: 2
+ *                 quantity: 50
+ *     responses:
+ *       200:
+ *         description: Lấy thông tin tồn kho thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin tồn kho thành công
+ *                 fabrics:
+ *                   type: array
+ *                   description: Danh sách fabric với tồn kho từng kho
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       fabricId:
+ *                         type: integer
+ *                       fabric:
+ *                         type: object
+ *                         description: Thông tin chi tiết fabric
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           category:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               name:
+ *                                 type: string
+ *                           color:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               name:
+ *                                 type: string
+ *                           sellingPrice:
+ *                             type: number
+ *                           quantityInStock:
+ *                             type: integer
+ *                       requestedQuantity:
+ *                         type: integer
+ *                         description: Số lượng được yêu cầu
+ *                       availableStocks:
+ *                         type: array
+ *                         description: Tồn kho từng kho
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             warehouseId:
+ *                               type: integer
+ *                             warehouseName:
+ *                               type: string
+ *                             currentStock:
+ *                               type: integer
+ *                       totalAvailable:
+ *                         type: integer
+ *                         description: Tổng tồn kho tất cả kho
+ *                       isSufficient:
+ *                         type: boolean
+ *                         description: Có đủ hàng không
+ *             example:
+ *               message: Lấy thông tin tồn kho thành công
+ *               fabrics:
+ *                 - fabricId: 1
+ *                   fabric:
+ *                     id: 1
+ *                     category:
+ *                       id: 1
+ *                       name: "Vải linen"
+ *                     color:
+ *                       id: 2
+ *                       name: "Trắng"
+ *                     sellingPrice: 50000
+ *                     quantityInStock: 800
+ *                   requestedQuantity: 100
+ *                   availableStocks:
+ *                     - warehouseId: 1
+ *                       warehouseName: "Kho Miền Nam"
+ *                       currentStock: 237
+ *                     - warehouseId: 2
+ *                       warehouseName: "Kho Miền Bắc"
+ *                       currentStock: 400
+ *                     - warehouseId: 3
+ *                       warehouseName: "Kho Trung tâm"
+ *                       currentStock: 163
+ *                   totalAvailable: 800
+ *                   isSufficient: true
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.post(
+  '/preview',
+  authenticateToken,
+  requirePermission(PERMISSIONS.EXPORT_FABRICS.CREATE),
+  validate(previewInventorySchema, 'body'),
+  previewInventory
+);
+
+/**
+ * @swagger
+ * /export-fabrics/suggest:
+ *   post:
+ *     summary: Gợi ý phân bổ tối ưu cho các fabric (Greedy hoặc Distance-based)
+ *     description: |
+ *       Gợi ý phân bổ vải tối ưu từ các kho dựa trên chiến lược ưu tiên:
+ *       
+ *       **Chiến lược 1: MIN_WAREHOUSES (mặc định)**
+ *       - Sử dụng thuật toán Greedy Set Cover
+ *       - Ưu tiên chọn ít kho nhất
+ *       - Ưu tiên kho có tồn kho nhiều nhất và cover được nhiều loại vải
+ *       - Không cần destinationLocation
+ *       
+ *       **Chiến lược 2: MIN_DISTANCE**
+ *       - Ưu tiên chọn các kho gần nhất đến điểm đến
+ *       - Sử dụng công thức Haversine để tính khoảng cách địa lý (km)
+ *       - Yêu cầu tất cả kho phải có tọa độ (latitude, longitude)
+ *       - Yêu cầu destinationLocation với latitude và longitude
+ *       - Trả về khoảng cách từ mỗi kho đến điểm đến
+ *       - Trả về tổng khoảng cách nếu lấy từ nhiều kho
+ *     tags: [ExportFabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fabricItems
+ *             properties:
+ *               fabricItems:
+ *                 type: array
+ *                 description: Danh sách fabric cần phân bổ
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - fabricId
+ *                     - quantity
+ *                   properties:
+ *                     fabricId:
+ *                       type: integer
+ *                     quantity:
+ *                       type: integer
+ *               priority:
+ *                 type: string
+ *                 enum: [MIN_WAREHOUSES, MIN_DISTANCE]
+ *                 default: MIN_WAREHOUSES
+ *                 description: Chiến lược ưu tiên phân bổ
+ *               destinationLocation:
+ *                 type: object
+ *                 description: Tọa độ điểm đến (BẮT BUỘC khi priority = MIN_DISTANCE)
+ *                 properties:
+ *                   latitude:
+ *                     type: number
+ *                     minimum: -90
+ *                     maximum: 90
+ *                     description: Vĩ độ của điểm đến
+ *                   longitude:
+ *                     type: number
+ *                     minimum: -180
+ *                     maximum: 180
+ *                     description: Kinh độ của điểm đến
+ *           examples:
+ *             minWarehouses:
+ *               summary: Ưu tiên ít kho nhất
+ *               value:
+ *                 fabricItems:
+ *                   - fabricId: 1
+ *                     quantity: 100
+ *                   - fabricId: 2
+ *                     quantity: 50
+ *                 priority: MIN_WAREHOUSES
+ *             minDistance:
+ *               summary: Ưu tiên khoảng cách gần nhất
+ *               value:
+ *                 fabricItems:
+ *                   - fabricId: 1
+ *                     quantity: 100
+ *                   - fabricId: 2
+ *                     quantity: 50
+ *                 priority: MIN_DISTANCE
+ *                 destinationLocation:
+ *                   latitude: 10.7769
+ *                   longitude: 106.6869
+ *     responses:
+ *       200:
+ *         description: Gợi ý phân bổ thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Gợi ý phân bổ thành công
+ *                 warehouseAllocations:
+ *                   type: object
+ *                   properties:
+ *                     fabrics:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                           fabric:
+ *                             type: object
+ *                           requestedQuantity:
+ *                             type: integer
+ *                           availableStocks:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 warehouseId:
+ *                                   type: integer
+ *                                 warehouseName:
+ *                                   type: string
+ *                                 currentStock:
+ *                                   type: integer
+ *                                 distance:
+ *                                   type: number
+ *                                   nullable: true
+ *                                   description: Khoảng cách (km) - chỉ có khi priority = MIN_DISTANCE
+ *                                 selected:
+ *                                   type: boolean
+ *                                   description: Kho này có được chọn hay không
+ *                                 takeQuantity:
+ *                                   type: integer
+ *                                   description: Số lượng lấy từ kho này
+ *                           totalAvailable:
+ *                             type: integer
+ *                           isSufficient:
+ *                             type: boolean
+ *                     allocationSummary:
+ *                       type: object
+ *                       nullable: true
+ *                       description: Tóm tắt khoảng cách (chỉ có khi priority = MIN_DISTANCE)
+ *                       properties:
+ *                         destinationLocation:
+ *                           type: object
+ *                         totalWarehouses:
+ *                           type: integer
+ *                           description: Số kho được chọn
+ *                         totalDistance:
+ *                           type: number
+ *                           description: Tổng khoảng cách tính từ điểm đến qua các kho (km)
+ *                         warehouseDetails:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               warehouseId:
+ *                                 type: integer
+ *                               warehouseName:
+ *                                 type: string
+ *                               distance:
+ *                                 type: number
+ *                                 description: Khoảng cách từ điểm đến đến kho (km)
+ *                               cumulativeDistance:
+ *                                 type: number
+ *                                 description: Khoảng cách tích lũy nếu lấy từ các kho theo thứ tự
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.post(
+  '/suggest',
+  authenticateToken,
+  requirePermission(PERMISSIONS.EXPORT_FABRICS.CREATE),
+  validate(suggestAllocationSchema, 'body'),
+  suggestAllocation
+);
+
+/**
+ * @swagger
+ * /export-fabrics/batch:
+ *   post:
+ *     summary: Tạo batch phiếu xuất vải (1 phiếu per warehouse)
+ *     description: |
+ *       Tạo nhiều phiếu xuất cùng lúc từ nhiều kho khác nhau.
+ *       - Tạo 1 ExportFabric cho mỗi warehouse trong danh sách phân bổ
+ *       - Tự động trừ quantityInStock của fabric từng loại
+ *       - Các phiếu cùng batch có chung batchId (bằng ID phiếu đầu tiên)
+ *       - Trạng thái ban đầu: PENDING (chưa được phê duyệt)
+ *     tags: [ExportFabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - storeId
+ *               - warehouseAllocations
+ *             properties:
+ *               storeId:
+ *                 type: integer
+ *                 description: ID cửa hàng nhận
+ *               note:
+ *                 type: string
+ *                 description: Ghi chú chung cho các phiếu xuất
+ *               warehouseAllocations:
+ *                 type: array
+ *                 description: Danh sách phân bổ theo kho (từ API suggest hoặc manual)
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - warehouseId
+ *                     - items
+ *                   properties:
+ *                     warehouseId:
+ *                       type: integer
+ *                       description: ID kho xuất
+ *                     items:
+ *                       type: array
+ *                       description: Danh sách fabric xuất từ kho này
+ *                       items:
+ *                         type: object
+ *                         required:
+ *                           - fabricId
+ *                           - quantity
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                           quantity:
+ *                             type: integer
+ *           example:
+ *             storeId: 1
+ *             note: "Xuất hàng tháng 12"
+ *             warehouseAllocations:
+ *               - warehouseId: 2
+ *                 items:
+ *                   - fabricId: 1
+ *                     quantity: 100
+ *               - warehouseId: 1
+ *                 items:
+ *                   - fabricId: 1
+ *                     quantity: 50
+ *                   - fabricId: 2
+ *                     quantity: 30
+ *     responses:
+ *       201:
+ *         description: Tạo batch phiếu xuất vải thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Tạo phiếu xuất vải thành công
+ *                 batchId:
+ *                   type: integer
+ *                   description: ID batch để tracking các phiếu cùng đợt (bằng ID phiếu đầu tiên)
+ *                 exports:
+ *                   type: array
+ *                   description: Danh sách các phiếu xuất vừa tạo
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       warehouseId:
+ *                         type: integer
+ *                       storeId:
+ *                         type: integer
+ *                       status:
+ *                         type: string
+ *                         example: PENDING
+ *                       note:
+ *                         type: string
+ *                       batchId:
+ *                         type: integer
+ *             example:
+ *               message: Tạo phiếu xuất vải thành công
+ *               batchId: 101
+ *               exports:
+ *                 - id: 101
+ *                   warehouseId: 2
+ *                   storeId: 1
+ *                   status: PENDING
+ *                   note: "Xuất hàng tháng 12"
+ *                   batchId: 101
+ *                 - id: 102
+ *                   warehouseId: 1
+ *                   storeId: 1
+ *                   status: PENDING
+ *                   note: "Xuất hàng tháng 12"
+ *                   batchId: 101
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.post(
+  '/batch',
+  authenticateToken,
+  requirePermission(PERMISSIONS.EXPORT_FABRICS.CREATE),
+  validate(createBatchExportFabricSchema, 'body'),
+  requireStoreAccessFromBody,
+  createBatchExportFabric
+);
+
 /**
  * @swagger
  * /export-fabrics/{id}:
  *   get:
- *     summary: Lấy chi tiết phiếu xuất vải
+ *     summary: Lấy chi tiết phiếu xuất vải cho cửa hàng
  *     tags: [ExportFabrics]
  *     security:
  *       - bearerAuth: []
@@ -136,6 +686,8 @@ router.get(
  *       - in: path
  *         name: id
  *         required: true
+ *         schema:
+ *           type: integer
  *         description: ID của phiếu xuất vải
  *     responses:
  *       200:
@@ -143,7 +695,75 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ExportFabric'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin phiếu xuất vải cho cửa hàng thành công
+ *                 exportFabric:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     warehouseId:
+ *                       type: integer
+ *                     storeId:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, APPROVED, REJECTED, COMPLETED]
+ *                     note:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     warehouse:
+ *                       type: object
+ *                       properties:
+ *                         name:
+ *                           type: string
+ *                     store:
+ *                       type: object
+ *                       properties:
+ *                         name:
+ *                           type: string
+ *                     createdBy:
+ *                       type: object
+ *                       properties:
+ *                         username:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                     receivedBy:
+ *                       type: object
+ *                       properties:
+ *                         username:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                     exportItems:
+ *                       type: array
+ *                       description: Danh sách các loại vải trong phiếu xuất
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                           quantity:
+ *                             type: integer
+ *                           price:
+ *                             type: number
+ *                             description: Giá nhập (được lưu khi APPROVED)
+ *                           fabric:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               sellingPrice:
+ *                                 type: number
  *       404:
  *         description: Không tìm thấy phiếu xuất vải
  */
@@ -159,7 +779,7 @@ router.get(
  * @swagger
  * /export-fabrics/warehouse/{id}:
  *   get:
- *     summary: Lấy chi tiết phiếu xuất vải cho nhân viên kho (có gợi ý kệ)
+ *     summary: Lấy chi tiết phiếu xuất vải cho kho (có gợi ý kệ)
  *     tags: [ExportFabrics]
  *     security:
  *       - bearerAuth: []
@@ -180,47 +800,22 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Lấy chi tiết phiếu xuất thành công
+ *                   example: Lấy thông tin phiếu xuất vải cho kho thành công
  *                 exportFabric:
  *                   type: object
  *                   properties:
  *                     id:
  *                       type: integer
- *                     warehouse:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: integer
- *                         name:
- *                           type: string
- *                     store:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: integer
- *                         name:
- *                           type: string
+ *                     warehouseId:
+ *                       type: integer
+ *                     storeId:
+ *                       type: integer
  *                     status:
  *                       type: string
- *                       example: PENDING
- *                     note:
- *                       type: string
- *                     createdBy:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                         username:
- *                           type: string
- *                     receivedBy:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                         username:
- *                           type: string
+ *                       enum: [PENDING, APPROVED, REJECTED, COMPLETED]
  *                     exportItems:
  *                       type: array
+ *                       description: Danh sách fabric với gợi ý kệ (shelfSuggestions)
  *                       items:
  *                         type: object
  *                         properties:
@@ -228,9 +823,11 @@ router.get(
  *                             type: integer
  *                           quantity:
  *                             type: integer
- *                           suggestedShelves:
+ *                           price:
+ *                             type: number
+ *                           shelfSuggestions:
  *                             type: array
- *                             description: Danh sách các kệ có đủ số lượng vải
+ *                             description: Danh sách kệ trong kho chứa fabric này
  *                             items:
  *                               type: object
  *                               properties:
@@ -240,12 +837,7 @@ router.get(
  *                                   type: string
  *                                 availableQuantity:
  *                                   type: integer
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
+ *                                   description: Số lượng hiện có trên kệ
  *       404:
  *         description: Không tìm thấy phiếu xuất vải
  */
@@ -261,7 +853,12 @@ router.get(
  * @swagger
  * /export-fabrics:
  *   post:
- *     summary: Tạo phiếu xuất vải mới
+ *     summary: Tạo phiếu xuất vải (Nhân viên kho)
+ *     description: |
+ *       Tạo 1 phiếu xuất từ 1 kho tới 1 cửa hàng
+ *       - Trạng thái ban đầu: PENDING (chưa được phê duyệt)
+ *       - Tự động trừ quantityInStock của fabric từng loại
+ *       - Cần gọi API /export-fabrics/{id}/status để duyệt và chỉ định batch/kệ
  *     tags: [ExportFabrics]
  *     security:
  *       - bearerAuth: []
@@ -303,7 +900,7 @@ router.get(
  *                       description: Số lượng xuất
  *     responses:
  *       201:
- *         description: Tạo phiếu xuất vải thành công
+ *         description: Tạo phiếu xuất vải thành công (trạng thái PENDING)
  *         content:
  *           application/json:
  *             schema:
@@ -313,7 +910,35 @@ router.get(
  *                   type: string
  *                   example: Tạo phiếu xuất vải thành công
  *                 exportFabric:
- *                   $ref: '#/components/schemas/ExportFabric'
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     warehouseId:
+ *                       type: integer
+ *                     storeId:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                       example: PENDING
+ *                     note:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     exportItems:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                           quantity:
+ *                             type: integer
+ *                           price:
+ *                             type: number
+ *                             nullable: true
+ *                             description: Null khi PENDING, sẽ được lưu khi APPROVED
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -326,6 +951,8 @@ router.post(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.CREATE),
   validate(createExportFabricSchema, 'body'),
+  requireWarehouseAccessFromBody,
+  requireStoreAccessFromBody,
   createExportFabric
 );
 
@@ -333,7 +960,11 @@ router.post(
  * @swagger
  * /export-fabrics/{id}/status:
  *   patch:
- *     summary: Duyệt phiếu xuất vải cho nhân viên kho
+ *     summary: Duyệt hoặc từ chối phiếu xuất vải (Nhân viên kho)
+ *     description: |
+ *       Nhân viên kho duyệt phiếu xuất vải:
+ *       - Khi APPROVED: Cung cấp chi tiết batch (importId, shelfId, pickQuantity) → Hệ thống trừ kho warehouse, tự động lấy giá nhập từ DB
+ *       - Khi REJECTED: Cung cấp lý do từ chối (note), hoàn trả số lượng vải về quantityInStock
  *     tags: [ExportFabrics]
  *     security:
  *       - bearerAuth: []
@@ -342,7 +973,7 @@ router.post(
  *         name: id
  *         required: true
  *         schema:
- *           type: string
+ *           type: integer
  *         description: ID của phiếu xuất vải
  *     requestBody:
  *       required: true
@@ -350,23 +981,75 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - status
  *             properties:
  *               status:
  *                 type: string
  *                 enum: [APPROVED, REJECTED]
  *                 description: Trạng thái duyệt phiếu
- *               itemShelfSelections:
+ *               batchPickupDetails:
  *                 type: array
- *                 description: Danh sách chọn kệ và số lượng cho từng loại vải (chỉ cần khi status = APPROVED)
+ *                 description: |
+ *                   Danh sách chi tiết batch lấy (BẮT BUỘC khi status = APPROVED).
+ *                   Hệ thống sẽ tự động tìm kiếm giá nhập (importPrice) từ cơ sở dữ liệu dựa trên fabricId và importId.
  *                 items:
  *                   type: object
+ *                   required:
+ *                     - fabricId
+ *                     - batches
  *                   properties:
  *                     fabricId:
  *                       type: integer
- *                     shelfId:
- *                       type: integer
- *                     quantityToTake:
- *                       type: integer
+ *                       description: ID của loại vải
+ *                       example: 5
+ *                     batches:
+ *                       type: array
+ *                       description: Danh sách batch (lô) cần lấy - chỉ cần 3 thông tin cơ bản
+ *                       items:
+ *                         type: object
+ *                         required:
+ *                           - importId
+ *                           - shelfId
+ *                           - pickQuantity
+ *                         properties:
+ *                           importId:
+ *                             type: integer
+ *                             description: ID đơn nhập
+ *                             example: 2
+ *                           shelfId:
+ *                             type: integer
+ *                             description: ID kệ chứa batch này
+ *                             example: 12
+ *                           pickQuantity:
+ *                             type: integer
+ *                             description: Số lượng cần lấy từ batch này
+ *                             example: 30
+ *               note:
+ *                 type: string
+ *                 description: |
+ *                   Lý do từ chối hoặc ghi chú bổ sung (BẮT BUỘC khi status = REJECTED).
+ *                   Max 500 ký tự.
+ *                 example: Hàng bị lỗi, chất lượng không đạt tiêu chuẩn
+ *           examples:
+ *             approve:
+ *               summary: Duyệt phiếu xuất với batch details
+ *               value:
+ *                 status: APPROVED
+ *                 batchPickupDetails:
+ *                   - fabricId: 5
+ *                     batches:
+ *                       - importId: 2
+ *                         shelfId: 12
+ *                         pickQuantity: 30
+ *                       - importId: 3
+ *                         shelfId: 15
+ *                         pickQuantity: 20
+ *             reject:
+ *               summary: Từ chối phiếu xuất
+ *               value:
+ *                 status: REJECTED
+ *                 note: Hàng bị hư hỏng, không đủ tiêu chuẩn xuất hàng
  *     responses:
  *       200:
  *         description: Phiếu xuất vải đã được duyệt / từ chối
@@ -374,15 +1057,65 @@ router.post(
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - message
- *                 - exportFabric
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Phiếu xuất đã được duyệt
+ *                   example: Cập nhật trạng thái đơn thành công
  *                 exportFabric:
- *                   $ref: '#/components/schemas/ExportFabric'
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     warehouseId:
+ *                       type: integer
+ *                     storeId:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                       description: Trạng thái sau cập nhật (APPROVED, REJECTED, hoặc COMPLETED)
+ *                       enum: [PENDING, APPROVED, REJECTED, COMPLETED]
+ *                     note:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     warehouse:
+ *                       type: object
+ *                       properties:
+ *                         name:
+ *                           type: string
+ *                     store:
+ *                       type: object
+ *                       properties:
+ *                         name:
+ *                           type: string
+ *                     createdBy:
+ *                       type: object
+ *                       properties:
+ *                         username:
+ *                           type: string
+ *                     receivedBy:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         username:
+ *                           type: string
+ *                     exportItems:
+ *                       type: array
+ *                       description: Khi APPROVED, price được lưu từ ImportFabricItem
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                           quantity:
+ *                             type: integer
+ *                           price:
+ *                             type: number
+ *                             description: Giá nhập (khi APPROVED)
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -400,7 +1133,92 @@ router.patch(
     { schema: exportFabricIdParamSchema, source: 'params' },
     { schema: approveExportFabricSchema, source: 'body' }
   ]),
+  requireWarehouseAccess(async (req) => {
+    // Lấy warehouseId từ export fabric record
+    const { id } = req.params;
+    const exportFabric = await (await import('../../repositories/exportFabric.repository.js')).exportFabricRepository.findById(parseInt(id));
+    return exportFabric?.warehouseId;
+  }),
   updateExportFabricStatus
+);
+
+/**
+ * @swagger
+ * /export-fabrics/{id}/complete:
+ *   post:
+ *     summary: Xác nhận nhận hàng từ cửa hàng (APPROVED -> COMPLETED)
+ *     description: |
+ *       Nhân viên cửa hàng xác nhận đã nhận hàng từ phiếu xuất:
+ *       - Chuyển status từ APPROVED sang COMPLETED
+ *       - **Tự động cộng vải vào FabricStore** với các tính toán:
+ *         - `totalMeters = quantity × fabric.length`
+ *         - `totalValue = quantity × importPrice` (giá nhập từ ImportFabricItem)
+ *         - `uncutRolls = quantity` (tất cả là cuộn chưa cắt)
+ *         - `cuttingRollMeters = 0`
+ *       
+ *       **Lưu ý:** Giá nhập đã được lưu trong ExportFabricItem.price khi nhân viên kho APPROVED phiếu xuất
+ *     tags: [ExportFabrics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của phiếu xuất vải
+ *     responses:
+ *       200:
+ *         description: Xác nhận nhận hàng thành công - Vải đã được cộng vào FabricStore
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Xác nhận nhận hàng thành công
+ *                 exportFabric:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                       enum: [COMPLETED]
+ *                     storeId:
+ *                       type: integer
+ *                     warehouseId:
+ *                       type: integer
+ *                     exportItems:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           fabricId:
+ *                             type: integer
+ *                           quantity:
+ *                             type: integer
+ *                           price:
+ *                             type: number
+ *                             description: Giá nhập từ ImportFabricItem
+ *       400:
+ *         description: Phiếu xuất chưa ở trạng thái APPROVED hoặc dữ liệu không hợp lệ
+ *       404:
+ *         description: Không tìm thấy phiếu xuất
+ */
+router.post(
+  '/:id/complete',
+  authenticateToken,
+  requirePermission(PERMISSIONS.EXPORT_FABRICS.RECEIVE),
+  validate(exportFabricIdParamSchema, 'params'),
+  requireStoreAccess(async (req) => {
+    // Lấy storeId từ export fabric record
+    const { id } = req.params;
+    const exportFabric = await (await import('../../repositories/exportFabric.repository.js')).exportFabricRepository.findById(parseInt(id));
+    return exportFabric?.storeId;
+  }),
+  completeExportFabric
 );
 
 export default router;

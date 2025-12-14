@@ -204,6 +204,25 @@ router.get('/model-info', yoloController.getModelInfo);
  *                             type: integer
  *                             description: Row index (row number of detection based on slope analysis). Objects on the same row are grouped together based on their Y-coordinate with tolerance calculated from detection height.
  *                             example: 1
+ *                           rowline:
+ *                             type: object
+ *                             description: Line parameters fit to the row (PCA) and used as the membership reference. Contains a mean point (meanX, meanY) and a unit direction vector (dirX, dirY).
+ *                             properties:
+ *                               row:
+ *                                 type: integer
+ *                                 example: 1
+ *                               meanX:
+ *                                 type: number
+ *                                 example: 150.65
+ *                               meanY:
+ *                                 type: number
+ *                                 example: 175.25
+ *                               dirX:
+ *                                 type: number
+ *                                 example: 0.98
+ *                               dirY:
+ *                                 type: number
+ *                                 example: 0.18
  *                     image_info:
  *                       type: object
  *                       description: Information about the analyzed image

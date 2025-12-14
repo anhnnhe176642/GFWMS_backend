@@ -12,6 +12,8 @@ class FabricCategoryRepository {
     description: true,
     sellingPricePerMeter: true,
     sellingPricePerRoll: true,
+    image: true,
+    imagePublicId: true,
     createdAt: true,
     updatedAt: true,
   };

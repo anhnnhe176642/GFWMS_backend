@@ -32,7 +32,7 @@ export const getAllInvoices = async (req, res, next) => {
 /**  Lấy Invoice theo ID */
 export const getInvoiceById = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { invoiceId: id } = req.params;
     const invoice = await invoiceService.getInvoiceById(parseInt(id));
 
     if (!invoice) {

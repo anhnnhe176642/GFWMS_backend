@@ -1,69 +1,74 @@
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 import { orderRepository } from '../repositories/order.repository.js';
+import { userActivityService } from './userActivity.service.js';
+import { storeAccessService } from './storeAccess.service.js';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Xử lý mua theo CUỘN
-const processRollPurchase = async (fabric, quantity) => {
-  if (fabric.quantityInStock < quantity) {
+const processRollPurchase = async (fabric, quantity, storeId) => {
+  // Lấy thông tin cửa hàng
+  const fabricStore = await orderRepository.getStoreStock(fabric.id, storeId);
+  
+  if (!fabricStore || fabricStore.uncutRolls < quantity) {
     throw new BadRequestError(
-      `Vải ID ${fabric.id}: Không đủ hàng trong kho (còn ${fabric.quantityInStock} cuộn, cần ${quantity} cuộn)`
+      `Vải ID ${fabric.id}: Không đủ cuộn trong cửa hàng (còn ${fabricStore?.uncutRolls || 0} cuộn, cần ${quantity} cuộn)`
     );
   }
 
+  // Tính giá nhập trung bình mỗi cuộn
+  const costPricePerRoll = fabricStore.totalMeters > 0 
+    ? (fabricStore.totalValue / fabricStore.totalMeters) * fabric.length
+    : 0;
+
   const pricePerRoll = fabric.sellingPrice ?? fabric.category.sellingPricePerRoll;
+  
   return {
     fabricId: fabric.id,
     quantity,
     saleUnit: 'ROLL',
     price: pricePerRoll,
+    costPrice: costPricePerRoll,
     totalPrice: quantity * pricePerRoll,
     stockOperation: {
-      type: 'WAREHOUSE',
-      rollsToDeduct: quantity
+      type: 'STORE_ROLL',
+      rollsToDeduct: quantity,
+      storeId,
+      fabricLength: fabric.length
     }
   };
 };
 
 // Xử lý mua theo MÉT
 const processMeterPurchase = async (fabric, meters, storeId) => {
-  //Lấy số mét vải còn trong cửa hàng
+  // Lấy số mét vải còn trong cửa hàng
   const fabricStore = await orderRepository.getStoreStock(fabric.id, storeId);
-  const availableMeters = fabricStore?.quantity || 0;
-  // tính số mét 
-  const shortage = meters - availableMeters;
+  const availableMeters = fabricStore?.totalMeters || 0;
 
-  let needsExport = false;
-  let rollsToExport = 0;
-  let metersToExport = 0;
-
-  //Nếu cửa hàng thiếu, tính số cuộn cần xuất từ kho
-  if (shortage > 0) {
-    needsExport = true;
-    rollsToExport = Math.ceil(shortage / fabric.length);
-    metersToExport = rollsToExport * fabric.length;
-
-    // Kiểm tra kho có đủ cuộn để xuất không
-    if (fabric.quantityInStock < rollsToExport) {
-      throw new BadRequestError(
-        `Vải ID ${fabric.id}: Không đủ hàng trong kho để xuất (cần ${rollsToExport} cuộn, còn ${fabric.quantityInStock} cuộn)`
-      );
-    }
+  // Kiểm tra cửa hàng có đủ mét không
+  if (availableMeters < meters) {
+    throw new BadRequestError(
+      `Vải ID ${fabric.id}: Không đủ vải trong cửa hàng (còn ${availableMeters.toFixed(2)} mét, cần ${meters} mét)`
+    );
   }
+
+  // Tính giá nhập trung bình mỗi mét
+  const costPricePerMeter = fabricStore.totalMeters > 0 
+    ? fabricStore.totalValue / fabricStore.totalMeters 
+    : 0;
 
   return {
     fabricId: fabric.id,
     quantity: meters,
     saleUnit: 'METER',
     price: fabric.category.sellingPricePerMeter,
+    costPrice: costPricePerMeter,
     totalPrice: meters * fabric.category.sellingPricePerMeter,
     stockOperation: {
-      type: 'STORE',
+      type: 'STORE_METER',
       metersToDeduct: meters,
-      needsExport,
-      rollsToExport,
-      metersToExport,
-      storeId  
+      storeId,
+      fabricLength: fabric.length
     }
   };
 };
@@ -80,7 +85,7 @@ const processOrderItems = async (orderItems, fabricMap, storeId) => {
 
     let processed;
     if (item.saleUnit === 'ROLL') {
-      processed = await processRollPurchase(fabric, item.quantity);
+      processed = await processRollPurchase(fabric, item.quantity, storeId);
     } else if (item.saleUnit === 'METER') {
       processed = await processMeterPurchase(fabric, item.quantity, storeId);
     } else {
@@ -104,15 +109,23 @@ const createDeductStockCallback = (items) => {
     for (const item of items) {
       const { stockOperation } = item;
 
-      if (item.saleUnit === 'ROLL') {
-        await orderRepository.decrementFabricStock(item.fabricId, stockOperation.rollsToDeduct, tx);
-      } else if (item.saleUnit === 'METER') {
-        const storeId = stockOperation.storeId;
-        if (stockOperation.needsExport) {
-          await orderRepository.decrementFabricStock(item.fabricId, stockOperation.rollsToExport, tx);
-          await orderRepository.incrementStoreStock(item.fabricId, stockOperation.metersToExport, storeId, tx);
-        }
-        await orderRepository.decrementStoreStock(item.fabricId, stockOperation.metersToDeduct,storeId, tx);
+      if (stockOperation.type === 'STORE_ROLL') {
+        // Trừ cuộn nguyên từ cửa hàng
+        await orderRepository.decrementUncutRolls(
+          item.fabricId, 
+          stockOperation.rollsToDeduct,
+          stockOperation.fabricLength,
+          stockOperation.storeId, 
+          tx
+        );
+      } else if (stockOperation.type === 'STORE_METER') {
+        // Cắt vải từ cửa hàng
+        await orderRepository.decrementStoreStock(
+          item.fabricId, 
+          stockOperation.metersToDeduct, 
+          stockOperation.storeId, 
+          tx
+        );
       }
     }
   };
@@ -230,7 +243,8 @@ const createCashOrder = async (userId, items, totalAmount, notes, storeId) => {
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'UNPAID',
@@ -243,6 +257,16 @@ const createCashOrder = async (userId, items, totalAmount, notes, storeId) => {
     createDeductStockCallback(items),
     false
   );
+  
+  // Log activity
+  await userActivityService.logActivity(
+    userId,
+    'ORDER_CREATED',
+    'Order',
+    order.id,
+    `Tạo đơn hàng #${order.id}`
+  );
+  
   return { 
     order, 
     requiresPayment: true,
@@ -284,7 +308,8 @@ const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, n
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'CREDIT',
@@ -307,6 +332,15 @@ const createFullCreditOrder = async (userId, items, totalAmount, creditAmount, n
       }
     }
   });
+  
+  // Log activity
+  await userActivityService.logActivity(
+    userId,
+    'ORDER_CREATED',
+    'Order',
+    order.id,
+    `Tạo đơn hàng #${order.id} (ghi nợ)`
+  );
 
   return { 
     order, 
@@ -333,7 +367,8 @@ const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmo
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'UNPAID',
@@ -357,6 +392,15 @@ const createCreditOrderWithExcess = async (userId, items, totalAmount, creditAmo
       }
     }
   });
+  
+  // Log activity
+  await userActivityService.logActivity(
+    userId,
+    'ORDER_CREATED',
+    'Order',
+    order.id,
+    `Tạo đơn hàng #${order.id} (vượt hạn mức)`
+  );
 
   return { 
     order, 
@@ -430,22 +474,19 @@ export const confirmPayment = async (orderId) => {
 //TẠO ĐƠN HÀNG OFFLINE (Staff)
 
 export const createOfflineOrder = async (orderData, staffId) => {
-  const { customerPhone, orderItems, paymentType, payExcessAmount, notes } = orderData;
+  const { customerPhone, orderItems, paymentType,paymentMethod = 'DIRECT', notes, storeId } = orderData;
 
   const staff = await orderRepository.findUserById(staffId);
   if (!staff) {
     throw new NotFoundError('Không tìm thấy nhân viên');
   }
   
-  if (!staff.storeId) {
-    throw new BadRequestError('Nhân viên chưa được phân công cửa hàng');
-  }
-  
-  const storeId = staff.storeId;
+  // Kiểm tra quyền quản lý cửa hàng
+  await storeAccessService.ensureUserCanManageStore(staffId, storeId);
 
   const customer = await orderRepository.findUserByPhone(customerPhone);
   if (!customer) {
-    throw new NotFoundError(`Không tìm thấy khách hàng với SĐT ${customerPhone}`);
+    throw new NotFoundError(`Không tìm thấy khách hàng với SĐT ${customerPhone}`,'customerPhone');
   }
 
   const fabricIds = [...new Set(orderItems.map(item => item.fabricId))];
@@ -456,38 +497,40 @@ export const createOfflineOrder = async (orderData, staffId) => {
   const totalAmount = calculateTotalAmount(processedItems);
 
   if (paymentType === 'CASH') {
-    return await createOfflineCashOrder(customer.id, staffId, processedItems, totalAmount, customerPhone, notes, storeId);
+    return await createOfflineCashOrder(customer.id, staffId, processedItems, totalAmount, customerPhone,paymentMethod,storeId, notes);
   } else {
-    return await createOfflineCreditOrder(customer, staffId, processedItems, totalAmount, customerPhone, payExcessAmount, notes, storeId);
+    return await createOfflineCreditOrder(customer, staffId, processedItems, totalAmount, customerPhone,paymentMethod,storeId, notes);
   }
 };
 
 // Offline - CASH
-const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, customerPhone, notes, storeId) => {
+const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, customerPhone,paymentMethod, storeId, notes) => {
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId: customerId,
-      status: 'DELIVERED',
+      status: 'PENDING',
       totalAmount,
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
       storeId,
-      notes: notes || 'Mua tại cửa hàng - Trả tiền ngay'
+      notes: notes || 'Mua tại cửa hàng - Chờ thanh toán'
     },
     items.map(item => ({
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
-      invoiceStatus: 'PAID',
+      invoiceStatus: 'UNPAID',
       totalAmount,
-      paidAmount: totalAmount,
+      paidAmount: 0,
       creditAmount: 0,
       paymentType: 'CASH',
-      notes: 'Đã thanh toán tại cửa hàng'
+      paymentDeadline:  new Date(Date.now() + 15 * 60 * 1000),
+      notes: 'Thanh toán tại cửa hàng số tiền : ' + totalAmount + 'đ'
     },
     createDeductStockCallback(items),
     false
@@ -495,12 +538,20 @@ const createOfflineCashOrder = async (customerId, staffId, items, totalAmount, c
 
   return {
     order,
-    message: 'Tạo đơn hàng thành công. Đã giao hàng cho khách.'
+    requiresPayment: true,
+    paymentInstructions: {
+      invoiceId:  order.invoice.id,
+      amount: totalAmount,
+      method: paymentMethod, // 'QR' hoặc 'DIRECT'
+    },
+    message:  paymentMethod === 'QR' 
+      ? 'Vui lòng tạo mã QR để thanh toán' 
+      : 'Vui lòng xác nhận khách hàng đã thanh toán'
   };
 };
 
 // Offline - CREDIT
-const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, customerPhone, payExcessAmount, notes, storeId) => {
+const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, customerPhone,paymentMethod = 'DIRECT', storeId, notes) => {
   if (!customer.creditRegistration || customer.creditRegistration.status !== 'APPROVED') {
     throw new BadRequestError('Khách hàng không được phép mua nợ');
   }
@@ -508,17 +559,15 @@ const createOfflineCreditOrder = async (customer, staffId, items, totalAmount, c
   const { creditAmount, excessAmount, requiresPayment } = calculateCreditSplit(totalAmount, creditLimit, creditUsed );
 
   if (requiresPayment) {
-    if (!payExcessAmount) {
-      throw new BadRequestError(`Đơn hàng vượt hạn mức ${excessAmount.toLocaleString('vi-VN')}đ. Khách cần thanh toán phần vượt.`);
-    }
-    return await createOfflineCreditOrderWithExcess(customer.id, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId);
+    // Tự động xử lý: khách sẽ thanh toán phần vượt hạn mức ngay
+    return await createOfflineCreditOrderWithExcess(customer.id, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone,paymentMethod, storeId, notes);
   } else {
-    return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount,creditAmount, customerPhone, notes, storeId);
+    return await createOfflineFullCreditOrder(customer.id, staffId, items, totalAmount,creditAmount, customerPhone,paymentMethod, storeId,notes);
   }
 };
 
 // Offline - CREDIT trong hạn mức
-const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmount, creditAmount, customerPhone, notes, storeId) => {
+const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmount, creditAmount, customerPhone,paymentMethod, storeId, notes) => {
   //                                                                                    
   const creditInvoice = await getOrCreateMonthlyCreditInvoice(customerId);
 
@@ -537,7 +586,8 @@ const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmo
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
       invoiceStatus: 'CREDIT',
@@ -570,35 +620,36 @@ const createOfflineFullCreditOrder = async (customerId, staffId, items, totalAmo
 };
 
 // Offline - CREDIT vượt hạn mức
-const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone, notes, storeId) => {
+const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, totalAmount, creditAmount, excessAmount, customerPhone,paymentMethod, storeId, notes) => {
   const creditInvoice = await getOrCreateMonthlyCreditInvoice(customerId)
 
   const order = await orderRepository.createOrderWithTransaction(
     {
       userId: customerId,
-      status: 'DELIVERED',
+      status: 'PENDING',
       totalAmount,
       isOffline: true,
       createdByStaffId: staffId,
       customerPhone,
       storeId,
-      notes: notes || `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Đã thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
+      notes: notes || `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Chờ thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
     },
     items.map(item => ({
       fabricId: item.fabricId,
       quantity: item.quantity,
       saleUnit: item.saleUnit,
-      price: item.price
+      price: item.price,
+      costPrice: item.costPrice
     })),
     {
-      invoiceStatus: 'CREDIT',
+      invoiceStatus: 'UNPAID',
       totalAmount,
-      paidAmount: excessAmount,
+      paidAmount: 0,
       creditAmount,
       paymentType: 'CREDIT',
-      paymentDeadline: creditInvoice. dueDate,
+      paymentDeadline: new Date(Date.now() + 15 * 60 * 1000),
       creditInvoiceId: creditInvoice.id,
-      notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ | Đã thanh toán: ${excessAmount.toLocaleString('vi-VN')}đ`
+      notes: `Ghi nợ: ${creditAmount.toLocaleString('vi-VN')}đ | Cần thanh toán: ${excessAmount.toLocaleString('vi-VN')}đ`
     },
     createDeductStockCallback(items),
     true
@@ -615,8 +666,17 @@ const createOfflineCreditOrderWithExcess = async (customerId, staffId, items, to
 
   return {
     order,
+    requiresPayment: true,
+    excessAmount,
     creditInvoiceId: creditInvoice.id,
-    message: `Tạo đơn hàng thành công. Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ + Đã thanh toán ${excessAmount.toLocaleString('vi-VN')}đ.`
+    paymentInstructions: {
+      invoiceId: order.invoice.id,
+      amount: excessAmount, // thanh toán phần vượt
+      method: paymentMethod,
+    },
+    message: paymentMethod === 'QR'
+      ? `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ. Vui lòng tạo mã QR để thanh toán phần vượt ${excessAmount.toLocaleString('vi-VN')}đ`
+      : `Ghi nợ ${creditAmount.toLocaleString('vi-VN')}đ. Vui lòng xác nhận khách hàng đã thanh toán ${excessAmount.toLocaleString('vi-VN')}đ`
   };
 };
 

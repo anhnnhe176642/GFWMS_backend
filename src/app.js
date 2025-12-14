@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import morgan from 'morgan';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import apiV1Routes from './routes/api.v1.routes.js';
 import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
@@ -15,8 +14,6 @@ import { autoLockCreditOverdue } from './jobs/credit-lock.job.js';
 import cron from 'node-cron';
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -25,8 +22,11 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(morgan("dev"));
 
 // Serve dataset images as static files
-const datasetsPath = path.join(__dirname, 'datasets');
-app.use('/datasets', express.static(datasetsPath));
+const datasetsPath = path.join(process.cwd(), 'datasets');
+app.use('/datasets', express.static(datasetsPath, {
+  maxAge: '1d',
+  etag: false
+}));
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

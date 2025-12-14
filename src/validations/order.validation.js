@@ -72,6 +72,13 @@ export const createOrderSchema = Joi.object({
     })
 });
 
+const paymentMethodSchema = Joi.string()
+  .valid('DIRECT', 'QR')
+  .default('DIRECT')
+  .messages({
+    'any.only': 'Phương thức thanh toán chỉ được là DIRECT hoặc QR'
+  });
+
 //CREATE ORDER OFFLINE (Staff)
 export const createOfflineOrderSchema = Joi.object({
   customerPhone: phoneSchema,
@@ -92,8 +99,19 @@ export const createOfflineOrderSchema = Joi.object({
       'any.only': 'Phương thức thanh toán chỉ được là CASH hoặc CREDIT',
       'any.required': 'Phương thức thanh toán là bắt buộc'
     }),
+
+  paymentMethod: paymentMethodSchema,
   
-  payExcessAmount: Joi.boolean().optional(),
+  storeId: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'ID cửa hàng phải là số',
+      'number.positive': 'ID cửa hàng phải lớn hơn 0',
+      'number.integer': 'ID cửa hàng phải là số nguyên',
+      'any.required': 'ID cửa hàng là bắt buộc'
+    }),
   
   notes: Joi.string()
     .max(500)
@@ -150,4 +168,5 @@ export const getMyOrdersQuerySchema = querySchema.keys({
   createdFrom: dateFromSchema,
   createdTo: dateToSchema
 });
+
 

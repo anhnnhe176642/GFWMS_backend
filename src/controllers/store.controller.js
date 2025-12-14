@@ -14,7 +14,8 @@ export const getAllStores = async (req, res, next) => {
       }
     });
 
-    const result = await storeService.getAllStoresAdvanced(queryParams);
+    // Pass userId để service tự lọc dựa trên quyền
+    const result = await storeService.getAllStoresAdvanced(queryParams, req.user.id);
     res.json({
       message: 'Lấy danh sách cửa hàng thành công',
       ...result

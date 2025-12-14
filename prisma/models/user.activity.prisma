@@ -1,0 +1,36 @@
+enum ActivityType {
+  ORDER_CREATED
+  EXPORT_CREATED
+  EXPORT_COMPLETED
+  IMPORT_COMPLETED
+  PAYMENT_MADE
+}
+
+model UserActivity {
+  id          String       @id @default(uuid())
+  userId      String       @db.Char(36)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Activity classification
+  activityType ActivityType
+  
+  // Polymorphic reference
+  entityType  String       @db.VarChar(50)  // "Order", "ExportFabric", "ImportFabric", "Payment"
+  entityId    Int
+  
+  // Description
+  description String?      @db.Text
+  
+  // Additional metadata (flexible for future data)
+  metadata    Json?
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  @@index([userId])
+  @@index([activityType])
+  @@index([entityType])
+  @@index([userId, createdAt])
+  @@index([activityType, createdAt])
+}
+

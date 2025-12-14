@@ -1,5 +1,6 @@
 import { importFabricRepository } from '../repositories/importFabric.repository.js';
 import { userRepository } from '../repositories/user.repository.js';
+import { userActivityService } from './userActivity.service.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
 import { PrismaClient } from '@prisma/client';
 import { PERMISSIONS } from '../constants/permissions.js';
@@ -129,8 +130,21 @@ class ImportFabricService {
 
 
   // Cập nhật trạng thái phiếu nhập vải
-  async updateStatus(id, status) {
-    return await importFabricRepository.updateStatusWithValidation(id, status);
+  async updateStatus(id, status, userId = null) {
+    const result = await importFabricRepository.updateStatusWithValidation(id, status);
+    
+    // Log activity if status becomes COMPLETED and userId is available
+    if (status === 'COMPLETED' && userId) {
+      await userActivityService.logActivity(
+        userId,
+        'IMPORT_COMPLETED',
+        'ImportFabric',
+        result.id,
+        `Hoàn thành phiếu nhập vải #${result.id}`
+      );
+    }
+    
+    return result;
   }
 
   // lay gia ban cua vai dua tren thuoc tinh

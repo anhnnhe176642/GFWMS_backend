@@ -6,7 +6,7 @@ import {
   updateStore,
   deleteStore
 } from '../../controllers/store.controller.js';
-import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
+import { authenticateToken, requirePermission, requireStoreAccess } from '../../middlewares/permission.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { 
   createStoreSchema, 
@@ -97,6 +97,14 @@ router.get('/',
  *                 type: string
  *                 description: Địa chỉ cửa hàng
  *                 example: "123 Đường Láng, Hà Nội"
+ *               latitude:
+ *                 type: number
+ *                 description: Vĩ độ của cửa hàng (latitude)
+ *                 example: 16.0583
+ *               longitude:
+ *                 type: number
+ *                 description: Kinh độ của cửa hàng (longitude)
+ *                 example: 108.2772
  *     responses:
  *       200:
  *         description: Thành công
@@ -135,8 +143,9 @@ router.post('/',
  *               type: object
  */
 router.get('/:id',
-  requirePermission(PERMISSIONS.STORES.VIEW_DETAIL),
   validate(storeIdSchema, 'params'),
+  requirePermission(PERMISSIONS.STORES.VIEW_DETAIL),
+  requireStoreAccess(req => Promise.resolve(parseInt(req.params.id))),
   getStoreById
 );
 
@@ -168,6 +177,14 @@ router.get('/:id',
  *               address:
  *                 type: string
  *                 example: "456 Trần Duy Hưng, Hà Nội"
+ *               latitude:
+ *                 type: number
+ *                 description: Vĩ độ của cửa hàng (latitude)
+ *                 example: 16.0583
+ *               longitude:
+ *                 type: number
+ *                 description: Kinh độ của cửa hàng (longitude)
+ *                 example: 108.2772
  *               isActive:
  *                 type: boolean
  *                 example: false
@@ -180,9 +197,10 @@ router.get('/:id',
  *               type: object
  */
 router.put('/:id',
-  requirePermission(PERMISSIONS.STORES.UPDATE),
-  validate(updateStoreSchema, 'body'),
   validate(storeIdSchema, 'params'),
+  validate(updateStoreSchema, 'body'),
+  requirePermission(PERMISSIONS.STORES.UPDATE),
+  requireStoreAccess(req => Promise.resolve(parseInt(req.params.id))),
   updateStore
 );
 
@@ -223,8 +241,9 @@ router.put('/:id',
  *         description: Không tìm thấy cửa hàng
  */
 router.delete('/:id',
-  requirePermission(PERMISSIONS.STORES.DELETE),
   validate(storeIdSchema, 'params'),
+  requirePermission(PERMISSIONS.STORES.DELETE),
+  requireStoreAccess(req => Promise.resolve(parseInt(req.params.id))),
   deleteStore
 );
 

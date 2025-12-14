@@ -1,9 +1,10 @@
 import { storeRepository } from '../repositories/store.repository.js';
-import { NotFoundError,ConflictError  } from '../utils/errors.js';
+import { NotFoundError, ConflictError } from '../utils/errors.js';
 
 class StoreService {
-  async getAllStoresAdvanced(queryOptions) {
-    return storeRepository.findWithAdvancedQuery(queryOptions);
+  async getAllStoresAdvanced(queryOptions, userId = null) {
+    // Pass userId để repository tự lọc dựa trên bảng UserStore
+    return storeRepository.findWithAdvancedQuery(queryOptions, userId);
   }
 
   async createStore(storeData) {

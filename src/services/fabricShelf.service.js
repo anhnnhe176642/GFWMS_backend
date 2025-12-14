@@ -83,7 +83,8 @@ class FabricShelfService {
         await fabricShelfRepository.assignToShelf(tx, {
           fabricId,
           shelfId: s.shelfId,
-          quantity: s.quantity
+          quantity: s.quantity,
+          importId: importFabricId
         });
 
       }
@@ -102,6 +103,88 @@ class FabricShelfService {
         shelves
       };
     });
+  }
+
+  /**
+   * Lấy chi tiết vải trong kệ (bao gồm thông tin từng lần nhập)
+   * Trả về: giá nhập, ngày nhập, người nhập, số lượng hiện tại trên kệ (có thể đã xuất kho một phần)
+   */
+  async getFabricShelfDetail(shelfId, fabricId) {
+    const details = await fabricShelfRepository.findDetailByShelfIdAndFabricId(shelfId, fabricId);
+    
+    if (!details || details.length === 0) {
+      throw new NotFoundError(`Không tìm thấy vải ID ${fabricId} trên kệ ID ${shelfId}`);
+    }
+
+    // Tính tổng số lượng hiện tại trên kệ từ FabricShelf records
+    const totalCurrentQuantity = details.reduce((sum, d) => sum + d.quantity, 0);
+    const importCount = details.length;
+    
+    const importDetails = details.map(d => ({
+      importId: d.importId,
+      currentQuantity: d.quantity,  //  Số lượng hiện tại trên kệ từ lần import này (có thể đã xuất kho)
+      importDate: d.import.importDate,
+      importer: d.import.importUser,
+      importPrice: d.import.importItems[0]?.price || null,  //  Giá lúc import
+      importStatus: d.import.status
+    }));
+
+    return {
+      shelfId,
+      fabricId,
+      shelf: details[0].shelf,
+      totalCurrentQuantity,  //  Tổng số lượng hiện tại trên kệ
+      importCount,           //  Số lần import
+      imports: importDetails
+    };
+  }
+
+  /**
+   * Lấy danh sách vải trên kệ (gom nhóm theo fabricId)
+   */
+  async getFabricsByShelfId(shelfId) {
+    const shelf = await prisma.shelf.findUnique({
+      where: { id: shelfId },
+      select: { id: true, code: true, warehouseId: true, currentQuantity: true, maxQuantity: true }
+    });
+
+    if (!shelf) {
+      throw new NotFoundError(`Không tìm thấy kệ có ID: ${shelfId}`);
+    }
+
+    const records = await prisma.fabricShelf.findMany({
+      where: { shelfId },
+      include: {
+        fabric: {
+          include: {
+            category: { select: { id: true, name: true } },
+            color: { select: { id: true, name: true } },
+            gloss: { select: { id: true, description: true } }
+          }
+        }
+      }
+    });
+
+    // Gom nhóm theo fabricId
+    const grouped = records.reduce((acc, record) => {
+      const key = record.fabricId;
+      if (!acc[key]) {
+        acc[key] = {
+          fabricId: record.fabricId,
+          fabric: record.fabric,
+          totalQuantity: 0,
+          importCount: 0
+        };
+      }
+      acc[key].totalQuantity += record.quantity;
+      acc[key].importCount += 1;
+      return acc;
+    }, {});
+
+    return {
+      shelf,
+      fabrics: Object.values(grouped)
+    };
   }
 }
 

@@ -1,6 +1,7 @@
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 import fabricCategoryRepository from '../repositories/fabricCategory.repository.js';
 import { ConflictError } from '../utils/errors.js';
+import { uploadSingleImage } from './upload.service.js';
 /**  Lấy tất cả FabricCategory với phân trang cơ bản */
 export const getAllFabricCategories = async (page, limit) => {
   return await fabricCategoryRepository.findWithPagination(page, limit);
@@ -60,4 +61,31 @@ export const deleteFabricCategory = async (id) => {
   }
 
   return await fabricCategoryRepository.deleteById(id);
+};
+
+/**  Upload hoặc cập nhật ảnh FabricCategory */
+export const uploadCategoryImage = async (categoryId, imageFile) => {
+  if (!imageFile) {
+    throw new ValidationError('Ảnh loại vải là bắt buộc', 'image');
+  }
+
+  // Get current category to get old image publicId
+  const currentCategory = await fabricCategoryRepository.findById(categoryId);
+  if (!currentCategory) {
+    throw new NotFoundError('Loại vải không tồn tại');
+  }
+
+  // Upload new image and auto-delete old one
+  const result = await uploadSingleImage(imageFile, {
+    folder: 'fabric-categories',
+    preset: 'product',
+    oldPublicId: currentCategory?.imagePublicId,
+    fieldName: 'image'
+  });
+
+  // Update category with new image URL and publicId
+  return await fabricCategoryRepository.updateById(categoryId, {
+    image: result.url,
+    imagePublicId: result.publicId
+  });
 };

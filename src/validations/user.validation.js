@@ -50,6 +50,11 @@ export const uuidParamSchema = Joi.object({
   id: uuidSchema.required()
 });
 
+// Schema validation cho userId params
+export const userIdParamSchema = Joi.object({
+  userId: uuidSchema.required()
+});
+
 // Schema validation cho pagination query
 export const paginationQuerySchema = Joi.object({
   page: pageSchema,

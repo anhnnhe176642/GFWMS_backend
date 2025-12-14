@@ -50,10 +50,14 @@ export const idParamSchema = Joi.object({
 
 // Allowed fields for sorting
 const allowedCreditRequestSortFields = [
+  'user.username',
+  'user.fullname',
+  'user.email',
   'createdAt',
   'updatedAt',
   'requestLimit',
-  'status'
+  'status',
+  'type'
 ];
 
 /* ==========================================================

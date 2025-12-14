@@ -79,3 +79,18 @@ export const checkCreditInvoicePaymentStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+// Xác nhận thanh toán offline cho đơn hàng
+export const confirmOfflinePayment = async (req, res, next) => {
+  try {
+    const { invoiceId } = req.params; 
+    const result = await paymentService.confirmOfflinePayment(parseInt(invoiceId), req.body);
+    
+    res.json({
+      message: result.message,
+      data: result.order
+    });
+  } catch (error) {
+    next(error);
+  }
+};

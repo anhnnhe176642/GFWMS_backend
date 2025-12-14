@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { buildWhereClause, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+import { buildWhereClause, buildSort, formatPaginatedResponse, buildPagination } from '../utils/query-builder.js';
 
 const prisma = new PrismaClient();
 
@@ -15,7 +15,7 @@ export class FabricRepository {
     sellingPrice: true,
     quantityInStock: true,
     category: { select: { id: true, name: true } },
-    color: { select: { id: true, name: true } },
+    color: { select: { id: true, name: true, hexCode: true } },
     supplier: { select: { id: true, name: true } },
     createdAt: true,
     updatedAt: true,
@@ -129,52 +129,162 @@ export class FabricRepository {
   //Lấy tổng số lượng vải theo từng kho
 
   async getFabricInventoryByWarehouse(fabricId) {
-    const warehouseInventory = await prisma.fabricShelf.findMany({
+    // Lấy fabric info
+    const fabric = await prisma.fabric.findUnique({
+      where: { id: fabricId },
+      select: {
+        id: true,
+        category: { select: { id: true, name: true } },
+        color: { select: { id: true, name: true, hexCode: true } },
+        sellingPrice: true
+      }
+    });
+
+    if (!fabric) return null;
+
+    // Lấy từ bảng WarehouseFabricStock (đã được tính sẵn bởi trigger)
+    const warehouseStocks = await prisma.warehouseFabricStock.findMany({
       where: {
         fabricId,
-        quantity: { gt: 0 }
+        currentStock: { gt: 0 }
       },
       select: {
-        quantity: true,
-        shelf: {
+        warehouseId: true,
+        currentStock: true,
+        warehouse: {
           select: {
-            warehouseId: true,
-            warehouse: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
+            id: true,
+            name: true
           }
         }
       }
     });
 
-    // Gom nhóm theo kho
-    const warehouseMap = new Map();
+    // Tính tổng và format kết quả
     let totalQuantity = 0;
-    
-    warehouseInventory.forEach(item => {
-      const warehouseId = item.shelf.warehouseId;
-      const warehouseName = item.shelf.warehouse.name;
-      
-      totalQuantity += item.quantity;
-      
-      if (warehouseMap.has(warehouseId)) {
-        warehouseMap.get(warehouseId).quantity += item.quantity;
-      } else {
-        warehouseMap.set(warehouseId, {
-          warehouseId,
-          warehouseName,
-          quantity: item.quantity
-        });
-      }
+    const inventoryByWarehouse = warehouseStocks.map(stock => {
+      totalQuantity += stock.currentStock;
+      return {
+        warehouseId: stock.warehouseId,
+        warehouseName: stock.warehouse.name,
+        quantity: stock.currentStock
+      };
     });
 
     return {
+      fabric,
       totalQuantity,
-      inventoryByWarehouse: Array.from(warehouseMap.values())
+      inventoryByWarehouse
     };
+  }
+
+  /**
+   * Lấy warehouse stocks cho nhiều fabric
+   * @param {Array<number>} fabricIds
+   * @returns {Promise<Array>} - Array các warehouse stocks
+   */
+  async getWarehouseStocks(fabricIds) {
+    return await prisma.warehouseFabricStock.findMany({
+      where: {
+        fabricId: { in: fabricIds },
+        currentStock: { gt: 0 }
+      },
+      select: {
+        fabricId: true,
+        warehouseId: true,
+        currentStock: true,
+        warehouse: {
+          select: { id: true, name: true }
+        }
+      }
+    });
+  }
+
+  /**
+   * Lấy thông tin fabric
+   * @param {Array<number>} fabricIds
+   * @returns {Promise<Array>}
+   */
+  async getFabricsByIds(fabricIds) {
+    return await prisma.fabric.findMany({
+      where: { id: { in: fabricIds } },
+      select: this.#fabricSelectOptions
+    });
+  }
+
+  /**
+   * Lấy danh sách vải có sẵn trong 1 kho với phân trang, filter, search và sort
+   * @param {number} warehouseId
+   * @param {Object} queryOptions - { page, limit, search, sortBy, order, filters }
+   */
+  async findAvailableFabricsInWarehouse(warehouseId, queryOptions = {}) {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'createdAt',
+      order = 'desc',
+      filters = {}
+    } = queryOptions;
+
+    // Build filters for fabric fields
+    const searchableFields = [
+      'gloss.description',
+      'category.name',
+      'color.name',
+      'supplier.name'
+    ];
+
+    // Combine user filters and search
+    const fabricWhere = buildWhereClause({ search, ...filters }, searchableFields);
+
+    // Add warehouse-related constraint (fabric must exist in provided warehouse with qty > 0)
+    const warehouseCondition = {
+      fabricShelf: {
+        some: {
+          shelf: { warehouseId },
+          quantity: { gt: 0 }
+        }
+      }
+    };
+
+    const finalWhere = { ...fabricWhere, ...warehouseCondition };
+
+    const { skip, take } = buildPagination(page, limit);
+    const orderBy = buildSort(sortBy, order);
+
+    const [fabrics, total] = await Promise.all([
+      prisma.fabric.findMany({
+        where: finalWhere,
+        skip,
+        take,
+        select: {
+          ...this.#fabricSelectOptions,
+          fabricShelf: {
+            where: { shelf: { warehouseId }, quantity: { gt: 0 } },
+            select: {
+              shelfId: true,
+              quantity: true,
+              shelf: { select: { id: true, code: true, warehouseId: true } }
+            }
+          }
+        },
+        orderBy
+      }),
+      prisma.fabric.count({ where: finalWhere })
+    ]);
+
+    // Convert to desired response: attach availableQuantity and shelves summary
+    const data = fabrics.map(f => {
+      const availableQuantity = f.fabricShelf.reduce((sum, s) => sum + (s.quantity || 0), 0);
+      return {
+        ...f,
+        availableQuantity,
+        shelves: f.fabricShelf.map(s => ({ shelfId: s.shelfId, shelfCode: s.shelf.code, quantity: s.quantity }))
+      };
+    });
+
+    return formatPaginatedResponse(data, total, page, limit);
   }
 }
 

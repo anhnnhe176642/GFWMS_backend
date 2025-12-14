@@ -6,4 +6,5 @@ model FabricGloss {
     updatedAt   DateTime @updatedAt
     @@map("fabric_gloss")
     Fabric Fabric[]
+    FabricCustomer FabricCustomer[]
 }

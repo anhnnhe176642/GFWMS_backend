@@ -44,24 +44,22 @@ const imageUrlSchema = Joi.string()
     'any.required': 'URL hình ảnh banner là bắt buộc'
   });
 
-// Start / End date (string format)
-const startDateSchema = Joi.string()
-  .trim()
-  .pattern(/^\d{4}-\d{2}-\d{2}$/)
+// Start / End date - Joi will auto-convert to Date object
+const startDateSchema = Joi.date()
+  .iso()
   .required()
   .messages({
-    'string.empty': 'Ngày bắt đầu không được để trống',
-    'string.pattern.base': 'Ngày bắt đầu phải đúng định dạng YYYY-MM-DD (ví dụ: 2025-12-04)',
+    'date.base': 'Ngày bắt đầu phải đúng định dạng (YYYY-MM-DD hoặc ISO 8601)',
+    'date.isoDate': 'Ngày bắt đầu phải đúng định dạng (YYYY-MM-DD hoặc ISO 8601)',
     'any.required': 'Ngày bắt đầu là bắt buộc'
   });
 
-const endDateSchema = Joi.string()
-  .trim()
-  .pattern(/^\d{4}-\d{2}-\d{2}$/)
+const endDateSchema = Joi.date()
+  .iso()
   .required()
   .messages({
-    'string.empty': 'Ngày kết thúc không được để trống',
-    'string.pattern.base': 'Ngày kết thúc phải đúng định dạng YYYY-MM-DD (ví dụ: 2025-12-04)',
+    'date.base': 'Ngày kết thúc phải đúng định dạng (YYYY-MM-DD hoặc ISO 8601)',
+    'date.isoDate': 'Ngày kết thúc phải đúng định dạng (YYYY-MM-DD hoặc ISO 8601)',
     'any.required': 'Ngày kết thúc là bắt buộc'
   });
 

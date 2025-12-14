@@ -130,6 +130,15 @@ export const uploadAvatar = createUploadMiddleware({
 
 export const handleAvatarUploadError = createUploadErrorHandler('avatar', 5);
 
+// Middleware to handle category image upload (single file, 10MB max)
+export const uploadCategoryImage = createUploadMiddleware({
+  fieldName: 'image',
+  maxSize: 10,
+  multiple: false
+});
+
+export const handleCategoryImageUploadError = createUploadErrorHandler('image', 10);
+
 // Middleware to handle product images (multiple files, 10MB each, max 5 files)
 export const uploadProductImages = createUploadMiddleware({
   fieldName: 'images',

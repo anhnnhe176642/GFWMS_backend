@@ -2,12 +2,15 @@ model Store {
     id          Int       @id @default(autoincrement())
     name        String    @db.VarChar(100) @unique
     address     String    @db.VarChar(255)
+    latitude    Float?    @db.Float
+    longitude   Float?    @db.Float
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
     isActive    Boolean   @default(true)
     fabrics     FabricStore[]
     exportFabrics ExportFabric[]
+    fabricCustomers FabricCustomerStore[]
 
-    users         User[]   @relation("UserWorkAtStore")
+    managers      UserStore[]  @relation("StoreManagers")
     orders        Order[]   @relation("StoreOrders")
 }

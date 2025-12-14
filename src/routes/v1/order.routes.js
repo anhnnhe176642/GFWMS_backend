@@ -125,22 +125,14 @@ const router = express.Router();
  *                       type: string
  *                       format: date-time
  *                       description: Hạn thanh toán
- *                     testPayment:
+ *                     paymentInstructions:
  *                       type: object
- *                       description: Thông tin để test thanh toán
+ *                       description: Thông tin hướng dẫn thanh toán (trả về nếu cần thanh toán)
  *                       properties:
- *                         method:
+ *                         checkoutUrl:
  *                           type: string
- *                           example: POST
- *                         url:
- *                           type: string
- *                           example: /api/v1/orders/1/simulate-payment
- *                         body:
- *                           type: object
- *                           properties:
- *                             success:
- *                               type: boolean
- *                               example: true
+ *                           description: URL thanh toán PayOS
+ *                           example: https://pay.payos.vn/...*
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -388,12 +380,17 @@ router.get('/check-customer-credit',
  *               - customerPhone
  *               - orderItems
  *               - paymentType
+ *               - storeId
  *             properties:
  *               customerPhone:
  *                 type: string
  *                 pattern: ^(0[3|5|7|8|9])[0-9]{8}$
  *                 description: Số điện thoại khách hàng
  *                 example: "0912345678"
+ *               storeId:
+ *                 type: integer
+ *                 description: ID cửa hàng (nhân viên phải có quyền làm việc tại cửa hàng này)
+ *                 example: 1
  *               orderItems:
  *                 type: array
  *                 minItems: 1
@@ -420,9 +417,6 @@ router.get('/check-customer-credit',
  *                 enum: [CASH, CREDIT]
  *                 description: Phương thức thanh toán
  *                 example: CASH
- *               payExcessAmount:
- *                 description: Khách có trả phần vượt hạn mức không (chỉ dùng cho CREDIT vượt hạn mức)
- *                 example: true
  *               notes:
  *                 type: string
  *                 maxLength: 500
@@ -432,6 +426,7 @@ router.get('/check-customer-credit',
  *               summary: Offline - Trả tiền ngay
  *               value:
  *                 customerPhone: "0912345678"
+ *                 storeId: 1
  *                 orderItems:
  *                   - fabricId: 1
  *                     quantity: 5
@@ -442,21 +437,22 @@ router.get('/check-customer-credit',
  *               summary: Offline - Mua nợ trong hạn mức
  *               value:
  *                 customerPhone: "0912345678"
+ *                 storeId: 1
  *                 orderItems:
  *                   - fabricId: 2
  *                     quantity: 10
  *                     saleUnit: METER
  *                 paymentType: CREDIT
  *             creditExcess:
- *               summary: Offline - Mua nợ vượt hạn mức (trả phần vượt)
+ *               summary: Offline - Mua nợ vượt hạn mức (hệ thống tự động xử lý)
  *               value:
  *                 customerPhone: "0912345678"
+ *                 storeId: 1
  *                 orderItems:
  *                   - fabricId: 3
  *                     quantity: 20
  *                     saleUnit: ROLL
  *                 paymentType: CREDIT
- *                 payExcessAmount: true
  *     responses:
  *       201:
  *         description: Tạo đơn hàng offline thành công
@@ -772,7 +768,12 @@ router.get('/all',
  *                             example: METER
  *                           price:
  *                             type: number
+ *                             description: Tổng giá tiền bán cho mục này
  *                             example: 285000
+ *                           costPrice:
+ *                             type: number
+ *                             description: Giá vốn (giá nhập kho) từng mục khi bán
+ *                             example: 200000
  *                           fabric:
  *                             type: object
  *                             properties:

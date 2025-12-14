@@ -1,5 +1,6 @@
-import { NotFoundError, ConflictError } from '../utils/errors.js';
+import { NotFoundError, ConflictError, ValidationError } from '../utils/errors.js';
 import bannerRepository from '../repositories/banner.repository.js';
+import { uploadSingleImage } from './upload.service.js';
 
 /** Lấy tất cả Banner với phân trang cơ bản */
 export const getAllBanners = async (page, limit) => {
@@ -62,4 +63,31 @@ export const deleteBanner = async (id) => {
   }
 
   return await bannerRepository.deleteById(id);
+};
+
+/**  Upload hoặc cập nhật ảnh Banner */
+export const uploadBannerImage = async (bannerId, imageFile) => {
+  if (!imageFile) {
+    throw new ValidationError('Ảnh banner là bắt buộc', 'image');
+  }
+
+  // Get current banner to get old image publicId
+  const currentBanner = await bannerRepository.findById(bannerId);
+  if (!currentBanner) {
+    throw new NotFoundError('Banner không tồn tại');
+  }
+
+  // Upload new image and auto-delete old one
+  const result = await uploadSingleImage(imageFile, {
+    folder: 'banners',
+    preset: 'product',
+    oldPublicId: currentBanner?.imagePublicId,
+    fieldName: 'image'
+  });
+
+  // Update banner with new image URL and publicId
+  return await bannerRepository.updateById(bannerId, {
+    imageUrl: result.url,
+    imagePublicId: result.publicId
+  });
 };

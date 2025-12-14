@@ -60,6 +60,7 @@ export class InvoiceRepository {
         select: {
           id: true,
           quantity: true,
+          saleUnit: true,
           price: true,
           createdAt: true,
           updatedAt: true,
@@ -76,7 +77,7 @@ export class InvoiceRepository {
               updatedAt: true,
               gloss: { select: { id: true, description: true } },
               category: { select: { id: true, name: true } },
-              color: { select: { id: true, name: true } },
+              color: { select: { id: true, name: true, hexCode: true } },
               supplier: { select: { id: true, name: true, phone: true, address: true } }
             }
           }
@@ -94,7 +95,7 @@ export class InvoiceRepository {
   paidAmount: true,
   payment: { select: { id: true, paymentDate: true, amount: true, paymentMethod: true, transactionId: true, notes: true } },
   creditInvoiceId: true,
-  creditInvoice: { select: { id: true, totalAmount: true, invoiceDate: true } },
+  creditInvoice: { select: { id: true, totalCreditAmount: true, dueDate: true } },
   createdAt: true,
   updatedAt: true
 };
@@ -169,7 +170,7 @@ export class InvoiceRepository {
     const selectOptions = detail ? this.#invoiceDetailSelectOptions : this.#invoiceListSelectOptions;
 
     // Các field có thể search
-    const searchableFields = ['order.user.username', 'order.user.email'];
+    const searchableFields = ['order.user.username', 'order.user.email','order.user.fullname'];
 
     // Xây dựng where clause từ search + filters
     const where = buildWhereClause({ search, ...filters }, searchableFields);

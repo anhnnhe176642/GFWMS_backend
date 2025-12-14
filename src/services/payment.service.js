@@ -1,5 +1,6 @@
 import * as paymentRepository from '../repositories/payment.repository.js';
 import payOSService from './payos.service.js';
+import { userActivityService } from './userActivity.service.js';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 import QRCode from 'qrcode';
@@ -501,10 +502,12 @@ const processInvoicePaymentSuccess = async (invoice, transactionId, amount, webh
       
       
       // 4. Update Order
+      const order = invoice.order;
+      const newOrderStatus = order.isOffline ? 'DELIVERED' : 'PROCESSING';
       const updatedOrder = await tx.order.update({
         where: { id: invoice.orderId },
         data: {
-          status: 'PROCESSING'
+          status: newOrderStatus
         }
       });
       console.log('[Webhook] Order updated:', {
@@ -522,6 +525,15 @@ const processInvoicePaymentSuccess = async (invoice, transactionId, amount, webh
           }
         });
       }
+
+      // 6. Log user activity - PAYMENT_MADE
+      await userActivityService.logActivity(
+        invoice.order.userId,
+        'PAYMENT_MADE',
+        'Payment',
+        payment.id,
+        `Thanh toán ${amount.toLocaleString('vi-VN')} VNĐ cho hóa đơn #${invoice.id}`
+      );
     });
     
   } catch (error) {
@@ -538,7 +550,7 @@ const processInvoicePaymentSuccess = async (invoice, transactionId, amount, webh
 const processCreditInvoicePaymentSuccess = async (creditInvoice, transactionId, amount, webhookData) => {
   await prisma.$transaction(async (tx) => {
     // 1. Upsert Payment
-    await tx.payment. upsert({
+    const payment = await tx.payment. upsert({
       where: { transactionId },
       create: {
         creditInvoiceId: creditInvoice.id,
@@ -593,6 +605,15 @@ const processCreditInvoicePaymentSuccess = async (creditInvoice, transactionId, 
         creditUsed: { decrement: creditInvoice.totalCreditAmount }  // ✅ TRỪ creditUsed
       }
     });
+
+    // 6. Log user activity - PAYMENT_MADE for Credit Invoice
+    await userActivityService.logActivity(
+      creditInvoice.credit.userId,
+      'PAYMENT_MADE',
+      'Payment',
+      payment.id,
+      `Thanh toán ${amount.toLocaleString('vi-VN')} VNĐ cho hóa đơn credit tháng`
+    );
   });
 };
 
@@ -611,24 +632,109 @@ const processPaymentFailed = async (invoiceId, creditInvoiceId, transactionId, e
     };
     
     if (invoiceId) {
-      // Update payment cho Invoice
-      await tx.payment. upsert({
+      // 1. Update payment cho Invoice
+      await tx.payment.upsert({
         where: { transactionId },
         create: {
           invoiceId,
-          ... paymentData,
+          ...paymentData,
           amount: 0,
           paymentMethod: 'PAYOS_VIETQR'
         },
         update: paymentData
       });
+
+      // 2. Lấy order để hoàn tồn kho
+      const invoice = await tx.invoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          order: {
+            include: {
+              orderItems: {
+                include: {
+                  fabric: {
+                    select: { id: true, length: true }
+                  }
+                }
+              },
+              store: true
+            }
+          }
+        }
+      });
+
+      if (invoice?.order) {
+        const order = invoice.order;
+        const storeId = order.storeId;
+        
+        // 3. Hoàn tồn kho + totalValue
+        for (const item of order.orderItems) {
+          if (item.saleUnit === 'ROLL') {
+            // Hoàn cuộn
+            const metersToRestore = item.quantity * item.fabric.length;
+            const valueToRestore = item.quantity * item.costPrice;
+
+            await tx.fabricStore.update({
+              where: {
+                fabricId_storeId: {
+                  fabricId: item.fabricId,
+                  storeId
+                }
+              },
+              data: {
+                uncutRolls: { increment: item.quantity },
+                totalMeters: { increment: metersToRestore },
+                totalValue: { increment: valueToRestore }
+              }
+            });
+          } else if (item.saleUnit === 'METER') {
+            // Hoàn mét
+            const valueToRestore = item.quantity * item.costPrice;
+            
+            const currentStore = await tx.fabricStore.findUnique({
+              where: {
+                fabricId_storeId: {
+                  fabricId: item.fabricId,
+                  storeId
+                }
+              }
+            });
+
+            if (currentStore) {
+              const newCuttingMeters = currentStore.cuttingRollMeters + item.quantity;
+              let newUncutRolls = currentStore.uncutRolls;
+              let finalCuttingMeters = newCuttingMeters;
+
+              if (newCuttingMeters >= item.fabric.length) {
+                newUncutRolls = currentStore.uncutRolls + Math.floor(newCuttingMeters / item.fabric.length);
+                finalCuttingMeters = newCuttingMeters % item.fabric.length;
+              }
+
+              await tx.fabricStore.update({
+                where: {
+                  fabricId_storeId: {
+                    fabricId: item.fabricId,
+                    storeId
+                  }
+                },
+                data: {
+                  totalMeters: { increment: item.quantity },
+                  totalValue: { increment: valueToRestore },
+                  uncutRolls: { increment: newUncutRolls - currentStore.uncutRolls },
+                  cuttingRollMeters: finalCuttingMeters
+                }
+              });
+            }
+          }
+        }
+      }
     } else if (creditInvoiceId) {
       // Update payment cho Credit Invoice
       await tx.payment.upsert({
         where: { transactionId },
         create: {
           creditInvoiceId,
-          ... paymentData,
+          ...paymentData,
           amount: 0,
           paymentMethod: 'PAYOS_VIETQR'
         },
@@ -690,7 +796,7 @@ export const checkCreditInvoicePaymentStatus = async (creditInvoiceId) => {
     throw new NotFoundError('Không tìm thấy Credit Invoice');
   }
   
-  // 2. ✅ Lấy TẤT CẢ payment của Credit Invoice (không filter invoiceId)
+  // 2. Lấy TẤT CẢ payment của Credit Invoice (không filter invoiceId)
   const allPayments = await prisma.payment.findMany({
     where: { 
       creditInvoiceId: parseInt(creditInvoiceId)
@@ -698,7 +804,7 @@ export const checkCreditInvoicePaymentStatus = async (creditInvoiceId) => {
     orderBy: { createdAt: 'desc' }
   });
   
-  // 3. ✅ Filter trong JavaScript (tìm payment có invoiceId = null)
+  // 3. Filter trong JavaScript (tìm payment có invoiceId = null)
   const creditPayment = allPayments.find(p => p.invoiceId === null);
   
   // 4. Nếu chưa có payment gom tháng
@@ -728,5 +834,117 @@ export const checkCreditInvoicePaymentStatus = async (creditInvoiceId) => {
     transactionId: creditPayment.transactionId,
     
     invoiceCount: creditInvoice.invoice.length
+  };
+};
+
+/**
+ * Xác nhận thanh toán offline (DIRECT) qua invoiceId
+ */
+export const confirmOfflinePayment = async (invoiceId, paymentData) => {
+  const { confirmed, amountPaid } = paymentData;
+  
+  if (! confirmed) {
+    throw new BadRequestError('Thanh toán chưa được xác nhận');
+  }
+
+  // Tìm invoice trước, sau đó lấy order
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { 
+      order: {
+        include: {
+          orderItems: {
+            include: {
+              fabric: {
+                include: {
+                  category: true,
+                  color: true,
+                  gloss: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (!invoice) {
+    throw new NotFoundError('Không tìm thấy hóa đơn');
+  }
+
+  const order = invoice.order;
+  if (!order) {
+    throw new NotFoundError('Không tìm thấy đơn hàng');
+  }
+
+  if (! order.isOffline) {
+    throw new BadRequestError('Đơn hàng này không phải đơn offline');
+  }
+
+  if (order. status !== 'PENDING') {
+    throw new BadRequestError(`Đơn hàng đã ở trạng thái ${order.status}, không thể xác nhận thanh toán`);
+  }
+
+  // Kiểm tra số tiền
+  const expectedAmount = invoice.totalAmount - invoice.creditAmount;
+  if (Math.abs(amountPaid - expectedAmount) > 0.01) {
+    throw new BadRequestError(
+      `Số tiền không khớp. Cần thanh toán: ${expectedAmount.toLocaleString('vi-VN')}đ, nhận được:  ${amountPaid.toLocaleString('vi-VN')}đ`
+    );
+  }
+
+  // Cập nhật trong transaction
+  const result = await prisma.$transaction(async (tx) => {
+    // Tạo payment record
+    await tx.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        amount: amountPaid,
+        paymentMethod: 'CASH_OFFLINE',
+        status: 'SUCCESS',
+        paymentDate: new Date(),
+        notes: 'Thanh toán tiền mặt tại cửa hàng'
+      }
+    });
+
+    // Xác định invoice status
+    const newInvoiceStatus = invoice.creditAmount > 0 ?  'CREDIT' : 'PAID';
+
+    // Update Invoice
+    await tx.invoice.update({
+      where: { id:  invoice.id },
+      data: {
+        invoiceStatus: newInvoiceStatus,
+        paidAmount: amountPaid
+      }
+    });
+
+    // Update Order
+    const updatedOrder = await tx.order.update({
+      where: { id: order. id },
+      data: { status: 'DELIVERED' },
+      include: {
+        invoice:  true,
+        orderItems: {
+          include: {
+            fabric: {
+              include: {
+                category: true,
+                color: true,
+                gloss:  true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return updatedOrder;
+  });
+
+  return {
+    order: result,
+    message: 'Xác nhận thanh toán thành công số tiền ' + amountPaid+'đ. Đơn hàng đã hoàn tất.'
   };
 };

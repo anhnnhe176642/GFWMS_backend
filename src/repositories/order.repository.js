@@ -49,7 +49,7 @@ export class OrderRepository {
             length: true,
             width: true,
             category: { select: { id: true, name: true } },
-            color: { select: { id: true, name: true } },
+            color: { select: { id: true, name: true, hexCode: true } },
             gloss: { select: { id: true, description: true } }
           }
         }
@@ -206,27 +206,152 @@ export class OrderRepository {
     );
   }
 
-// GIẢM TỒN KHO FABRIC
-  async decrementFabricStock(fabricId, quantity, tx = prisma) {
-    return await this.#updateQuantity('fabric', { id: fabricId }, 'quantityInStock', quantity, false, tx);
-  }
 
-  async decrementStoreStock(fabricId, meters, storeId, tx = prisma) {
+  // TRỪ CUỘN NGUYÊN TỪ CỬA HÀNG (khi bán theo CUỘN)
+  async decrementUncutRolls(fabricId, rollsToDeduct, fabricLength, storeId, tx = prisma) {
+    const currentStore = await withPrismaErrorHandling(
+      () => tx.fabricStore.findUnique({
+        where: { 
+          fabricId_storeId: {  
+            fabricId,
+            storeId
+          }
+        }
+      })
+    );
+
+    if (!currentStore) {
+      throw new Error('Không tìm thấy vải trong cửa hàng');
+    }
+
+    if (currentStore.uncutRolls < rollsToDeduct) {
+      throw new Error(`Không đủ cuộn trong cửa hàng. Cần ${rollsToDeduct} cuộn, chỉ có ${currentStore.uncutRolls} cuộn`);
+    }
+
+    // Tính giá trị và số mét bị trừ
+    const metersToDeduct = rollsToDeduct * fabricLength;
+    const pricePerMeter = currentStore.totalMeters > 0 
+      ? currentStore.totalValue / currentStore.totalMeters 
+      : 0;
+    const valueToDeduct = metersToDeduct * pricePerMeter;
+
     return await withPrismaErrorHandling(
       () => tx.fabricStore.update({
+        where: {
+          fabricId_storeId: {
+            fabricId,
+            storeId
+          }
+        },
+        data: {
+          uncutRolls: { decrement: rollsToDeduct },
+          totalMeters: { decrement: metersToDeduct },
+          totalValue: { decrement: valueToDeduct }
+        }
+      })
+    );
+  }
+
+  // CẮT VẢI TỪ CỬA HÀNG (khi bán theo MÉT)
+  async decrementStoreStock(fabricId, meters, storeId, tx = prisma) {
+    // Lấy thông tin hiện tại
+    const currentStore = await withPrismaErrorHandling(
+      () => tx.fabricStore.findUnique({
         where: { 
           fabricId_storeId: {  
             fabricId,
             storeId
           }
         },
-        data: { quantity: { decrement: meters } }
+        include: {
+          fabric: {
+            select: {
+              length: true
+            }
+          }
+        }
+      })
+    );
+
+    if (!currentStore) {
+      throw new Error('Không tìm thấy vải trong cửa hàng');
+    }
+
+    // Tính giá trị trung bình mỗi mét
+    const pricePerMeter = currentStore.totalMeters > 0 
+      ? currentStore.totalValue / currentStore.totalMeters 
+      : 0;
+    
+    const valueToDeduct = meters * pricePerMeter;
+    
+    // Lấy độ dài mỗi cuộn
+    const metersPerRoll = currentStore.fabric.length;
+    
+    let newCuttingRollMeters = currentStore.cuttingRollMeters;
+    let newUncutRolls = currentStore.uncutRolls;
+    
+    let remainingMeters = meters;
+    
+    // Nếu có cuộn đang cắt dở
+    if (newCuttingRollMeters > 0) {
+      if (remainingMeters <= newCuttingRollMeters) {
+        // Cắt hết từ cuộn đang cắt dở
+        newCuttingRollMeters -= remainingMeters;
+        remainingMeters = 0;
+      } else {
+        // Cắt hết cuộn đang cắt dở và tiếp tục sang cuộn mới
+        remainingMeters -= newCuttingRollMeters;
+        newCuttingRollMeters = 0;
+      }
+    }
+    
+    // Nếu còn mét cần cắt, lấy từ cuộn chưa cắt
+    while (remainingMeters > 0 && newUncutRolls > 0) {
+      newUncutRolls -= 1;
+      
+      if (remainingMeters >= metersPerRoll) {
+        // Cắt hết cả cuộn
+        remainingMeters -= metersPerRoll;
+      } else {
+        // Cắt một phần cuộn, cuộn này trở thành cuộn đang cắt dở
+        newCuttingRollMeters = metersPerRoll - remainingMeters;
+        remainingMeters = 0;
+      }
+    }
+    
+    if (remainingMeters > 0) {
+      throw new Error(`Không đủ vải để cắt. Còn thiếu ${remainingMeters.toFixed(2)} mét`);
+    }
+
+    // Cập nhật database
+    return await withPrismaErrorHandling(
+      () => tx.fabricStore.update({
+        where: {
+          fabricId_storeId: {
+            fabricId,
+            storeId
+          }
+        },
+        data: {
+          totalValue: Math.max(0, currentStore.totalValue - valueToDeduct),
+          totalMeters: Math.max(0, currentStore.totalMeters - meters),
+          uncutRolls: newUncutRolls,
+          cuttingRollMeters: newCuttingRollMeters
+        }
       })
     );
   }
 
-  // CỘNG TỒN KHO CỬA HÀNG
-  async incrementStoreStock(fabricId, meters, storeId, tx = prisma) {
+  // CỘNG TỒN KHO CỮA HÀNG (khi xuất từ warehouse về store)
+  async incrementStoreStock(fabricId, metersToAdd, rollsToAdd, metersPerRoll, storeId, tx = prisma) {
+    // Tính giá trị: sử dụng giá nhập trung bình của fabric
+    const fabric = await tx.fabric.findUnique({
+      where: { id: fabricId },
+      select: { importPrice: true }
+    });
+    
+    const valueToAdd = metersToAdd * (fabric?.importPrice || 0) / metersPerRoll;
+
     return await withPrismaErrorHandling(
       () => tx.fabricStore.upsert({
         where: { 
@@ -235,11 +360,19 @@ export class OrderRepository {
             storeId
           }
         },
-        update: { quantity: { increment: meters } },
+        update: { 
+          totalMeters: { increment: metersToAdd },
+          totalValue: { increment: valueToAdd },
+          uncutRolls: { increment: rollsToAdd }
+        },
         create: { 
           fabricId, 
           storeId,  
-          quantity: meters 
+          totalMeters: metersToAdd,
+          totalValue: valueToAdd,
+          uncutRolls: rollsToAdd,
+          cuttingRollMeters: 0,
+          quantity: 0
         }
       })
     );
@@ -263,7 +396,10 @@ export class OrderRepository {
       },
       select: {
         fabricId: true,
-        quantity: true
+        totalMeters: true,
+        uncutRolls: true,
+        cuttingRollMeters: true,
+        totalValue: true
       }
     });
   }
@@ -312,13 +448,17 @@ export class OrderRepository {
         phone: true,
         email: true,
         role: true,
-        storeId: true,
-        store: {
+        managedStores: {
           select: {
-            id: true,
-            name: true,
-            address: true,
-            isActive: true
+            storeId: true,
+            store: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                isActive: true
+              }
+            }
           }
         }
       }
@@ -366,7 +506,7 @@ export class OrderRepository {
           }
         },
         
-        color: { select: { id: true, name: true } },
+        color: { select: { id: true, name: true, hexCode: true } },
         gloss: { select: { id: true, description: true } }
       }
     });
@@ -443,11 +583,87 @@ export class OrderRepository {
     return formatPaginatedResponse(orders, total, page, take);
   }
 
+  // HỎA TỒN KHO KHI HỦY/THANH TOÁN THẤT BẠI
+  async restoreStockFromOrderItems(orderItems, storeId, tx = prisma) {
+    for (const item of orderItems) {
+      if (item.saleUnit === 'ROLL') {
+        // Hoàn cuộn: cộng vào uncutRolls và totalMeters
+        const fabric = item.fabric || await tx.fabric.findUnique({
+          where: { id: item.fabricId },
+          select: { length: true }
+        });
+        
+        const metersToRestore = item.quantity * fabric.length;
+        const costPricePerMeter = item.costPrice ? item.costPrice / fabric.length : 0;
+        const valueToRestore = metersToRestore * costPricePerMeter;
 
+        await withPrismaErrorHandling(
+          () => tx.fabricStore.update({
+            where: {
+              fabricId_storeId: {
+                fabricId: item.fabricId,
+                storeId
+              }
+            },
+            data: {
+              uncutRolls: { increment: item.quantity },
+              totalMeters: { increment: metersToRestore },
+              totalValue: { increment: valueToRestore }
+            }
+          })
+        );
+      } else if (item.saleUnit === 'METER') {
+        // Hoàn mét: thêm vào cuttingRollMeters hoặc uncutRolls
+        const fabric = item.fabric || await tx.fabric.findUnique({
+          where: { id: item.fabricId },
+          select: { length: true }
+        });
+
+        const costPricePerMeter = item.costPrice || 0;
+        const valueToRestore = item.quantity * costPricePerMeter;
+        
+        const currentStore = await tx.fabricStore.findUnique({
+          where: {
+            fabricId_storeId: {
+              fabricId: item.fabricId,
+              storeId
+            }
+          }
+        });
+
+        if (!currentStore) continue;
+
+        // Nếu cuttingRollMeters + meters < length thì thêm vào cuttingRollMeters
+        // Nếu không, mở thêm uncutRolls
+        const newCuttingMeters = currentStore.cuttingRollMeters + item.quantity;
+        let newUncutRolls = currentStore.uncutRolls;
+        let finalCuttingMeters = newCuttingMeters;
+
+        if (newCuttingMeters >= fabric.length) {
+          // Mở thêm cuộn
+          newUncutRolls = currentStore.uncutRolls + Math.floor(newCuttingMeters / fabric.length);
+          finalCuttingMeters = newCuttingMeters % fabric.length;
+        }
+
+        await withPrismaErrorHandling(
+          () => tx.fabricStore.update({
+            where: {
+              fabricId_storeId: {
+                fabricId: item.fabricId,
+                storeId
+              }
+            },
+            data: {
+              totalMeters: { increment: item.quantity },
+              totalValue: { increment: valueToRestore },
+              uncutRolls: { increment: newUncutRolls - currentStore.uncutRolls },
+              cuttingRollMeters: finalCuttingMeters
+            }
+          })
+        );
+      }
+    }
+  }
 }
-
-
-
-
 
 export const orderRepository = new OrderRepository();
