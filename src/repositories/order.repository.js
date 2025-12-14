@@ -2,6 +2,7 @@
 import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
 import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+import { ValidationError } from '../utils/errors.js';
 
 const prisma = new PrismaClient();
 
@@ -221,11 +222,11 @@ export class OrderRepository {
     );
 
     if (!currentStore) {
-      throw new Error('Không tìm thấy vải trong cửa hàng');
+      throw new ValidationError('Không tìm thấy vải trong cửa hàng');
     }
 
     if (currentStore.uncutRolls < rollsToDeduct) {
-      throw new Error(`Không đủ cuộn trong cửa hàng. Cần ${rollsToDeduct} cuộn, chỉ có ${currentStore.uncutRolls} cuộn`);
+      throw new ValidationError(`Không đủ cuộn trong cửa hàng. Cần ${rollsToDeduct} cuộn, chỉ có ${currentStore.uncutRolls} cuộn`);
     }
 
     // Tính giá trị và số mét bị trừ

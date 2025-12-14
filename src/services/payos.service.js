@@ -53,6 +53,24 @@ class PayOSService {
         expiresAt: new Date(Date.now() + 15 * 60 * 1000)
       };
     } catch (error) {
+      // Nếu đơn thanh toán đã tồn tại, query và return thông tin cũ
+      if (error.message?.includes('Đơn thanh toán đã tồn tại') || error.code === 'DUPLICATE_PAYMENT') {
+        try {
+          const paymentInfo = await this.client.getPaymentLinkInformation(orderCode);
+          const qrCodeImage = await this.generateQRCode(paymentInfo.checkoutUrl);
+          return {
+            paymentLinkId: paymentInfo.paymentLinkId,
+            paymentUrl: paymentInfo.checkoutUrl,
+            qrCodeUrl: paymentInfo.qrCode,
+            qrCodeImage,
+            amount: paymentInfo.amount,
+            expiresAt: paymentInfo.expiresAt,
+            isDuplicate: true
+          };
+        } catch (queryError) {
+          throw new AppError(`PayOS Error: ${queryError.message}`, queryError.statusCode || 500);
+        }
+      }
       throw new AppError(`PayOS Error: ${error.message}`, error.statusCode || 500);
     }
   }

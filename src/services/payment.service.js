@@ -75,14 +75,26 @@ export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
     };
   }
   
-  // Tạo payment link với PayOS (dùng invoiceId làm orderCode)
+  // Tạo payment record trước (để có paymentId)
+  const payment = await paymentRepository.create({
+    invoiceId: invoice.id,
+    creditInvoiceId: invoice.creditInvoiceId || null,
+    amount: amountToPay,
+    paymentMethod: 'PAYOS_VIETQR',
+    status: 'PENDING',
+    transactionId: null, // Sẽ update sau
+    notes: `Thanh toán PayOS cho hóa đơn #${invoiceId}`,
+    gatewayResponse: {}
+  });
+
+  // Tạo payment link với PayOS (dùng paymentId làm orderCode - đảm bảo unique và là số)
   const paymentLink = await payOSService.createPaymentLink({
-    orderCode: invoiceId,
+    orderCode: payment.id,
     amount: amountToPay,
     description: `Thanh toán hóa đơn #${invoiceId} - GFWMS`
   });
-  let qrCodeBase64 = null;
 
+  let qrCodeBase64 = null;
   try {
     qrCodeBase64 = await QRCode.toDataURL(paymentLink.qrCodeUrl, {
       width: 300,
@@ -95,35 +107,30 @@ export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
   } catch (error) {
     console.error('[Payment] Failed to generate QR code:', error);
   }
-  
-  // Lưu payment vào DB
-  const payment = await paymentRepository.create({
-    invoiceId: invoice.id,
-    creditInvoiceId: invoice.creditInvoiceId || null,
-    amount: amountToPay,
-    paymentMethod: 'PAYOS_VIETQR',
-    status: 'PENDING',
+
+  // Cập nhật payment với gateway response
+  await paymentRepository.updateById(payment.id, {
     transactionId: paymentLink.paymentLinkId,
-    notes: `Thanh toán PayOS cho hóa đơn #${invoiceId}`,
     gatewayResponse: {
       paymentUrl: paymentLink.paymentUrl,
       qrCodeUrl: paymentLink.qrCodeUrl,
       qrCodeBase64,
       paymentLinkId: paymentLink.paymentLinkId,
+      orderCode: payment.id,
       createdAt: new Date(),
       expiresAt: paymentLink.expiresAt
     }
   });
-  
+
   return {
     paymentId: payment.id,
-    invoiceId: invoice. id,
+    invoiceId: invoice.id,
     paymentUrl: paymentLink.paymentUrl,
     qrCodeUrl: paymentLink.qrCodeUrl,
     qrCodeBase64,
     amount: amountToPay,
     currency: 'VND',
-    expiresAt: paymentLink. expiresAt
+    expiresAt: paymentLink.expiresAt
   };
 };
 

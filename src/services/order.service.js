@@ -5,77 +5,11 @@ import { storeAccessService } from './storeAccess.service.js';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-// Xử lý mua theo CUỘN
-const processRollPurchase = async (fabric, quantity, storeId) => {
-  // Lấy thông tin cửa hàng
-  const fabricStore = await orderRepository.getStoreStock(fabric.id, storeId);
-  
-  if (!fabricStore || fabricStore.uncutRolls < quantity) {
-    throw new BadRequestError(
-      `Vải ID ${fabric.id}: Không đủ cuộn trong cửa hàng (còn ${fabricStore?.uncutRolls || 0} cuộn, cần ${quantity} cuộn)`
-    );
-  }
-
-  // Tính giá nhập trung bình mỗi cuộn
-  const costPricePerRoll = fabricStore.totalMeters > 0 
-    ? (fabricStore.totalValue / fabricStore.totalMeters) * fabric.length
-    : 0;
-
-  const pricePerRoll = fabric.sellingPrice ?? fabric.category.sellingPricePerRoll;
-  
-  return {
-    fabricId: fabric.id,
-    quantity,
-    saleUnit: 'ROLL',
-    price: pricePerRoll,
-    costPrice: costPricePerRoll,
-    totalPrice: quantity * pricePerRoll,
-    stockOperation: {
-      type: 'STORE_ROLL',
-      rollsToDeduct: quantity,
-      storeId,
-      fabricLength: fabric.length
-    }
-  };
-};
-
-// Xử lý mua theo MÉT
-const processMeterPurchase = async (fabric, meters, storeId) => {
-  // Lấy số mét vải còn trong cửa hàng
-  const fabricStore = await orderRepository.getStoreStock(fabric.id, storeId);
-  const availableMeters = fabricStore?.totalMeters || 0;
-
-  // Kiểm tra cửa hàng có đủ mét không
-  if (availableMeters < meters) {
-    throw new BadRequestError(
-      `Vải ID ${fabric.id}: Không đủ vải trong cửa hàng (còn ${availableMeters.toFixed(2)} mét, cần ${meters} mét)`
-    );
-  }
-
-  // Tính giá nhập trung bình mỗi mét
-  const costPricePerMeter = fabricStore.totalMeters > 0 
-    ? fabricStore.totalValue / fabricStore.totalMeters 
-    : 0;
-
-  return {
-    fabricId: fabric.id,
-    quantity: meters,
-    saleUnit: 'METER',
-    price: fabric.category.sellingPricePerMeter,
-    costPrice: costPricePerMeter,
-    totalPrice: meters * fabric.category.sellingPricePerMeter,
-    stockOperation: {
-      type: 'STORE_METER',
-      metersToDeduct: meters,
-      storeId,
-      fabricLength: fabric.length
-    }
-  };
-};
-
 // Xử lý tất cả items
 const processOrderItems = async (orderItems, fabricMap, storeId) => {
   const processedItems = [];
+  // Track tồn kho thực tế khi xử lý từng item (vì có thể cùng 1 fabric với 2 đơn vị khác nhau)
+  const currentInventory = new Map(); // key: fabricId, value: { uncutRolls, totalMeters }
 
   for (const item of orderItems) {
     const fabric = fabricMap.get(item.fabricId);
@@ -83,11 +17,96 @@ const processOrderItems = async (orderItems, fabricMap, storeId) => {
       throw new BadRequestError(`Vải ID ${item.fabricId} không tồn tại`);
     }
 
+    let fabricStore;
+    
+    // Lấy inventory từ cache nếu đã xử lý trước đó, nếu không lấy từ DB
+    if (currentInventory.has(item.fabricId)) {
+      const cached = currentInventory.get(item.fabricId);
+      fabricStore = {
+        uncutRolls: cached.uncutRolls,
+        totalMeters: cached.totalMeters,
+        totalValue: cached.totalValue,
+        id: item.fabricId
+      };
+    } else {
+      fabricStore = await orderRepository.getStoreStock(fabric.id, storeId);
+    }
+
     let processed;
     if (item.saleUnit === 'ROLL') {
-      processed = await processRollPurchase(fabric, item.quantity, storeId);
+      // Kiểm tra đủ cuộn
+      if (!fabricStore || fabricStore.uncutRolls < item.quantity) {
+        throw new BadRequestError(
+          `Vải ID ${fabric.id}: Không đủ cuộn trong cửa hàng (còn ${fabricStore?.uncutRolls || 0} cuộn, cần ${item.quantity} cuộn)`
+        );
+      }
+
+      // Tính giá nhập trung bình mỗi cuộn
+      const costPricePerRoll = fabricStore.totalMeters > 0 
+        ? (fabricStore.totalValue / fabricStore.totalMeters) * fabric.length
+        : 0;
+
+      const pricePerRoll = fabric.sellingPrice ?? fabric.category.sellingPricePerRoll;
+      
+      processed = {
+        fabricId: fabric.id,
+        quantity: item.quantity,
+        saleUnit: 'ROLL',
+        price: pricePerRoll,
+        costPrice: costPricePerRoll,
+        totalPrice: item.quantity * pricePerRoll,
+        stockOperation: {
+          type: 'STORE_ROLL',
+          rollsToDeduct: item.quantity,
+          storeId,
+          fabricLength: fabric.length
+        }
+      };
+
+      // Cập nhật inventory
+      const metersPerRoll = fabric.length || 0;
+      currentInventory.set(item.fabricId, {
+        uncutRolls: fabricStore.uncutRolls - item.quantity,
+        totalMeters: fabricStore.totalMeters - (item.quantity * metersPerRoll),
+        totalValue: fabricStore.totalValue
+      });
+
     } else if (item.saleUnit === 'METER') {
-      processed = await processMeterPurchase(fabric, item.quantity, storeId);
+      // Kiểm tra đủ mét
+      const availableMeters = fabricStore?.totalMeters || 0;
+      if (availableMeters < item.quantity) {
+        throw new BadRequestError(
+          `Vải ID ${fabric.id}: Không đủ vải trong cửa hàng (còn ${availableMeters.toFixed(2)} mét, cần ${item.quantity} mét)`
+        );
+      }
+
+      // Tính giá nhập trung bình mỗi mét
+      const costPricePerMeter = fabricStore.totalMeters > 0 
+        ? fabricStore.totalValue / fabricStore.totalMeters 
+        : 0;
+
+      processed = {
+        fabricId: fabric.id,
+        quantity: item.quantity,
+        saleUnit: 'METER',
+        price: fabric.category.sellingPricePerMeter,
+        costPrice: costPricePerMeter,
+        totalPrice: item.quantity * fabric.category.sellingPricePerMeter,
+        stockOperation: {
+          type: 'STORE_METER',
+          metersToDeduct: item.quantity,
+          storeId,
+          fabricLength: fabric.length
+        }
+      };
+
+      // Cập nhật inventory
+      currentInventory.set(item.fabricId, {
+        uncutRolls: fabricStore.uncutRolls,
+        totalMeters: fabricStore.totalMeters - item.quantity,
+        totalValue: fabricStore.totalValue
+      });
+
     } else {
       throw new BadRequestError('Đơn vị bán phải là ROLL hoặc METER');
     }

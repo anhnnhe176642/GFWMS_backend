@@ -251,6 +251,7 @@ function taoTenLoaiVai(index) {
 }
 
 // Hàm tạo tên màu sắc
+// eslint-disable-next-line no-unused-vars
 function taoTenMauSac(index) {
   if (index < tenMauSac.length) {
     return tenMauSac[index];
