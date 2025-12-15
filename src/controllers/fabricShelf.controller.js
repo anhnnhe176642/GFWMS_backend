@@ -52,3 +52,20 @@ export const getFabricsByShelf = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Lấy tập set các color của danh sách vải trong kệ cụ thể
+ */
+export const getColorsByShelf = async (req, res, next) => {
+  try {
+    const { shelfId } = req.params;
+    const result = await fabricShelfService.getColorsByShelfId(parseInt(shelfId));
+
+    res.status(200).json({
+      message: 'Lấy danh sách màu sắc vải trên kệ thành công',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

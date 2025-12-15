@@ -186,6 +186,30 @@ class FabricShelfService {
       fabrics: Object.values(grouped)
     };
   }
+
+  /**
+   * Lấy tập set các color của danh sách vải trong kệ cụ thể
+   */
+  async getColorsByShelfId(shelfId) {
+    const shelf = await prisma.shelf.findUnique({
+      where: { id: shelfId },
+      select: { id: true, code: true }
+    });
+
+    if (!shelf) {
+      throw new NotFoundError(`Không tìm thấy kệ có ID: ${shelfId}`);
+    }
+
+    const colors = await fabricShelfRepository.getColorsByShelfId(shelfId);
+
+    return {
+      shelf: {
+        id: shelf.id,
+        code: shelf.code
+      },
+      colors
+    };
+  }
 }
 
 export const fabricShelfService = new FabricShelfService();

@@ -1,8 +1,8 @@
 import express from 'express';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
-import { allocateFabricToShelves, getFabricShelfDetail, getFabricsByShelf } from '../../controllers/fabricShelf.controller.js';
-import { allocateFabricSchema, fabricIdParamSchema, shelfIdParamSchema } from '../../validations/fabricShelf.validation.js';
+import { allocateFabricToShelves, getFabricShelfDetail, getFabricsByShelf, getColorsByShelf } from '../../controllers/fabricShelf.controller.js';
+import { allocateFabricSchema, fabricIdParamSchema, shelfIdParamSchema, shelfIdOnlyParamSchema } from '../../validations/fabricShelf.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -346,6 +346,74 @@ router.post(
   validate(fabricIdParamSchema, 'params'),
   validate(allocateFabricSchema,'body'),
   allocateFabricToShelves
+);
+
+/**
+ * @swagger
+ * /fabric-shelf/shelf/{shelfId}/colors:
+ *   get:
+ *     summary: Lấy tập set các color của danh sách vải trong kệ cụ thể
+ *     description: |
+ *       Trả về danh sách các màu sắc (color) độc nhất của các loại vải trên một kệ.
+ *       Mỗi màu sắc được liệt kê một lần duy nhất, bất kể có bao nhiêu loại vải cùng màu.
+ *     tags: [FabricShelf]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shelfId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID của kệ
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách màu sắc thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách màu sắc vải trên kệ thành công"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     shelf:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         code:
+ *                           type: string
+ *                           example: "KE-001"
+ *                     colors:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "RED"
+ *                           name:
+ *                             type: string
+ *                             example: "Đỏ"
+ *                           hexCode:
+ *                             type: string
+ *                             example: "#FF0000"
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy kệ
+ */
+router.get(
+  '/shelf/:shelfId/colors',
+  authenticateToken,
+  validate(shelfIdOnlyParamSchema, 'params'),
+  getColorsByShelf
 );
 
 export default router;
