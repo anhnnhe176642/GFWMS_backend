@@ -17,7 +17,13 @@
     "prisma:migrate": "pnpm run prisma:merge && npx prisma migrate dev --schema=prisma/schema.merged.prisma",
     "prisma:all": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma && npx prisma db push --schema=prisma/schema.merged.prisma && pnpm run prisma:cleanup",
     "prisma:reset": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma && npx prisma db push --schema=prisma/schema.merged.prisma --force-reset && pnpm run prisma:cleanup",
-    "prisma:cleanup": "node -e \"try{require('fs').unlinkSync('prisma/schema.merged.prisma')}catch(e){}\""
+    "prisma:cleanup": "node -e \"try{require('fs').unlinkSync('prisma/schema.merged.prisma')}catch(e){}\"",
+    "python:install": "python src/python/install.py",
+    "python:install:cpu": "pip install -r src/python/requirements.txt",
+    "python:install:gpu": "pip install -r src/python/requirements-gpu.txt",
+    "python:verify": "python src/python/verify_setup.py",
+    "yolo:detect": "python src/python/yolo_detector.py",
+    "yolo:test": "python src/python/test_detector.py"
   },
   "keywords": [],
   "author": "",
