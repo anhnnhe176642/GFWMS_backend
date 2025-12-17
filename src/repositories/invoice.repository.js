@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import {
   buildWhereClause,
+  buildPagination,
   buildSort,
   formatPaginatedResponse
 } from '../utils/query-builder.js';
@@ -117,46 +118,10 @@ export class InvoiceRepository {
     });
   }
 
-  /**  Đếm tổng số Invoice */
-  async count(filters = {}) {
-    const where = { ...filters };
-    if (filters.invoiceStatus && Array.isArray(filters.invoiceStatus)) {
-      where.invoiceStatus = { in: filters.invoiceStatus };
-    }
-    return await prisma.invoice.count({ where });
-  }
-
-  /**  Lấy danh sách có phân trang */
-  async findWithPagination(page = 1, limit = 10) {
-    const skip = (page - 1) * limit;
-
-    const [invoices, total] = await Promise.all([
-      prisma.invoice.findMany({
-        skip,
-        take: limit,
-        select: this.#invoiceListSelectOptions,
-        orderBy: { createdAt: 'desc' }
-      }),
-      prisma.invoice.count()
-    ]);
-
-    return {
-      invoices,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    };
-  }
-
   /**
    *  Tìm kiếm nâng cao với filter, sort, pagination
-   * @param {object} queryOptions
-   * @param {boolean} detail - true nếu muốn lấy chi tiết, false lấy danh sách
    */
-  async findWithAdvancedQuery(queryOptions = {}, detail = false) {
+  async findWithAdvancedQuery(queryOptions = {}) {
     const {
       page = 1,
       limit = 10,
@@ -166,14 +131,13 @@ export class InvoiceRepository {
       filters = {}
     } = queryOptions;
 
-    // Chọn select options: list hoặc detail
-    const selectOptions = detail ? this.#invoiceDetailSelectOptions : this.#invoiceListSelectOptions;
-
     // Các field có thể search
-    const searchableFields = ['order.user.username', 'order.user.email','order.user.fullname'];
+    const searchableFields = ['order.user.username', 'order.user.email', 'order.user.fullname'];
 
     // Xây dựng where clause từ search + filters
-    const where = buildWhereClause({ search, ...filters }, searchableFields);
+    const filterWhere = buildWhereClause({ search, ...filters }, searchableFields);
+
+    const where = filterWhere;
 
     // Multi-value filter cho invoiceStatus
     if (filters.invoiceStatus) {
@@ -185,7 +149,7 @@ export class InvoiceRepository {
     }
 
     // Pagination
-    const skip = (page - 1) * limit;
+    const { skip, take } = buildPagination(page, limit);
 
     // Sort
     const orderBy = buildSort(sortBy, order);
@@ -193,28 +157,80 @@ export class InvoiceRepository {
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
         where,
-        select: selectOptions,
+        select: this.#invoiceListSelectOptions,
         skip,
-        take: limit,
+        take,
         orderBy
       }),
       prisma.invoice.count({ where })
     ]);
 
-    return formatPaginatedResponse(invoices, total, page, limit);
+    return formatPaginatedResponse(invoices, total, page, take);
   }
 
   async findByUserId(userId) {
-  return await prisma.invoice.findMany({
-    where: {
+    return await prisma.invoice.findMany({
+      where: {
+        order: {
+          userId
+        }
+      },
+      select: this.#invoiceDetailSelectOptions,
+      orderBy: { invoiceDate: 'desc' }
+    });
+  }
+
+  /**
+   *  Lấy danh sách Invoice của user hiện tại với filter, sort, pagination
+   */
+  async findByUserIdAdvanced(userId, queryOptions = {}) {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      order = 'desc',
+      filters = {}
+    } = queryOptions;
+
+    // Xây dựng where clause
+    const where = {
       order: {
         userId
       }
-    },
-    select: this.#invoiceDetailSelectOptions,
-    orderBy: { invoiceDate: 'desc' }
-  });
-}
-}
+    };
 
+    // Lọc theo trạng thái hóa đơn
+    if (filters.invoiceStatus) {
+      if (Array.isArray(filters.invoiceStatus)) {
+        where.invoiceStatus = { in: filters.invoiceStatus };
+      } else {
+        where.invoiceStatus = filters.invoiceStatus;
+      }
+    }
+
+    // Lọc theo date range (createdAt)
+    if (filters.createdAt) {
+      where.createdAt = filters.createdAt;
+    }
+
+    // Pagination
+    const { skip, take } = buildPagination(page, limit);
+
+    // Sort
+    const orderBy = buildSort(sortBy, order);
+
+    const [invoices, total] = await Promise.all([
+      prisma.invoice.findMany({
+        where,
+        select: this.#invoiceListSelectOptions,
+        skip,
+        take,
+        orderBy
+      }),
+      prisma.invoice.count({ where })
+    ]);
+
+    return formatPaginatedResponse(invoices, total, page, take);
+  }
+}
 export const invoiceRepository = new InvoiceRepository();
