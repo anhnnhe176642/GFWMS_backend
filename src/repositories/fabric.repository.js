@@ -187,7 +187,10 @@ export class FabricRepository {
     return await prisma.warehouseFabricStock.findMany({
       where: {
         fabricId: { in: fabricIds },
-        currentStock: { gt: 0 }
+        currentStock: { gt: 0 },
+        warehouse: {
+          status: 'ACTIVE'  
+        }
       },
       select: {
         fabricId: true,

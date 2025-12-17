@@ -19,7 +19,6 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateToken);
 
 /**
  * @swagger
@@ -76,8 +75,6 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
-  authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
   validate(supplierQuerySchema, 'query'),
   getAllSuppliers
 );
@@ -280,6 +277,7 @@ router.put(
  */
 router.delete(
   '/:id',
+  authenticateToken,
   requirePermission(PERMISSIONS.FABRICS.MANAGE_SUPPLIER),
   validate(supplierIdParamSchema, 'params'),
   deleteSuppiler

@@ -524,7 +524,7 @@ export class OrderRepository {
       filters = {}
     } = queryOptions;
 
-    const searchableFields = ['customerPhone'];
+    const searchableFields = ['customerPhone','user.fullname'];
     const filterMapping = {
       paymentType: 'invoice.paymentType'
     };
