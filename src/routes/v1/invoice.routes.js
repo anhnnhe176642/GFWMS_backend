@@ -1,13 +1,15 @@
 import express from 'express';
 import {
   getAllInvoices,
-  getInvoiceById
+  getInvoiceById,
+  getMyInvoices
 } from '../../controllers/invoice.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import {
   invoiceIdParamSchema,
-  invoiceQuerySchema
+  invoiceQuerySchema,
+  myInvoicesQuerySchema
 } from '../../validations/invoice.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
@@ -103,6 +105,81 @@ router.get(
   requirePermission(PERMISSIONS.INVOICES.VIEW_LIST),
   validate(invoiceQuerySchema, 'query'),
   getAllInvoices
+);
+
+/**
+ * @swagger
+ * /invoices/my-invoices:
+ *   get:
+ *     summary: Lấy danh sách hóa đơn của tôi (có phân trang, tìm kiếm và lọc)
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: string
+ *         description: Số trang cần lấy
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: string
+ *         description: Số lượng hóa đơn mỗi trang
+ *       - in: query
+ *         name: invoiceStatus
+ *         schema:
+ *           type: string
+ *         description: Lọc theo trạng thái hóa đơn (PAID, UNPAID, OVERDUE, CREDIT, REFUNDED, CANCELED)
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Trường để sắp xếp (id, invoiceDate, invoiceStatus, totalAmount, createdAt, updatedAt)
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *         description: Thứ tự sắp xếp (asc/desc)
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Ngày tạo từ
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Ngày tạo đến
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách hóa đơn của bạn thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách hóa đơn của bạn thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Invoice'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/PaginationMeta'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+router.get(
+  '/my-invoices',
+  authenticateToken,
+  validate(myInvoicesQuerySchema, 'query'),
+  getMyInvoices
 );
 
 
