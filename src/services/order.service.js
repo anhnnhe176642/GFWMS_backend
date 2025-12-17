@@ -753,3 +753,7 @@ export const getOrderById = async (orderId, userId, role) => {
 
   return order;
 };
+
+export const getOrdersByStore = async (storeId, queryOptions) => {
+  return await orderRepository.findByStoreIdWithQuery(storeId, queryOptions);
+};

@@ -5,7 +5,8 @@ import {
   checkCustomerCredit,
   getAllOrders,       
   getMyOrders,    
-  getOrderById  
+  getOrderById,
+  getOrdersByStore
 } from '../../controllers/order.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
@@ -14,11 +15,29 @@ import {
   createOfflineOrderSchema,
   orderIdParamSchema,
   getAllOrdersQuerySchema,   
-  getMyOrdersQuerySchema
+  getMyOrdersQuerySchema,
+  getOrdersByStoreParamSchema,
+  getOrdersByStoreQuerySchema
 } from '../../validations/order.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
+import { storeAccessService } from '../../services/storeAccess.service.js';
 
 const router = express.Router();
+
+// Middleware kiểm tra quyền truy cập cửa hàng
+const checkStoreAccess = async (req, res, next) => {
+  try {
+    const storeId = parseInt(req.params.storeId);
+    const userId = req.user.id;
+    
+    // Check: user có quyền quản lý cửa hàng hoặc là admin
+    await storeAccessService.ensureUserCanManageStore(userId, storeId);
+    
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * @swagger
@@ -652,6 +671,157 @@ router.get('/all',
   requirePermission(PERMISSIONS.ORDERS.VIEW_LIST),
   validate(getAllOrdersQuerySchema, 'query'),
   getAllOrders
+);
+
+/**
+ * @swagger
+ * /orders/store/{storeId}:
+ *   get:
+ *     summary: Lấy danh sách đơn hàng theo cửa hàng (Admin/Manager)
+ *     description: Admin hoặc quản lý cửa hàng lấy danh sách đơn hàng của một cửa hàng cụ thể với filter, search, pagination
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của cửa hàng
+ *         example: 1
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           default: 1
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           default: 10
+ *         description: Số items mỗi trang
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm customerPhone
+ *         example: 0912345678
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: createdAt
+ *         description: Sắp xếp theo field
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           default: desc
+ *         description: Thứ tự sắp xếp
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter theo status (multi-value - PENDING,PROCESSING,DELIVERED,CANCELED,FAILED)
+ *         example: PENDING,PROCESSING
+ *       - in: query
+ *         name: paymentType
+ *         schema:
+ *           type: string
+ *         description: Filter theo payment type (multi-value - CASH,CREDIT)
+ *         example: CASH,CREDIT
+ *       - in: query
+ *         name: isOffline
+ *         schema:
+ *           type: string
+ *         description: Filter đơn offline hay online
+ *         example: true
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Lọc từ ngày (YYYY-MM-DD)
+ *         example: 2025-11-01
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Lọc đến ngày (YYYY-MM-DD)
+ *         example: 2025-11-30
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách đơn hàng cửa hàng thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách đơn hàng cửa hàng thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 625
+ *                       userId:
+ *                         type: string
+ *                       user:
+ *                         type: object
+ *                       status:
+ *                         type: string
+ *                         example: DELIVERED
+ *                       paymentType:
+ *                         type: string
+ *                         example: CASH
+ *                       totalAmount:
+ *                         type: number
+ *                         example: 1425000
+ *                       paidAmount:
+ *                         type: number
+ *                       creditAmount:
+ *                         type: number
+ *                       isOffline:
+ *                         type: boolean
+ *                       customerPhone:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       example: 50
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 5
+ *       401:
+ *         description: Unauthorized - Token không hợp lệ
+ *       403:
+ *         description: Forbidden - Không có quyền truy cập cửa hàng này
+ *       404:
+ *         description: Not Found - Cửa hàng không tồn tại
+ */
+router.get('/store/:storeId',
+  authenticateToken,
+  requirePermission(PERMISSIONS.ORDERS.VIEW_LIST),
+  validate(getOrdersByStoreParamSchema, 'params'),
+  checkStoreAccess,
+  validate(getOrdersByStoreQuerySchema, 'query'),
+  getOrdersByStore
 );
 
 /**
