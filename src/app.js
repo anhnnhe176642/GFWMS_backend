@@ -9,8 +9,7 @@ import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 import { cancelExpiredOrders } from './jobs/payment-expiration.job.js';
 import { reconcilePendingPayments } from './jobs/payment-reconciliation.job.js';
-import { checkCreditInvoices } from './jobs/credit-invoice.job.js';
-import { autoLockCreditOverdue } from './jobs/credit-lock.job.js';
+import { handleCreditOverdue } from './jobs/credit-invoice.job.js';
 import cron from 'node-cron';
 dotenv.config();
 
@@ -68,23 +67,12 @@ if (process.env.NODE_ENV !== 'test' && process.env.ENABLE_CRON === 'true') {
     }
   });
 
-  // Check credit invoices - mỗi ngày 0h
-  cron.schedule('0 0 * * *', async () => {
-    try {
-      await checkCreditInvoices();
-    } catch (err) {
-      console.error("Lỗi trong cron CheckCreditInvoices:", err);
-    }
-  });
+  // Check debt invoices - mỗi ngày 0h
+    cron.schedule('0 8 * * *', async () => {
+      await handleCreditOverdue();
+    });
 
-  // Auto lock credit overdue - mỗi phút (test)
-  cron.schedule('0 0 * * *', async () => {
-    try {
-      await autoLockCreditOverdue();
-    } catch (err) {
-      console.error("Lỗi trong cron AutoLockCredit:", err);
-    }
-  });
+
 }
 
 
