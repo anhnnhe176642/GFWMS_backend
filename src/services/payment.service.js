@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 const prisma = new PrismaClient();
 
 //TẠO QR CHO INVOICE THƯỜNG
-export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
+export const createInvoicePaymentQR = async (invoiceId) => {
   // Lấy invoice + order + user
   const invoice = await prisma.invoice.findUnique({
     where: { id: parseInt(invoiceId) },
@@ -21,13 +21,6 @@ export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
   });
   
   if (!invoice) throw new NotFoundError('Không tìm thấy hóa đơn');
-  
-  // Check quyền
-  const isOwner = invoice.order.userId === userId;
-  const isStaff = ['STAFF', 'ADMIN'].includes(userRole);
-  if (!isOwner && !isStaff) {
-    throw new BadRequestError('Bạn không có quyền thanh toán hóa đơn này');
-  }
   
   // Validate trạng thái
   if (invoice.invoiceStatus === 'PAID') {
@@ -130,7 +123,7 @@ export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
 
 
 // TẠO QR CHO CREDIT INVOICE GOM THÁNG)
-export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, userRole) => {
+export const createCreditInvoicePaymentQR = async (creditInvoiceId) => {
   
   try {
     // Lấy credit invoice
@@ -149,26 +142,14 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
   
     
     if (!creditInvoice) throw new NotFoundError('Không tìm thấy Credit Invoice');
-    
-    // Check quyền
-    const isOwner = creditInvoice.credit.userId === userId;
-    const isStaff = ['STAFF', 'ADMIN'].includes(userRole);
-    
-    if (!isOwner && !isStaff) {
-      throw new BadRequestError('Bạn không có quyền thanh toán Credit Invoice này');
-    }
-    
+
     // Validate trạng thái
     console. log('[3] Validating status...');
     if (creditInvoice.status === 'PAID') {
       throw new BadRequestError('Credit Invoice đã được thanh toán');
     }
     
-    // ✅ BỎ PHẦN VALIDATE dueDate (vì không có field này)
-    // if (creditInvoice.dueDate && new Date() > new Date(creditInvoice. dueDate)) {
-    //   throw new BadRequestError('Credit Invoice đã quá hạn thanh toán');
-    // }
-    
+
     // Tính số tiền
     const amountToPay = creditInvoice. totalCreditAmount - creditInvoice.creditPaidAmount;
     
@@ -415,7 +396,7 @@ const handleCreditInvoiceWebhook = async (creditInvoiceId, transactionId, amount
     throw new NotFoundError('Không tìm thấy Credit Invoice');
   }
   
-  // ✅ Check idempotency bằng transactionId
+  // Check idempotency bằng transactionId
   const existingPayment = await prisma.payment. findFirst({
     where: { 
       transactionId: transactionId,
@@ -598,11 +579,11 @@ const processCreditInvoicePaymentSuccess = async (creditInvoice, transactionId, 
       data: { status: 'PROCESSING' }
     });
     
-    // 5. ✅ SỬA: Giảm creditUsed (không phải creditLimit)
+    // 5. SỬA: Giảm creditUsed (không phải creditLimit)
     await tx.creditRegistration.update({
       where: { userId: creditInvoice.credit.userId },
       data: {
-        creditUsed: { decrement: creditInvoice.totalCreditAmount }  // ✅ TRỪ creditUsed
+        creditUsed: { decrement: creditInvoice.totalCreditAmount }  // TRỪ creditUsed
       }
     });
 

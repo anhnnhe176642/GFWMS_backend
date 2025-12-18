@@ -467,7 +467,7 @@ export const confirmPayment = async (orderId) => {
     invoice.creditAmount
   );
 
-  console.log('✅ confirmPayment completed');
+  console.log('confirmPayment completed');
   return result;
 };
 

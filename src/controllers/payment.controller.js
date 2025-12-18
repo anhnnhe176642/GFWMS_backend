@@ -4,10 +4,8 @@ import * as paymentService from '../services/payment.service.js';
 export const createInvoicePaymentQR = async (req, res, next) => {
   try {
     const { invoiceId } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
     
-    const result = await paymentService.createInvoicePaymentQR(invoiceId, userId, userRole);
+    const result = await paymentService.createInvoicePaymentQR(invoiceId);
     
     res.json({
       message: 'Tạo mã QR thanh toán thành công',
@@ -55,10 +53,8 @@ export const checkInvoicePaymentStatus = async (req, res, next) => {
 export const createCreditInvoicePaymentQR = async (req, res, next) => {
   try {
     const { creditInvoiceId } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
     
-    const result = await paymentService.createCreditInvoicePaymentQR(creditInvoiceId, userId, userRole);
+    const result = await paymentService.createCreditInvoicePaymentQR(creditInvoiceId);
     
     res.json({
       message: 'Tạo mã QR thanh toán Credit Invoice thành công',
