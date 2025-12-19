@@ -74,6 +74,13 @@ export const getAllExportFabricsAdvanced = async (queryOptions, userId = null) =
 };
 
 /**
+ *  Lấy danh sách yêu cầu xuất vải (filter theo warehouse + store của user)
+ */
+export const getAllExportFabricRequestsAdvanced = async (queryOptions, userId = null) => {
+  return await exportFabricRepository.findRequestsWithAdvancedQuery(queryOptions, userId);
+};
+
+/**
  * Preview inventory: Xem tồn kho theo warehouse cho danh sách fabric
  * @param {Array<{fabricId: number, quantity: number}>} fabricItems
  * @returns {Promise<{fabrics: Array, warehouseDetails: Array}>}

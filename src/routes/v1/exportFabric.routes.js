@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getAllExportFabrics,
+  getAllExportFabricRequests,
   getExportFabricDetailForWarehouse,
   getExportFabricDetailForStore,
   createExportFabric,
@@ -210,7 +211,7 @@ router.get(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRIC_REQUESTS.VIEW_LIST),
   validate(exportFabricQuerySchema, 'query'),
-  getAllExportFabrics
+  getAllExportFabricRequests
 );
 
 /**

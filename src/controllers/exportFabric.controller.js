@@ -24,6 +24,30 @@ export const getAllExportFabrics = async (req, res, next) => {
   }
 };
 
+/**  Lấy danh sách yêu cầu xuất vải (filter theo store của user quản lý) */
+export const getAllExportFabricRequests = async (req, res, next) => {
+  try {
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['warehouseId', 'storeId', 'status', 'createdById', 'receivedById'],
+      dateRangeConfig: {
+        fromField: 'createdFrom',
+        toField: 'createdTo',
+        targetField: 'createdAt'
+      }
+    });
+
+    // Lấy danh sách requests filter theo store của user
+    const result = await exportFabricService.getAllExportFabricRequestsAdvanced(queryParams, req.user.id);
+
+    res.json({
+      message: 'Lấy danh sách yêu cầu xuất vải thành công',
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getExportFabricDetailForWarehouse = async (req, res, next) => {
   try {
     const { id } = req.params;

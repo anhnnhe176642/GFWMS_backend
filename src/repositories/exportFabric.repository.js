@@ -222,6 +222,62 @@ export class ExportFabricRepository {
     return formatPaginatedResponse(exportFabrics, total, page, limit);
   }
 
+  /**  Lấy danh sách yêu cầu xuất vải (lọc theo warehouse + store của user) */
+  async findRequestsWithAdvancedQuery(queryOptions = {}, userId = null) {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'createdAt',
+      order = 'desc',
+      filters = {}
+    } = queryOptions;
+
+    const searchableFields = [
+      'note',
+      'warehouse.name',
+      'store.name',
+      'createdBy.username',
+      'receivedBy.username'
+    ];
+
+    const where = buildWhereClause({ search, ...filters }, searchableFields);
+    
+    // Filter theo store access - chỉ filter store, không filter warehouse
+    // Danh sách yêu cầu xuất của các cửa hàng mà user manage
+    if (userId) {
+      const hasStoreGlobalAccess = await userRepository.hasPermission(userId, PERMISSIONS.STORES.MANAGER_ALL.key);
+      
+      if (!hasStoreGlobalAccess) {
+        // User can only see requests for stores they manage
+        where.store = {
+          managers: {
+            some: {
+              userId: userId
+            }
+          }
+        };
+      }
+      // Nếu có store:manager_all, hiển thị tất cả
+    }
+    
+    const skip = (page - 1) * limit;
+    const orderBy = buildSort(sortBy, order);
+
+    const [exportFabrics, total] = await Promise.all([
+      prisma.exportFabric.findMany({
+        where,
+        select: this.#exportFabricListSelect,
+        skip,
+        take: limit,
+        orderBy
+      }),
+      prisma.exportFabric.count({ where })
+    ]);
+
+    return formatPaginatedResponse(exportFabrics, total, page, limit);
+  }
+
   async create(data) {
     const { warehouseId, storeId, note, createdById, exportItems, batchId } = data;
 
