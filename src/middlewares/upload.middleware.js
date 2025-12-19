@@ -168,6 +168,15 @@ export const uploadZipFile = createUploadMiddleware({
 
 export const handleZipFileUploadError = createUploadErrorHandler('zipFile', 1000);
 
+// Middleware to handle signature image upload (single file, 10MB max)
+export const uploadSignatureImage = createUploadMiddleware({
+  fieldName: 'signatureImage',
+  maxSize: 10,
+  multiple: false
+});
+
+export const handleSignatureImageUploadError = createUploadErrorHandler('signatureImage', 10);
+
 // Legacy export for backward compatibility
 export const handleUploadError = handleAvatarUploadError;
 

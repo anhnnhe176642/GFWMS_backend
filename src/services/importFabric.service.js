@@ -1,6 +1,7 @@
 import { importFabricRepository } from '../repositories/importFabric.repository.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { userActivityService } from './userActivity.service.js';
+import { uploadSingleImage } from './upload.service.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
 import { PrismaClient } from '@prisma/client';
 import { PERMISSIONS } from '../constants/permissions.js';
@@ -117,7 +118,30 @@ class ImportFabricService {
       });
     }
     
-    return await importFabricRepository.create(data, processedItems);
+    // Handle signature image upload if provided
+    let signatureImageUrl = null;
+    let signatureImagePublicId = null;
+
+    if (data.signatureFile) {
+      const result = await uploadSingleImage(data.signatureFile, {
+        folder: 'import-fabrics/signatures',
+        preset: 'document',
+        fieldName: 'signatureImage'
+      });
+
+      signatureImageUrl = result.url;
+      signatureImagePublicId = result.publicId;
+    }
+
+    // Prepare import data with signature fields
+    const importData = {
+      warehouseId: data.warehouseId,
+      importer: data.importer,
+      signatureImageUrl,
+      signatureImagePublicId
+    };
+    
+    return await importFabricRepository.create(importData, processedItems);
   }
 
   async getById(id) {

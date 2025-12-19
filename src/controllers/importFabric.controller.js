@@ -5,10 +5,12 @@ export const createImportFabric = async (req, res, next) => {
   try {
     const { warehouseId, items } = req.body; 
     const importer = req.user.id;
+    const signatureFile = req.file;
 
     const result = await importFabricService.createImport({
       warehouseId,
       importer,
+      signatureFile
     }, items, req.user);
 
     res.status(201).json({

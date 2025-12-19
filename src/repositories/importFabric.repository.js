@@ -13,6 +13,7 @@ class ImportFabricRepository {
     importDate: true,
     totalPrice: true,
     status: true,
+    signatureImageUrl: true,
     warehouse: {
       select: {
         id: true,
@@ -35,6 +36,8 @@ class ImportFabricRepository {
     importDate: true,
     totalPrice: true,
     status: true,
+    signatureImageUrl: true,
+    signatureImagePublicId: true,
     warehouse: {
       select: {
         id: true,
@@ -163,7 +166,9 @@ class ImportFabricRepository {
           data: {
             warehouseId: data.warehouseId,
             importer: data.importer,
-            totalPrice: totalPrice
+            totalPrice: totalPrice,
+            signatureImageUrl: data.signatureImageUrl || null,
+            signatureImagePublicId: data.signatureImagePublicId || null
           }
         });
 
