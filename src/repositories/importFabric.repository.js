@@ -198,14 +198,14 @@ class ImportFabricRepository {
           }))
         });
 
-        await Promise.all(
-          items.map(item =>
-            tx.fabric.update({
-              where: { id: item.fabricId },
-              data: { quantityInStock: { increment: item.quantity } }
-            })
-          )
-        );
+        // await Promise.all(
+        //   items.map(item =>
+        //     tx.fabric.update({
+        //       where: { id: item.fabricId },
+        //       data: { quantityInStock: { increment: item.quantity } }
+        //     })
+        //   )
+        // );
 
         return await tx.importFabric.findUnique({
           where: { id: importFabric.id },

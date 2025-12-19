@@ -166,8 +166,14 @@ async function createWarehouseFabricStockTriggers() {
 
     // Mảng các SQL statements
     const triggerStatements = [
+      // Drop triggers nếu đã tồn tại
+      'DROP TRIGGER IF EXISTS trg_fabric_shelf_after_insert',
+      'DROP TRIGGER IF EXISTS trg_fabric_shelf_after_update',
+      'DROP TRIGGER IF EXISTS trg_fabric_shelf_after_delete',
+      'DROP PROCEDURE IF EXISTS sp_sync_warehouse_fabric_stock',
+      
       // Trigger INSERT
-      `CREATE TRIGGER IF NOT EXISTS trg_fabric_shelf_after_insert
+      `CREATE TRIGGER trg_fabric_shelf_after_insert
       AFTER INSERT ON fabric_shelf
       FOR EACH ROW
       BEGIN
@@ -182,10 +188,15 @@ async function createWarehouseFabricStockTriggers() {
           ON DUPLICATE KEY UPDATE 
               currentStock = currentStock + NEW.quantity,
               updatedAt = NOW();
+          
+          UPDATE fabric
+          SET quantityInStock = quantityInStock + NEW.quantity,
+              updatedAt = NOW()
+          WHERE id = NEW.fabricId;
       END`,
 
       // Trigger UPDATE
-      `CREATE TRIGGER IF NOT EXISTS trg_fabric_shelf_after_update
+      `CREATE TRIGGER trg_fabric_shelf_after_update
       AFTER UPDATE ON fabric_shelf
       FOR EACH ROW
       BEGIN
@@ -204,11 +215,16 @@ async function createWarehouseFabricStockTriggers() {
                   updatedAt = NOW()
               WHERE warehouseId = v_warehouse_id 
                 AND fabricId = NEW.fabricId;
+              
+              UPDATE fabric
+              SET quantityInStock = GREATEST(0, quantityInStock + v_quantity_diff),
+                  updatedAt = NOW()
+              WHERE id = NEW.fabricId;
           END IF;
       END`,
 
       // Trigger DELETE
-      `CREATE TRIGGER IF NOT EXISTS trg_fabric_shelf_after_delete
+      `CREATE TRIGGER trg_fabric_shelf_after_delete
       AFTER DELETE ON fabric_shelf
       FOR EACH ROW
       BEGIN
@@ -223,10 +239,15 @@ async function createWarehouseFabricStockTriggers() {
               updatedAt = NOW()
           WHERE warehouseId = v_warehouse_id 
             AND fabricId = OLD.fabricId;
+          
+          UPDATE fabric
+          SET quantityInStock = GREATEST(0, quantityInStock - OLD.quantity),
+              updatedAt = NOW()
+          WHERE id = OLD.fabricId;
       END`,
 
       // Procedure SYNC
-      `CREATE PROCEDURE IF NOT EXISTS sp_sync_warehouse_fabric_stock()
+      `CREATE PROCEDURE sp_sync_warehouse_fabric_stock()
       BEGIN
           DELETE FROM warehouse_fabric_stock;
           
@@ -240,6 +261,14 @@ async function createWarehouseFabricStockTriggers() {
           FROM fabric_shelf fs
           INNER JOIN shelf s ON fs.shelfId = s.id
           GROUP BY s.warehouseId, fs.fabricId;
+          
+          UPDATE fabric f
+          SET quantityInStock = COALESCE((
+              SELECT SUM(fs.quantity)
+              FROM fabric_shelf fs
+              WHERE fs.fabricId = f.id
+          ), 0),
+          updatedAt = NOW();
       END`
     ];
 
@@ -288,8 +317,14 @@ async function createFabricCustomerTriggers() {
 
     // Mảng các SQL statements cho FabricCustomer
     const fabricCustomerTriggerStatements = [
+      // Drop triggers nếu đã tồn tại
+      'DROP TRIGGER IF EXISTS trg_fabric_store_after_insert',
+      'DROP TRIGGER IF EXISTS trg_fabric_store_after_update',
+      'DROP TRIGGER IF EXISTS trg_fabric_store_after_delete',
+      'DROP PROCEDURE IF EXISTS sp_sync_fabric_customer',
+      
       // Trigger INSERT vào fabric_store -> Tạo/cập nhật FabricCustomer và FabricCustomerStore
-      `CREATE TRIGGER IF NOT EXISTS trg_fabric_store_after_insert
+      `CREATE TRIGGER trg_fabric_store_after_insert
       AFTER INSERT ON fabric_store
       FOR EACH ROW
       BEGIN
@@ -343,7 +378,7 @@ async function createFabricCustomerTriggers() {
       END`,
 
       // Trigger UPDATE fabric_store -> Cập nhật FabricCustomer và FabricCustomerStore
-      `CREATE TRIGGER IF NOT EXISTS trg_fabric_store_after_update
+      `CREATE TRIGGER trg_fabric_store_after_update
       AFTER UPDATE ON fabric_store
       FOR EACH ROW
       BEGIN
@@ -395,7 +430,7 @@ async function createFabricCustomerTriggers() {
       END`,
 
       // Trigger DELETE fabric_store -> Cập nhật FabricCustomer và xóa FabricCustomerStore nếu cần
-      `CREATE TRIGGER IF NOT EXISTS trg_fabric_store_after_delete
+      `CREATE TRIGGER trg_fabric_store_after_delete
       AFTER DELETE ON fabric_store
       FOR EACH ROW
       BEGIN
@@ -438,7 +473,7 @@ async function createFabricCustomerTriggers() {
       END`,
 
       // Procedure đồng bộ lại toàn bộ dữ liệu
-      `CREATE PROCEDURE IF NOT EXISTS sp_sync_fabric_customer()
+      `CREATE PROCEDURE sp_sync_fabric_customer()
       BEGIN
           -- Xóa toàn bộ dữ liệu cũ
           DELETE FROM fabric_customer_store;

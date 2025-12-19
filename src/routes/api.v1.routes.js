@@ -33,6 +33,7 @@ import paymentRoutes from './v1/payment.routes.js';
 import creditRegistrationRouters from './v1/creditRegistration.routes.js';
 import creditRequest from './v1/creditRequest.routes.js';
 import creditInvoiceRoutes from './v1/creditInvoice.routes.js';
+import dashboardRoutes from './v1/dashboard.routes.js';
 
 const router = express.Router();
 
@@ -67,6 +68,7 @@ router.use('/', paymentRoutes);
 router.use('/credit-registrations', creditRegistrationRouters);
 router.use('/credit-requests', creditRequest);
 router.use('/credit-invoices', creditInvoiceRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 // YOLO detection routes
 router.use('/yolo', yoloRoutes);
