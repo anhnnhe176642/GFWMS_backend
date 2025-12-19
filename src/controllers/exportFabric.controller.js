@@ -13,7 +13,7 @@ export const getAllExportFabrics = async (req, res, next) => {
       }
     });
 
-    const result = await exportFabricService.getAllExportFabricsAdvanced(queryParams);
+    const result = await exportFabricService.getAllExportFabricsAdvanced(queryParams, req.user.id);
 
     res.json({
       message: 'Lấy danh sách phiếu xuất vải thành công',

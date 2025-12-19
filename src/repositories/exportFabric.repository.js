@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { buildWhereClause, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+import { userRepository } from './user.repository.js';
+import { PERMISSIONS } from '../constants/permissions.js';
 
 const prisma = new PrismaClient();
 
@@ -168,7 +170,7 @@ export class ExportFabricRepository {
   }
 
   /**  Lấy danh sách nâng cao (lọc, tìm kiếm, sắp xếp, phân trang) */
-  async findWithAdvancedQuery(queryOptions = {}) {
+  async findWithAdvancedQuery(queryOptions = {}, userId = null) {
     const {
       page = 1,
       limit = 10,
@@ -187,6 +189,22 @@ export class ExportFabricRepository {
     ];
 
     const where = buildWhereClause({ search, ...filters }, searchableFields);
+    
+    // If userId provided, check warehouse access
+    if (userId) {
+      const hasGlobalAccess = await userRepository.hasPermission(userId, PERMISSIONS.WAREHOUSES_MANAGER.MANAGER_ALL.key);
+      if (!hasGlobalAccess) {
+        // User can only see export records for warehouses they manage
+        where.warehouse = {
+          warehouseManages: {
+            some: {
+              userId: userId
+            }
+          }
+        };
+      }
+    }
+    
     const skip = (page - 1) * limit;
     const orderBy = buildSort(sortBy, order);
 

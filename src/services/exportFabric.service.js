@@ -69,8 +69,8 @@ export const getExportFabricDetailForWarehouse = async (id) => {
 /**
  *  Lấy danh sách phiếu xuất vải nâng cao (lọc, sắp xếp, phân trang)
  */
-export const getAllExportFabricsAdvanced = async (queryOptions) => {
-  return await exportFabricRepository.findWithAdvancedQuery(queryOptions);
+export const getAllExportFabricsAdvanced = async (queryOptions, userId = null) => {
+  return await exportFabricRepository.findWithAdvancedQuery(queryOptions, userId);
 };
 
 /**

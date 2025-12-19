@@ -148,8 +148,8 @@ class ImportFabricService {
     return await importFabricRepository.findById(id);
   }
 
-  async getAllImportFabricsAdvanced(queryOptions) {
-    return await importFabricRepository.findAllImportFabric(queryOptions);
+  async getAllImportFabricsAdvanced(queryOptions, userId = null) {
+    return await importFabricRepository.findAllImportFabric(queryOptions, userId);
   }
 
 

@@ -846,6 +846,13 @@ router.get(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL_WAREHOUSE),
   validate(exportFabricIdParamSchema, 'params'),
+  requireWarehouseAccess(async (req) => {
+    const { id } = req.params;
+    const { exportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
+    const repo = new exportFabricRepository();
+    const exportFabric = await repo.findById(parseInt(id));
+    return exportFabric?.warehouseId;
+  }),
   getExportFabricDetailForWarehouse
 );
 

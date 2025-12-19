@@ -411,6 +411,12 @@ router.get('/:id',
   authenticateToken,
   requirePermission(PERMISSIONS.IMPORT_FABRICS.VIEW_DETAIL),
   validate(importFabricIdSchema, 'params'),
+  requireWarehouseAccess(async (req) => {
+    const { id } = req.params;
+    const { importFabricRepository } = await import('../../repositories/importFabric.repository.js');
+    const importFabric = await importFabricRepository.findById(parseInt(id));
+    return importFabric?.warehouseId;
+  }),
   getImportFabricById
 );
 

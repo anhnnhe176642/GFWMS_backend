@@ -33,11 +33,12 @@ export const getAllImportFabrics = async (req, res, next) => {
       }
     });
     
-    const result = await importFabricService.getAllImportFabricsAdvanced(queryParams);
+    // Pass userId to service để filter dựa trên warehouse access
+    const result = await importFabricService.getAllImportFabricsAdvanced(queryParams, req.user.id);
     res.json({
       message: 'Lấy danh sách phiếu nhập thành công',
       data: result.data,
-    pagination: result.pagination
+      pagination: result.pagination
     });
   } catch (error) {
     next(error);
