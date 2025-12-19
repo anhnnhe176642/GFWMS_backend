@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { isAfter, differenceInDays, format } from 'date-fns';
+import { differenceInDays, format } from 'date-fns';
 import {
   sendInvoiceOverdueReminder,
   sendCreditLockedNotification
@@ -7,19 +7,25 @@ import {
 
 const prisma = new PrismaClient();
 
-const OVERDUE_DAYS = 1;      // bắt đầu nhắc sau 1 ngày
-const MAX_REMINDER = 5;      // gửi tối đa 5 mail
+/**
+ * Cấu hình
+ */
+const REMIND_BEFORE_DAYS = 5; // nhắc trước hạn 5 ngày
+const MAX_REMINDER = 5;       // tối đa 5 mail
 
 export const handleCreditOverdue = async () => {
   try {
-    console.log("Running credit overdue job...");
+    console.log('Running credit before-due reminder job...');
 
     const now = new Date();
 
+    /**
+     * Lấy các invoice chưa thanh toán
+     */
     const invoices = await prisma.creditInvoice.findMany({
       where: {
         status: {
-          in: ["PENDING", "OVERDUE"]
+          in: ['PENDING', 'OVERDUE']
         }
       },
       include: {
@@ -29,56 +35,72 @@ export const handleCreditOverdue = async () => {
       }
     });
 
+    /**
+     * Gom invoice theo credit
+     * → lấy ngày gần hạn nhất
+     */
     const creditMap = new Map();
 
     for (const inv of invoices) {
       const dueDate = new Date(inv.dueDate);
+      const daysBeforeDue = differenceInDays(dueDate, now);
+      console.log({
+        invoiceId: inv.id,
+        dueDate,
+        now,
+        daysBeforeDue
+      });
 
-      if (!isAfter(now, dueDate)) continue;
+      // Đã quá hạn → job khác xử lý
+      if (daysBeforeDue < 0) continue;
 
-      const overdueDays = differenceInDays(now, dueDate);
-      if (overdueDays < OVERDUE_DAYS) continue;
+      // Chưa tới mốc nhắc
+      if (daysBeforeDue > REMIND_BEFORE_DAYS) continue;
 
       const credit = inv.credit;
+      if (!credit) continue;
 
       if (!creditMap.has(credit.id)) {
         creditMap.set(credit.id, {
           credit,
-          maxOverdueDays: overdueDays,
+          minDaysBeforeDue: daysBeforeDue,
           invoices: []
         });
       }
 
       const entry = creditMap.get(credit.id);
-      entry.maxOverdueDays = Math.max(
-        entry.maxOverdueDays,
-        overdueDays
+      entry.minDaysBeforeDue = Math.min(
+        entry.minDaysBeforeDue,
+        daysBeforeDue
       );
       entry.invoices.push(inv);
     }
 
-    // ===== XỬ LÝ TỪNG CREDIT =====
-    for (const { credit, maxOverdueDays, invoices } of creditMap.values()) {
+    /**
+     * Xử lý từng credit
+     */
+    for (const { credit, minDaysBeforeDue, invoices } of creditMap.values()) {
       const user = credit.user;
       const reminderCount = credit.reminderCount ?? 0;
 
       console.log({
         creditId: credit.id,
         email: user?.email,
-        overdueDays: maxOverdueDays,
+        daysBeforeDue: minDaysBeforeDue,
         reminderCount,
         isLocked: credit.isLocked
       });
 
       if (!user?.email) continue;
 
-      /** GỬI MAIL NHẮC NỢ */
+      /**
+       * GỬI MAIL NHẮC TRƯỚC HẠN
+       */
       if (!credit.isLocked && reminderCount < MAX_REMINDER) {
-
         await sendInvoiceOverdueReminder(
           user.email,
           credit.id,
-          maxOverdueDays
+          minDaysBeforeDue
         );
 
         await prisma.creditRegistration.update({
@@ -95,21 +117,22 @@ export const handleCreditOverdue = async () => {
         continue;
       }
 
-      /** Khóa tài khoản */
+      /**
+       * KHÓA CREDIT SAU KHI NHẮC ĐỦ SỐ LẦN
+       */
       if (!credit.isLocked && reminderCount >= MAX_REMINDER) {
-
         await prisma.creditRegistration.update({
           where: { id: credit.id },
           data: { isLocked: true }
         });
 
-        const firstInvoice = invoices[0];
+        const nearestInvoice = invoices[0];
 
         await sendCreditLockedNotification(
           user.email,
           credit.id,
-          maxOverdueDays,
-          format(firstInvoice.dueDate, "dd/MM/yyyy")
+          minDaysBeforeDue,
+          format(nearestInvoice.dueDate, 'dd/MM/yyyy')
         );
 
         console.log(
@@ -119,6 +142,6 @@ export const handleCreditOverdue = async () => {
     }
 
   } catch (error) {
-    console.error("Error in credit overdue job:", error);
+    console.error('Error in credit before-due reminder job:', error);
   }
 };

@@ -81,22 +81,47 @@ export const sendYoloModelUploadNotification = async (to, modelName, version) =>
   });
 };
 
-export const sendInvoiceOverdueReminder = async (to, creditId, overdueDays) => {
-  const subject = `Nhắc nhở thanh toán khoản nợ quá hạn - Garment Fabric Warehouse Management System`;
+export const sendInvoiceOverdueReminder = async (
+  to,
+  creditId,
+  minutesBeforeDue
+) => {
+  const subject =
+    'Nhắc nhở sắp đến hạn thanh toán khoản ghi nợ - Garment Fabric Warehouse Management System';
 
-  const text = `Hóa đơn mua nợ của bạn (ID: ${creditId}) của bạn đã quá hạn ${overdueDays} ngày. 
-                Vui lòng thanh toán sớm để tránh bị khóa tài khoản ghi nợ.`;
+  const text = `
+Hóa đơn mua hàng ghi nợ của bạn (ID: ${creditId}) sẽ đến hạn thanh toán trong ${minutesBeforeDue} phút.
+
+Vui lòng thanh toán đúng hạn để tránh phát sinh phí hoặc bị khóa tài khoản ghi nợ.
+`;
 
   const html = `
     <div style="font-family: sans-serif; line-height:1.6">
       <p>Xin chào,</p>
-      <p>Hóa đơn mua nợ của bạn (CreditInvoiceID: <strong>${creditId}</strong>) đã <strong>quá hạn ${overdueDays} ngày</strong>.</p>
 
-      <p>Vui lòng thanh toán số dư còn lại để tránh việc 
-        <strong style="color:red">khóa hạn tài khoản ghi nợ</strong>.
+      <p>
+        Hóa đơn mua hàng ghi nợ của bạn 
+        (Credit ID: <strong>${creditId}</strong>) 
+        <strong>sẽ đến hạn thanh toán trong ${minutesBeforeDue} ngày</strong>.
       </p>
 
-      <p>Trân trọng,<br/>Garment Fabric Warehouse Management System</p>
+      <p>
+        Vui lòng thanh toán đúng hạn để tránh các rủi ro như:
+      </p>
+
+      <ul>
+        <li>Phát sinh trạng thái quá hạn</li>
+        <li>Bị <strong style="color:red">khóa tài khoản ghi nợ</strong></li>
+      </ul>
+
+      <p>
+        Nếu bạn đã thanh toán, vui lòng bỏ qua thông báo này.
+      </p>
+
+      <p>
+        Trân trọng,<br/>
+        <strong>Garment Fabric Warehouse Management System</strong>
+      </p>
     </div>
   `;
 
@@ -108,7 +133,6 @@ export const sendInvoiceOverdueReminder = async (to, creditId, overdueDays) => {
     html
   });
 };
-
 
 
 export const sendCreditLockedNotification = async (to, creditId, overdueDays) => {
