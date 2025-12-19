@@ -113,24 +113,6 @@ async function main() {
     }
   });
 
-  // Staff user
-  const hashedStaffPassword = await bcrypt.hash('staff123', 10);
-  const staffUser = await prisma.user.upsert({
-    where: { username: 'staff' },
-    update: {},
-    create: {
-      id: 'a0000000-0000-4000-8000-000000000003',
-      username: 'staff',
-      password: hashedStaffPassword,
-      email: 'staff@example.com',
-      phone: '0555666777',
-      fullname: 'System Staff',
-      status: 'ACTIVE',
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-      role: createdRoles.STAFF.name
-    }
-  });
 
   console.log('Seed completed successfully!');
   console.log('Created roles:', Object.entries(createdRoles).map(([key, role]) => ({ 
@@ -140,7 +122,6 @@ async function main() {
   console.log('Created users:', {
     admin: { id: adminUser.id, username: adminUser.username },
     user: { id: regularUser.id, username: regularUser.username },
-    staff: { id: staffUser.id, username: staffUser.username }
   });
   console.log('Default login credentials:');
   console.log('- Admin: username="admin", password="admin123"');
