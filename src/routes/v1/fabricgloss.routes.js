@@ -7,7 +7,7 @@ import {
   deleteFabricGloss
 } from '../../controllers/fabricgloss.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
-import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { requireAnyPermission, requirePermission } from '../../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { 
@@ -105,8 +105,8 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_GLOSS),
+  // authenticateToken,
+  // requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_GLOSS, PERMISSIONS.CUSTOMERS.VIEW_FABRICS_GLOSS]),
   validate(fabricGlossIdParamSchema, 'params'),
   getFabricGlossById
 );

@@ -17,7 +17,11 @@ export const PERMISSIONS = {
     VIEW_LIST: { key: 'customer:view_list', description: 'Xem danh sách khách hàng' },
     VIEW_DETAIL: { key: 'customer:view_detail', description: 'Xem chi tiết khách hàng' },
     UPDATE: { key: 'customer:update', description: 'Cập nhật thông tin khách hàng' },
-    MANAGE_STATUS: { key: 'customer:manage_status', description: 'Quản lý trạng thái khách hàng' }
+    MANAGE_STATUS: { key: 'customer:manage_status', description: 'Quản lý trạng thái khách hàng' },
+    VIEW_FABRIC_CATEGORIES: { key: 'customer:view_fabric_categories', description: 'Xem danh mục vải dành cho khách hàng' },
+    VIEW_FABRIC_COLORS: { key: 'customer:view_fabric_colors', description: 'Xem màu vải dành cho khách hàng' },
+    VIEW_FABRICS_GLOSS: { key: 'customer:view_fabrics_gloss', description: 'Xem độ bóng vải dành cho khách hàng' },
+    VIEW_STORES: { key: 'customer:view_stores', description: 'Xem danh sách cửa hàng'}
   },
 
 

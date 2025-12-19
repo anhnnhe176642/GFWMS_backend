@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getAllExportFabrics,
+  getAllExportFabricRequests,
   getExportFabricDetailForWarehouse,
   getExportFabricDetailForStore,
   createExportFabric,
@@ -210,7 +211,7 @@ router.get(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRIC_REQUESTS.VIEW_LIST),
   validate(exportFabricQuerySchema, 'query'),
-  getAllExportFabrics
+  getAllExportFabricRequests
 );
 
 /**
@@ -846,6 +847,13 @@ router.get(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL_WAREHOUSE),
   validate(exportFabricIdParamSchema, 'params'),
+  requireWarehouseAccess(async (req) => {
+    const { id } = req.params;
+    const { exportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
+    const repo = new exportFabricRepository();
+    const exportFabric = await repo.findById(parseInt(id));
+    return exportFabric?.warehouseId;
+  }),
   getExportFabricDetailForWarehouse
 );
 
