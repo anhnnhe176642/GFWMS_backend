@@ -182,3 +182,21 @@ export const getOrderById = async (req, res, next) => {
     next(error);
   }
 };
+
+// Xác nhận đơn hàng đã giao (PROCESSING -> DELIVERED)
+export const markOrderAsDelivered = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await orderService.updateOrderStatusToDelivered(
+      parseInt(orderId),
+    );
+
+    res.json({
+      message: 'Cập nhật đơn hàng thành công, đơn hàng hoàn thành!',
+      data: order
+    });
+  } catch (error) {
+    next(error);
+  }
+};

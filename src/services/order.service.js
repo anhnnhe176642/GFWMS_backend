@@ -731,6 +731,22 @@ export const checkCustomerCredit = async (phone) => {
   };
 };
 
+// CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG SANG DELIVERED
+export const updateOrderStatusToDelivered = async (orderId) => {
+  const order = await orderRepository.findById(orderId);
+
+  if (!order) {
+    throw new NotFoundError('Không tìm thấy đơn hàng');
+  }
+
+  //Cập nhật trạng thái đơn hàng sang DELIVERED
+  const updatedOrder = await orderRepository. updateById(orderId, {
+    status: 'DELIVERED'
+  });
+
+  return updatedOrder;
+};
+
 
 export const getAllOrders = async (queryOptions) => {
   return await orderRepository.findWithAdvancedQuery(queryOptions);

@@ -6,7 +6,8 @@ import {
   getAllOrders,       
   getMyOrders,    
   getOrderById,
-  getOrdersByStore
+  getOrdersByStore,
+  markOrderAsDelivered
 } from '../../controllers/order.controller.js';
 import { authenticateToken, requirePermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
@@ -822,6 +823,148 @@ router.get('/store/:storeId',
   checkStoreAccess,
   validate(getOrdersByStoreQuerySchema, 'query'),
   getOrdersByStore
+);
+
+/**
+ * @swagger
+ * /orders/{orderId}/mark-delivered:
+ *   patch:
+ *     summary:  Xác nhận đơn hàng đã giao thành công (PROCESSING → DELIVERED)
+ *     description: |
+ *       Staff/Shipper xác nhận đơn hàng đã giao hàng thành công cho khách hàng. 
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema: 
+ *         description: ID đơn hàng cần xác nhận giao
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Xác nhận giao hàng thành công
+ *         content:
+ *           application/json:
+ *             schema: 
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Xác nhận giao hàng thành công
+ *                 data: 
+ *                   $ref: '#/components/schemas/Order'
+ *             examples:
+ *               cashOrder:
+ *                 summary:  Đơn CASH đã giao thành công
+ *                 value:
+ *                   message:  Xác nhận giao hàng thành công
+ *                   data:
+ *                     id: 123
+ *                     userId: "a0000000-0000-4000-8000-000000000002"
+ *                     status: DELIVERED
+ *                     totalAmount: 500000
+ *                     orderDate: "2025-12-19T10:30:00Z"
+ *                     isOffline: false
+ *                     invoice: 
+ *                       id: 456
+ *                       invoiceStatus: PAID
+ *                       paymentType: CASH
+ *                       totalAmount: 500000
+ *                       paidAmount: 500000
+ *                       creditAmount: 0
+ *               creditOrder:
+ *                 summary:  Đơn CREDIT đã giao thành công
+ *                 value:
+ *                   message: Xác nhận giao hàng thành công
+ *                   data: 
+ *                     id: 124
+ *                     userId: "a0000000-0000-4000-8000-000000000003"
+ *                     status:  DELIVERED
+ *                     totalAmount: 800000
+ *                     orderDate: "2025-12-19T11:00:00Z"
+ *                     isOffline: true
+ *                     invoice: 
+ *                       id: 457
+ *                       invoiceStatus: CREDIT
+ *                       paymentType: CREDIT
+ *                       totalAmount: 800000
+ *                       paidAmount: 0
+ *                       creditAmount: 800000
+ *       400:
+ *         description:  Bad request - Đơn hàng không hợp lệ để giao
+ *         content:
+ *           application/json:
+ *             schema: 
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type:  integer
+ *                   example: 400
+ *                 message: 
+ *                   type: string
+ *             examples:
+ *               wrongStatus:
+ *                 summary: Đơn hàng không ở trạng thái PROCESSING
+ *                 value: 
+ *                   status: 400
+ *                   message: "Chỉ có thể xác nhận giao hàng cho đơn hàng đang ở trạng thái PROCESSING.  Trạng thái hiện tại:  PENDING"
+ *               notPaid:
+ *                 summary: Đơn CASH chưa thanh toán
+ *                 value: 
+ *                   status: 400
+ *                   message: "Đơn hàng CASH chưa thanh toán. Vui lòng xác nhận thanh toán trước khi giao hàng"
+ *               noInvoice:
+ *                 summary: Đơn hàng chưa có hóa đơn
+ *                 value:
+ *                   status: 400
+ *                   message: "Đơn hàng chưa có hóa đơn"
+ *       401:
+ *         description: Chưa đăng nhập
+ *         content: 
+ *           application/json: 
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type:  integer
+ *                   example:  401
+ *                 message:
+ *                   type:  string
+ *                   example: Token không hợp lệ hoặc đã hết hạn
+ *       403:
+ *         description:  Không có quyền truy cập
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: 
+ *                   type: integer
+ *                   example: 403
+ *                 message: 
+ *                   type: string
+ *                   example:  Bạn không có quyền thực hiện thao tác này
+ *       404:
+ *         description:  Không tìm thấy đơn hàng
+ *         content:
+ *           application/json:
+ *             schema: 
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *                 message:
+ *                   type: string
+ *                   example: Không tìm thấy đơn hàng
+ */
+router.patch('/:orderId/mark-delivered',
+  authenticateToken,
+  requirePermission(PERMISSIONS.ORDERS.UPDATE_STATUS),
+  validate(orderIdParamSchema, 'params'),
+  markOrderAsDelivered
 );
 
 /**
