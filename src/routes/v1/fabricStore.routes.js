@@ -521,14 +521,25 @@ router.post(
  * @swagger
  * /fabric-store/allocate:
  *   post:
- *     summary: Phân bổ vải bằng thuật toán tham lam (Greedy Algorithm)
+ *     summary: Phân bổ vải bằng thuật toán tham lam (Greedy Algorithm) - Xử lý hàng loạt
  *     description: |
- *       Tìm các vải theo categoryId (bắt buộc) và optional filters (colorId, glossId, thickness, width, length).
- *       Sau đó, sử dụng thuật toán tham lam để lấy vải từ những cái có tồn kho nhiều nhất trước.
- *       Trả về danh sách các fabric ID cùng số lượng lấy từ mỗi cái, sao cho tổng = input quantity.
+ *       Phân bổ vải theo mảng các yêu cầu, xử lý tuần tự từng yêu cầu với cập nhật tồn kho.
  *       
- *       Required fields: categoryId, quantity, unit (cuộn/mét), storeId
- *       Optional fields: colorId, glossId, thickness, width, length
+ *       Ví dụ: Nếu phân bổ 2 yêu cầu liên tiếp:
+ *       - Yêu cầu 1: Lấy 100 mét vải Silk đỏ
+ *       - Yêu cầu 2: Lấy 50 mét vải Silk đỏ
+ *       
+ *       Sau khi hoàn thành yêu cầu 1 và lấy được 100 mét từ 3 cuộn, tồn kho của 3 cuộn này sẽ giảm.
+ *       Lần xử lý yêu cầu 2, hệ thống sẽ tính toán dựa trên tồn kho đã cập nhật, không phải tồn kho gốc.
+ *       
+ *       Mỗi yêu cầu (item) cần:
+ *       - categoryId (bắt buộc): ID loại vải
+ *       - quantity (bắt buộc): Số lượng cần lấy
+ *       - unit (bắt buộc): "ROLL" hoặc "METER"
+ *       - colorId, glossId, thickness, width, length (tùy chọn): Lọc theo tiêu chí
+ *       
+ *       Global params:
+ *       - storeId (bắt buộc): ID cửa hàng
  *     tags: [FabricStore]
  *     requestBody:
  *       required: true
@@ -537,58 +548,71 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - categoryId
- *               - quantity
- *               - unit
  *               - storeId
+ *               - allocations
  *             properties:
- *               categoryId:
- *                 type: integer
- *                 description: ID loại vải (bắt buộc)
- *                 example: 1
- *               quantity:
- *                 type: integer
- *                 description: Số lượng cần lấy (bắt buộc)
- *                 minimum: 1
- *                 example: 100
- *               unit:
- *                 type: string
- *                 enum: [ROLL, METER]
- *                 description: Đơn vị (ROLL = cuộn, METER = mét) (bắt buộc)
- *                 example: "METER"
  *               storeId:
  *                 type: integer
  *                 description: ID cửa hàng (bắt buộc)
  *                 example: 1
- *               colorId:
- *                 type: string
- *                 description: ID màu vải (tùy chọn)
- *                 example: "RED"
- *               glossId:
- *                 type: integer
- *                 description: ID độ bóng (tùy chọn)
- *                 example: 1
- *               thickness:
- *                 type: number
- *                 description: Độ dày (tùy chọn)
- *                 example: 1.5
- *               width:
- *                 type: number
- *                 description: Chiều rộng (tùy chọn)
- *                 example: 150
- *               length:
- *                 type: number
- *                 description: Chiều dài (tùy chọn)
- *                 example: 100
+ *               allocations:
+ *                 type: array
+ *                 description: Mảng các yêu cầu phân bổ vải
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - categoryId
+ *                     - quantity
+ *                     - unit
+ *                   properties:
+ *                     categoryId:
+ *                       type: integer
+ *                       description: ID loại vải (bắt buộc)
+ *                       example: 1
+ *                     quantity:
+ *                       type: integer
+ *                       description: Số lượng cần lấy (bắt buộc)
+ *                       minimum: 1
+ *                       example: 100
+ *                     unit:
+ *                       type: string
+ *                       enum: [ROLL, METER]
+ *                       description: Đơn vị (ROLL = cuộn, METER = mét) (bắt buộc)
+ *                       example: "METER"
+ *                     colorId:
+ *                       type: string
+ *                       description: ID màu vải (tùy chọn)
+ *                       example: "RED"
+ *                     glossId:
+ *                       type: integer
+ *                       description: ID độ bóng (tùy chọn)
+ *                       example: 1
+ *                     thickness:
+ *                       type: number
+ *                       description: Độ dày (tùy chọn)
+ *                       example: 1.5
+ *                     width:
+ *                       type: number
+ *                       description: Chiều rộng (tùy chọn)
+ *                       example: 150
+ *                     length:
+ *                       type: number
+ *                       description: Chiều dài (tùy chọn)
+ *                       example: 100
  *           example:
- *             categoryId: 1
- *             quantity: 100
- *             unit: "METER"
  *             storeId: 1
- *             colorId: "RED"
+ *             allocations:
+ *               - categoryId: 1
+ *                 quantity: 100
+ *                 unit: "METER"
+ *                 colorId: "RED"
+ *               - categoryId: 2
+ *                 quantity: 50
+ *                 unit: "ROLL"
  *     responses:
  *       200:
- *         description: Phân bổ vải thành công
+ *         description: Phân bổ vải thành công cho tất cả yêu cầu
  *         content:
  *           application/json:
  *             schema:
@@ -596,87 +620,92 @@ router.post(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Phân bổ vải thành công
+ *                   example: Phân bổ vải thành công cho 2 yêu cầu
  *                 allocations:
  *                   type: array
- *                   description: Danh sách vải được phân bổ
+ *                   description: Danh sách kết quả phân bổ cho mỗi yêu cầu
  *                   items:
  *                     type: object
  *                     properties:
- *                       fabricId:
+ *                       allocationIndex:
  *                         type: integer
- *                         description: ID vải
- *                       quantity:
+ *                         description: Vị trí của yêu cầu trong mảng (bắt đầu từ 1)
+ *                       categoryId:
  *                         type: integer
- *                         description: Số lượng lấy từ vải này
+ *                       items:
+ *                         type: array
+ *                         description: Danh sách vải được phân bổ cho yêu cầu này
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             fabricId:
+ *                               type: integer
+ *                             quantity:
+ *                               type: integer
+ *                             unit:
+ *                               type: string
+ *                               enum: [ROLL, METER]
+ *                             available:
+ *                               type: integer
+ *                               description: Tồn kho có sẵn tại thời điểm phân bổ
+ *                             uncutRolls:
+ *                               type: integer
+ *                             totalMeters:
+ *                               type: number
+ *                             fabricInfo:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: integer
+ *                                 category:
+ *                                   type: string
+ *                                 categoryId:
+ *                                   type: integer
+ *                                 color:
+ *                                   type: string
+ *                                 colorId:
+ *                                   type: string
+ *                                 gloss:
+ *                                   type: string
+ *                                 glossId:
+ *                                   type: integer
+ *                                 thickness:
+ *                                   type: number
+ *                                 width:
+ *                                   type: number
+ *                                 length:
+ *                                   type: number
+ *                             pricing:
+ *                               type: object
+ *                               properties:
+ *                                 sellingPricePerRoll:
+ *                                   type: number
+ *                                 sellingPricePerMeter:
+ *                                   type: number
+ *                                 estimatedValue:
+ *                                   type: number
+ *                       totalQuantity:
+ *                         type: integer
+ *                         description: Tổng số lượng của yêu cầu này
  *                       unit:
  *                         type: string
  *                         enum: [ROLL, METER]
- *                         description: Đơn vị (ROLL = cuộn, METER = mét)
- *                       available:
- *                         type: integer
- *                         description: Tổng tồn kho của vải này (theo đơn vị)
- *                       uncutRolls:
- *                         type: integer
- *                         description: Số cuộn chưa cắt
- *                       totalMeters:
+ *                       totalValue:
  *                         type: number
- *                         description: Tổng số mét
- *                       cuttingRollMeters:
- *                         type: number
- *                         description: Số mét của cuộn đang cắt
- *                       fabricInfo:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: integer
- *                           category:
- *                             type: string
- *                           categoryId:
- *                             type: integer
- *                           color:
- *                             type: string
- *                           colorId:
- *                             type: string
- *                           gloss:
- *                             type: string
- *                           glossId:
- *                             type: integer
- *                           thickness:
- *                             type: number
- *                           width:
- *                             type: number
- *                           length:
- *                             type: number
- *                       pricing:
- *                         type: object
- *                         description: Thông tin giá bán
- *                         properties:
- *                           sellingPricePerRoll:
- *                             type: number
- *                             description: Giá bán theo cuộn (từ fabric.sellingPrice nếu có, else từ category.sellingPricePerRoll)
- *                           sellingPricePerMeter:
- *                             type: number
- *                             description: Giá bán theo mét (từ category.sellingPricePerMeter)
- *                           estimatedValue:
- *                             type: number
- *                             description: Giá trị dự kiến = quantity * (sellingPricePerRoll hoặc sellingPricePerMeter tùy đơn vị)
- *                 totalQuantity:
- *                   type: integer
- *                   description: Tổng số lượng phân bổ
- *                 unit:
- *                   type: string
- *                   enum: [ROLL, METER]
- *                   description: Đơn vị (ROLL = cuộn, METER = mét)
- *                 totalValue:
- *                   type: number
- *                   description: Tổng giá trị = sum(allocations[].pricing.estimatedValue)
+ *                         description: Tổng giá trị của yêu cầu này
  *                 storeId:
  *                   type: integer
- *                   description: ID cửa hàng
  *                 storeName:
  *                   type: string
- *                   description: Tên cửa hàng
+ *                 allocationsSummary:
+ *                   type: object
+ *                   properties:
+ *                     totalRequests:
+ *                       type: integer
+ *                       description: Tổng số yêu cầu
+ *                     totalValueAllAllocations:
+ *                       type: number
+ *                       description: Tổng giá trị tất cả phân bổ
  *       400:
  *         description: Dữ liệu không hợp lệ hoặc không đủ tồn kho
  *       404:

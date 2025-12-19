@@ -102,21 +102,24 @@ class FabricStoreController {
 
   /**
    * Allocate fabrics bằng greedy algorithm
+   * Nhận mảng các yêu cầu phân bổ, xử lý tuần tự với cập nhật tồn kho
    */
   async allocateFabricsByGreedy(req, res, next) {
     try {
-      const { categoryId, quantity, unit, storeId, colorId, glossId, thickness, width, length } = req.body;
+      const { storeId, allocations } = req.body;
 
       const result = await fabricStoreService.allocateFabricsByGreedyAlgorithm({
-        categoryId: parseInt(categoryId),
-        quantity: parseInt(quantity),
-        unit,
         storeId: parseInt(storeId),
-        colorId,
-        glossId: glossId ? parseInt(glossId) : undefined,
-        thickness: thickness ? parseFloat(thickness) : undefined,
-        width: width ? parseFloat(width) : undefined,
-        length: length ? parseFloat(length) : undefined
+        allocations: allocations.map(item => ({
+          categoryId: parseInt(item.categoryId),
+          quantity: parseInt(item.quantity),
+          unit: item.unit,
+          colorId: item.colorId,
+          glossId: item.glossId ? parseInt(item.glossId) : undefined,
+          thickness: item.thickness ? parseFloat(item.thickness) : undefined,
+          width: item.width ? parseFloat(item.width) : undefined,
+          length: item.length ? parseFloat(item.length) : undefined
+        }))
       });
 
       res.json(result);

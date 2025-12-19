@@ -93,7 +93,7 @@ const creditInvoiceStatusSchema = Joi. string()
     'any.only': 'Trạng thái phải là PENDING, PAID, hoặc OVERDUE'
   });
 
-const allowedCreditInvoiceSortFields = ['dueDate','totalCreditAmount','creditPaidAmount','createdAt','updatedAt'];
+const allowedCreditInvoiceSortFields = ['totalCreditAmount','creditPaidAmount','createdAt','updatedAt'];
 
 export const creditInvoiceQuerySchema = querySchema.keys({
   sortBy: createSortBySchema(allowedCreditInvoiceSortFields),
@@ -103,6 +103,21 @@ export const creditInvoiceQuerySchema = querySchema.keys({
     creditInvoiceStatusSchema, 
     'Trạng thái Credit Invoice'
   ). optional()
+});
+
+/**
+ * ============================
+ * MY INVOICES QUERY SCHEMA
+ * ============================
+ */
+export const myInvoicesQuerySchema = querySchema.keys({
+  sortBy: createSortBySchema(allowedInvoiceSortFields),
+  order: sortOrderSchema.optional(),
+  invoiceStatus: createMultiValueFilterSchema(invoiceStatusSchema, 'Trạng thái hóa đơn').optional(),
+  createdFrom: dateFromSchema,
+  createdTo: dateToSchema.min(Joi.ref('createdFrom')).messages({
+    'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày tạo'
+  })
 });
 
 

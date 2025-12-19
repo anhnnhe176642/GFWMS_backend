@@ -14,7 +14,7 @@ const transportOptions = {
 const transporter = nodemailer.createTransport(transportOptions);
 
 export const sendVerificationPin = async (to, pin, expiresInMinutes = 15) => {
-  const subject = 'Mã xác thực email của bạn Warehouse Fabric System';
+  const subject = 'Mã xác thực email của bạn Garment Fabric Warehouse Management System';
   const text = `Mã xác thực của bạn là: ${pin}\nMã sẽ hết hạn trong ${expiresInMinutes} phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua.`;
   const html = `
     <div style="font-family: sans-serif; line-height:1.6">
@@ -35,7 +35,7 @@ export const sendVerificationPin = async (to, pin, expiresInMinutes = 15) => {
 };
 
 export const sendPasswordResetPin = async (to, pin, expiresInMinutes = 15) => {
-  const subject = 'Mã đặt lại mật khẩu của bạn Warehouse Fabric System';
+  const subject = 'Mã đặt lại mật khẩu của bạn Garment Fabric Warehouse Management System';
   const text = `Mã đặt lại mật khẩu của bạn là: ${pin}\nMã sẽ hết hạn trong ${expiresInMinutes} phút. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.`;
   const html = `
     <div style="font-family: sans-serif; line-height:1.6">
@@ -56,7 +56,7 @@ export const sendPasswordResetPin = async (to, pin, expiresInMinutes = 15) => {
 };
 
 export const sendYoloModelUploadNotification = async (to, modelName, version) => {
-  const subject = 'YOLO Model Upload Thành Công - Warehouse Fabric System';
+  const subject = 'YOLO Model Upload Thành Công - Garment Fabric Warehouse Management System';
   const text = `Mô hình YOLO "${modelName}" (phiên bản ${version}) của bạn đã được tải lên thành công.`;
   const html = `
     <div style="font-family: sans-serif; line-height:1.6">
@@ -68,7 +68,7 @@ export const sendYoloModelUploadNotification = async (to, modelName, version) =>
         <li><strong>Thời gian upload:</strong> ${new Date().toLocaleString('vi-VN')}</li>
       </ul>
       <p>Mô hình của bạn đã sẵn sàng để sử dụng trong hệ thống phát hiện.</p>
-      <p>Trân trọng,<br/>Warehouse Fabric System</p>
+      <p>Trân trọng,<br/>Garment Fabric Warehouse Management System</p>
     </div>
   `;
 
@@ -82,22 +82,21 @@ export const sendYoloModelUploadNotification = async (to, modelName, version) =>
 };
 
 export const sendInvoiceOverdueReminder = async (to, creditId, overdueDays) => {
-  const subject = `Nhắc nhở khoản tín dụng quá hạn - Warehouse Fabric System`;
+  const subject = `Nhắc nhở thanh toán khoản nợ quá hạn - Garment Fabric Warehouse Management System`;
 
-  const text = `Khoản tín dụng (ID: ${creditId}) của bạn đã quá hạn ${overdueDays} ngày. 
-Vui lòng thanh toán sớm để tránh bị khóa hạn mức tín dụng.`;
+  const text = `Hóa đơn mua nợ của bạn (ID: ${creditId}) của bạn đã quá hạn ${overdueDays} ngày. 
+                Vui lòng thanh toán sớm để tránh bị khóa tài khoản ghi nợ.`;
 
   const html = `
     <div style="font-family: sans-serif; line-height:1.6">
       <p>Xin chào,</p>
-      <p>Khoản tín dụng của bạn (ID: <strong>${creditId}</strong>) đã <strong>quá hạn ${overdueDays} ngày</strong>.</p>
-      <p>Khoản tín dụng này phát sinh từ các hóa đơn chưa được thanh toán.</p>
+      <p>Hóa đơn mua nợ của bạn (CreditInvoiceID: <strong>${creditId}</strong>) đã <strong>quá hạn ${overdueDays} ngày</strong>.</p>
 
       <p>Vui lòng thanh toán số dư còn lại để tránh việc 
-        <strong style="color:red">khóa hạn mức tín dụng</strong>.
+        <strong style="color:red">khóa hạn tài khoản ghi nợ</strong>.
       </p>
 
-      <p>Trân trọng,<br/>Warehouse Fabric System</p>
+      <p>Trân trọng,<br/>Garment Fabric Warehouse Management System</p>
     </div>
   `;
 
@@ -113,24 +112,43 @@ Vui lòng thanh toán sớm để tránh bị khóa hạn mức tín dụng.`;
 
 
 export const sendCreditLockedNotification = async (to, creditId, overdueDays) => {
-  const subject = `Tài khoản tín dụng đã bị khóa - Warehouse Fabric System`;
+  const subject = `Tài khoản ghi nợ đã bị khóa - Garment Fabric Warehouse Management System`;
 
-  const text = `Tài khoản tín dụng (ID: ${creditId}) đã bị khóa do quá hạn ${overdueDays} ngày. 
-Vui lòng liên hệ để được hỗ trợ.`;
+  const text = `
+    Tài khoản ghi nợ của bạn (ID: ${creditId}) đã bị KHÓA.
+
+    Lý do: Có hóa đơn ghi nợ quá hạn ${overdueDays} ngày kể từ ngày đến hạn thanh toán.
+
+    Vui lòng thanh toán các khoản nợ quá hạn và liên hệ bộ phận quản lý
+    để được hỗ trợ mở khóa và tiếp tục sử dụng dịch vụ.
+
+    Trân trọng,
+    Garment Fabric Warehouse Management System
+  `.trim();
 
   const html = `
-    <div style="font-family:sans-serif; line-height:1.6">
+    <div style="font-family: sans-serif; line-height:1.6">
       <p>Xin chào,</p>
-      <p>Tài khoản tín dụng của bạn (ID: <strong>${creditId}</strong>) đã bị 
-        <strong style="color:red">KHÓA</strong>.
-      </p>
-      <p>Lý do: Khoản tín dụng của bạn đã quá hạn <strong>${overdueDays} ngày</strong>.</p>
 
-      <p>Vui lòng liên hệ bộ phận quản lý để được hỗ trợ mở khóa 
-        và tiếp tục sử dụng dịch vụ.
+      <p>
+        Tài khoản ghi nợ của bạn 
+        <strong style="color:red">đã bị KHÓA</strong>.
       </p>
 
-      <p>Trân trọng,<br/>Warehouse Fabric System</p>
+      <p>
+        <strong>Lý do:</strong> Có hóa đơn ghi nợ quá hạn 
+        <strong>${overdueDays} ngày</strong> kể từ ngày đến hạn thanh toán.
+      </p>
+
+      <p>
+        Vui lòng thanh toán các khoản nợ quá hạn và liên hệ bộ phận quản lý
+        để được hỗ trợ .
+      </p>
+
+      <p>
+        Trân trọng,<br/>
+        <strong>Garment Fabric Warehouse Management System</strong>
+      </p>
     </div>
   `;
 
@@ -142,4 +160,5 @@ Vui lòng liên hệ để được hỗ trợ.`;
     html
   });
 };
+
 

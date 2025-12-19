@@ -101,3 +101,8 @@ export const fabricIdParamSchema = Joi.object({
 export const shelfIdParamSchema = Joi.object({
   shelfId: shelfIdSchema
 });
+
+// Param validation cho API lấy color
+export const shelfIdOnlyParamSchema = Joi.object({
+  shelfId: shelfIdSchema
+});

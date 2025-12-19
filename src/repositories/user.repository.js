@@ -172,7 +172,7 @@ export class UserRepository {
     return await withPrismaErrorHandling(
       () => prisma.user.delete({ where: { id } }),
       {
-        id: 'User không tồn tại'
+        id: 'Người dùng không tồn tại'
       }
     );
   }

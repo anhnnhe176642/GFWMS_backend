@@ -247,6 +247,21 @@ class FabricShelfRepository {
     return true;
   }
 
+  /**
+   * Lấy danh sách unique color của các vải trên kệ + tổng số lượng vải theo màu
+   */
+  async getColorsByShelfId(shelfId) {
+    return await prisma.$queryRaw`
+      SELECT fc.id, fc.name, fc.hexCode, SUM(fs.quantity) as totalQuantity
+      FROM fabric_shelf fs
+      JOIN fabric f ON fs.fabricId = f.id
+      JOIN fabric_color fc ON f.colorId = fc.id
+      WHERE fs.shelfId = ${shelfId}
+      GROUP BY fc.id, fc.name, fc.hexCode
+      ORDER BY fc.name ASC
+    `;
+  }
+
 }
 
 export const fabricShelfRepository = new FabricShelfRepository();

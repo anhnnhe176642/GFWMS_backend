@@ -141,11 +141,10 @@ export const getAllOrdersQuerySchema = querySchema.keys({
     paymentTypeSchema,
     'Phương thức thanh toán'
   ),
-  isOffline: Joi.string()
-    .valid('true', 'false')
+  isOffline: Joi.boolean()
     .optional()
     .messages({
-      'any.only': 'isOffline phải là: true hoặc false'
+      'boolean.base': 'isOffline phải là: true hoặc false'
     }),
   sortBy: createSortBySchema(allowedOrderSortFields),
   order: sortOrderSchema,
@@ -163,6 +162,31 @@ export const getMyOrdersQuerySchema = querySchema.keys({
     paymentTypeSchema,
     'Phương thức thanh toán'
   ),
+  sortBy: createSortBySchema(allowedOrderSortFields),
+  order: sortOrderSchema,
+  createdFrom: dateFromSchema,
+  createdTo: dateToSchema
+});
+
+// Get orders by store
+export const getOrdersByStoreParamSchema = Joi.object({
+  storeId: positiveIntegerSchema
+});
+
+export const getOrdersByStoreQuerySchema = querySchema.keys({
+  status: createMultiValueFilterSchema(
+    orderStatusSchema,
+    'Trạng thái'
+  ),
+  paymentType: createMultiValueFilterSchema(
+    paymentTypeSchema,
+    'Phương thức thanh toán'
+  ),
+  isOffline: Joi.boolean()
+    .optional()
+    .messages({
+      'boolean.base': 'isOffline phải là: true hoặc false'
+    }),
   sortBy: createSortBySchema(allowedOrderSortFields),
   order: sortOrderSchema,
   createdFrom: dateFromSchema,

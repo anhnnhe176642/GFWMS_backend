@@ -78,12 +78,18 @@ class ImportFabricRepository {
     const { 
       page = 1, 
       limit = 10, 
+      search = '',
       sortBy = 'importDate', 
       order = 'desc',
       filters = {}
     } = queryOptions;
 
-    const where = buildWhereClause(filters);
+    const searchableFields = ['importUser.fullname'];
+
+    const where = buildWhereClause(
+      { search, ... filters },
+      searchableFields
+    );
 
     const { skip, take } = buildPagination(page, limit);
     const orderBy = buildSort(sortBy, order);

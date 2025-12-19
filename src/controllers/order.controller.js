@@ -56,7 +56,29 @@ export const simulatePayment = async (req, res, next) => {
     next(error);
   }
 };
-
+export const getOrdersByStore = async (req, res, next) => {
+  try {
+    const { storeId } = req.params;
+    
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['status', 'paymentType', 'isOffline'],
+      dateRangeConfig: { 
+        fromField: 'createdFrom', 
+        toField: 'createdTo', 
+        targetField: 'createdAt' 
+      }
+    });
+    
+    const result = await orderService.getOrdersByStore(parseInt(storeId), queryParams);
+    
+    res.json({
+      message: 'Lấy danh sách đơn hàng cửa hàng thành công',
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 // Tạo đơn hàng offline (Staff)
 export const createOfflineOrder = async (req, res, next) => {
   try {
@@ -103,18 +125,6 @@ export const getAllOrders = async (req, res, next) => {
         targetField: 'createdAt' 
       }
     });
-    
-    if (queryParams.filters.isOffline !== undefined) {
-      if (queryParams.filters.isOffline === 'true') {
-        queryParams.filters.isOffline = true;
-      } else if (queryParams.filters.isOffline === 'false') {
-        queryParams.filters.isOffline = false;
-      } else if (Array.isArray(queryParams.filters.isOffline)) {
-        queryParams.filters.isOffline = queryParams.filters.isOffline.map(val => val === 'true');
-      } else {
-        delete queryParams.filters.isOffline;
-      }
-    }
     
     const result = await orderService.getAllOrders(queryParams);
     

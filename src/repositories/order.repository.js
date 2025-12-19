@@ -2,6 +2,7 @@
 import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
 import { buildWhereClause, buildPagination, buildSort, formatPaginatedResponse } from '../utils/query-builder.js';
+import { ValidationError } from '../utils/errors.js';
 
 const prisma = new PrismaClient();
 
@@ -221,11 +222,11 @@ export class OrderRepository {
     );
 
     if (!currentStore) {
-      throw new Error('Không tìm thấy vải trong cửa hàng');
+      throw new ValidationError('Không tìm thấy vải trong cửa hàng');
     }
 
     if (currentStore.uncutRolls < rollsToDeduct) {
-      throw new Error(`Không đủ cuộn trong cửa hàng. Cần ${rollsToDeduct} cuộn, chỉ có ${currentStore.uncutRolls} cuộn`);
+      throw new ValidationError(`Không đủ cuộn trong cửa hàng. Cần ${rollsToDeduct} cuộn, chỉ có ${currentStore.uncutRolls} cuộn`);
     }
 
     // Tính giá trị và số mét bị trừ
@@ -523,11 +524,15 @@ export class OrderRepository {
       filters = {}
     } = queryOptions;
 
-    const searchableFields = ['customerPhone'];
+    const searchableFields = ['customerPhone','user.fullname'];
+    const filterMapping = {
+      paymentType: 'invoice.paymentType'
+    };
     
     const where = buildWhereClause(
       { search, ...filters },
-      searchableFields
+      searchableFields,
+      filterMapping
     );
 
     const { skip, take } = buildPagination(page, limit);
@@ -558,10 +563,14 @@ export class OrderRepository {
     } = queryOptions;
 
     const searchableFields = ['notes'];
+    const filterMapping = {
+      paymentType: 'invoice.paymentType'
+    };
     
     const where = buildWhereClause(
       { search, ...filters },
-      searchableFields
+      searchableFields,
+      filterMapping
     );
     
     where.userId = userId;
@@ -663,6 +672,47 @@ export class OrderRepository {
         );
       }
     }
+  }
+
+  // LẤY DANH SÁCH ĐƠN HÀNG THEO CỬA HÀNG
+  async findByStoreIdWithQuery(storeId, queryOptions = {}) {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search = '', 
+      sortBy = 'createdAt', 
+      order = 'desc',
+      filters = {}
+    } = queryOptions;
+
+    const searchableFields = ['customerPhone'];
+    const filterMapping = {
+      paymentType: 'invoice.paymentType'
+    };
+    
+    const where = buildWhereClause(
+      { search, ...filters },
+      searchableFields,
+      filterMapping
+    );
+    
+    where.storeId = parseInt(storeId);
+
+    const { skip, take } = buildPagination(page, limit);
+    const orderBy = buildSort(sortBy, order);
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        skip,
+        take,
+        select: this.#orderSelectOptions,
+        orderBy
+      }),
+      prisma.order.count({ where })
+    ]);
+
+    return formatPaginatedResponse(orders, total, page, take);
   }
 }
 

@@ -4,18 +4,14 @@ import { buildQueryParams } from '../utils/filter-builder.js';
 /**  Lấy danh sách Invoice (hỗ trợ filter, sort, pagination) */
 export const getAllInvoices = async (req, res, next) => {
   try {
-    console.log('>>> req.query:', req.query);
-
     const queryParams = buildQueryParams(req.query, {
-      filterFields: ['orderId', 'invoiceStatus'],
+      filterFields: ['invoiceStatus'],
       dateRangeConfig: {
         fromField: 'createdFrom',
         toField: 'createdTo',
         targetField: 'createdAt'
       }
     });
-
-    console.log('>>> queryParams:', queryParams);
 
     const result = await invoiceService.getAllInvoicesAdvanced(queryParams);
 
@@ -42,6 +38,30 @@ export const getInvoiceById = async (req, res, next) => {
     res.json({
       message: 'Lấy thông tin hóa đơn thành công',
       invoice
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**  Lấy danh sách hóa đơn của user hiện tại */
+export const getMyInvoices = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const queryParams = buildQueryParams(req.query, {
+      filterFields: ['invoiceStatus'],
+      dateRangeConfig: {
+        fromField: 'createdFrom',
+        toField: 'createdTo',
+        targetField: 'createdAt'
+      }
+    });
+
+    const result = await invoiceService.getMyInvoices(userId, queryParams);
+
+    res.json({
+      message: 'Lấy danh sách hóa đơn của bạn thành công',
+      ...result
     });
   } catch (error) {
     next(error);

@@ -2,13 +2,6 @@ import { NotFoundError } from '../utils/errors.js';
 import { invoiceRepository } from '../repositories/invoice.repository.js';
 
 /**
- *  Lấy danh sách tất cả các Invoice (phân trang cơ bản)
- */
-export const getAllInvoices = async (page, limit) => {
-  return await invoiceRepository.findWithPagination(page, limit);
-};
-
-/**
  *  Lấy chi tiết Invoice theo ID
  */
 export const getInvoiceById = async (id) => {
@@ -26,4 +19,14 @@ export const getInvoiceById = async (id) => {
  */
 export const getAllInvoicesAdvanced = async (queryOptions) => {
   return await invoiceRepository.findWithAdvancedQuery(queryOptions);
+};
+
+/**
+ *  Lấy danh sách Invoice của user hiện tại (phân trang, lọc, sắp xếp)
+ */
+export const getMyInvoices = async (userId, queryOptions) => {
+  if (!userId) {
+    throw new Error('User ID không tồn tại');
+  }
+  return await invoiceRepository.findByUserIdAdvanced(userId, queryOptions);
 };

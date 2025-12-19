@@ -241,14 +241,35 @@ const lengthSchema = Joi.number()
     'number.positive': 'Chiều dài phải lớn hơn 0'
   });
 
-export const allocateFabricByGreedySchema = Joi.object({
+/**
+ * Schema cho mỗi item trong mảng allocations
+ */
+const allocateFabricItemSchema = Joi.object({
   categoryId: fabricCategoryIdSchema,
   quantity: quantitySchema,
   unit: unitSchema,
-  storeId: storeIdParamSchema,
   colorId: fabricColorIdSchema.optional(),
   glossId: fabricGlossIdSchema.optional(),
   thickness: thicknessSchema.optional(),
   width: widthSchema.optional(),
   length: lengthSchema.optional()
+}).required();
+
+/**
+ * Validation cho allocate fabrics by greedy algorithm
+ * Request body: mảng các yêu cầu phân bổ vải
+ * Mỗi item: {categoryId, quantity, unit, colorId?, glossId?, thickness?, width?, length?}
+ * Global params: storeId (bắt buộc)
+ */
+export const allocateFabricByGreedySchema = Joi.object({
+  storeId: storeIdParamSchema,
+  allocations: Joi.array()
+    .items(allocateFabricItemSchema)
+    .min(1)
+    .required()
+    .messages({
+      'array.base': 'allocations phải là mảng',
+      'array.min': 'allocations phải có ít nhất 1 phần tử',
+      'any.required': 'allocations là bắt buộc'
+    })
 }).required();

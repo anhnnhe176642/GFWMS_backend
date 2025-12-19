@@ -11,6 +11,7 @@ model CreditRegistration {
   user          User     @relation(fields: [userId], references: [id])
   approver      User?    @relation("Approver", fields: [approvedBy], references: [id])
   note          String?
+  reminderCount Int @default(0)
 
   isLocked Boolean @default(false)
 

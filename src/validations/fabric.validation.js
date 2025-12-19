@@ -95,7 +95,8 @@ const allowedFabricSortFields = [
   'quantityInStock',
   'weight',
   'length',
-  'width'
+  'width',
+  'thickness'
 ];
 
 export const fabricQuerySchema = querySchema.keys({
