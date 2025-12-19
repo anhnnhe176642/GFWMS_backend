@@ -10,7 +10,7 @@ import {
   suggestAllocation,
   createBatchExportFabric
 } from '../../controllers/exportFabric.controller.js';
-import { authenticateToken, requirePermission, requireWarehouseAccess, requireStoreAccess, requireWarehouseAccessFromBody, requireStoreAccessFromBody } from '../../middlewares/permission.middleware.js';
+import { authenticateToken, requirePermission, requireWarehouseAccess, requireStoreAccess, requireWarehouseAccessFromBody, requireStoreAccessFromBody, requireWarehouseAccessForQuery, requireWarehouseAccessFromParams } from '../../middlewares/permission.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import {
   exportFabricIdParamSchema,
@@ -127,6 +127,7 @@ router.get(
   '/',
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.VIEW_LIST),
+  requireWarehouseAccessForQuery,
   validate(exportFabricQuerySchema, 'query'),
   getAllExportFabrics
 );
@@ -209,6 +210,7 @@ router.get(
   '/requests',
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRIC_REQUESTS.VIEW_LIST),
+  requireWarehouseAccessForQuery,
   validate(exportFabricQuerySchema, 'query'),
   getAllExportFabrics
 );
@@ -846,6 +848,7 @@ router.get(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL_WAREHOUSE),
   validate(exportFabricIdParamSchema, 'params'),
+  requireWarehouseAccessFromParams,
   getExportFabricDetailForWarehouse
 );
 

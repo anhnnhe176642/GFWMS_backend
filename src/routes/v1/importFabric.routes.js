@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken, requirePermission, requireWarehouseAccessFromBody, requireWarehouseAccess } from '../../middlewares/permission.middleware.js';
+import { authenticateToken, requirePermission, requireWarehouseAccessFromBody, requireWarehouseAccess, requireWarehouseAccessForQuery } from '../../middlewares/permission.middleware.js';
 import { createImportFabric, getAllImportFabrics, getImportFabricById, getFabricSellingPrice, updateImportFabricStatus  } from '../../controllers/importFabric.controller.js';
 import { validate, parseJSONFields } from '../../middlewares/validation.middleware.js';
 import { createImportFabricSchema, importFabricQuerySchema, importFabricIdSchema, getFabricSellingPriceSchema, updateImportFabricStatusSchema } from '../../validations/importFabric.validation.js';
@@ -234,6 +234,7 @@ router.post('/',
 router.get('/', 
   authenticateToken,
   requirePermission(PERMISSIONS.IMPORT_FABRICS.VIEW_LIST),
+  requireWarehouseAccessForQuery,
   validate(importFabricQuerySchema, 'query'),
   getAllImportFabrics
 );
@@ -411,6 +412,11 @@ router.get('/:id',
   authenticateToken,
   requirePermission(PERMISSIONS.IMPORT_FABRICS.VIEW_DETAIL),
   validate(importFabricIdSchema, 'params'),
+  requireWarehouseAccess(async (req) => {
+    const { id } = req.params;
+    const importFabric = await (await import('../../repositories/importFabric.repository.js')).importFabricRepository.findById(parseInt(id));
+    return importFabric?.warehouseId;
+  }),
   getImportFabricById
 );
 
