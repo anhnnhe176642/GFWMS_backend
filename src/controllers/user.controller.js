@@ -94,3 +94,19 @@ export const deleteUser = async (req, res, next) => {
     next(error);
   }
 };
+
+export const searchUsersByPhone = async (req, res, next) => {
+  try {
+    const { phone } = req.query;
+    
+    const users = await userService.searchUsersByPhone(phone);
+    
+    res.json({
+      message: 'Tìm kiếm users theo số điện thoại thành công',
+      data: users,
+      total: users.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
