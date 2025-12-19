@@ -198,6 +198,16 @@ export const PERMISSIONS = {
     VIEW_MY:      { key: 'credit_invoice:view_my',      description: 'Xem danh sách Credit Invoice của tôi' },
     VIEW_LIST:    { key: 'credit_invoice:view_list',    description: 'Xem danh sách Credit Invoice (Admin/Staff)' },
     VIEW_DETAIL:  { key: 'credit_invoice:view_detail',  description: 'Xem chi tiết Credit Invoice' },
+  },
+
+  // Dashboard Statistics
+  DASHBOARD: {
+    VIEW:         { key: 'dashboard:view',         description: 'Xem thống kê dashboard' },
+    VIEW_REVENUE: { key: 'dashboard:view_revenue', description: 'Xem thống kê doanh thu' },
+    VIEW_PROFIT:  { key: 'dashboard:view_profit',  description: 'Xem thống kê lợi nhuận' },
+    VIEW_ORDERS:  { key: 'dashboard:view_orders',  description: 'Xem thống kê đơn hàng' },
+    VIEW_CUSTOMERS: { key: 'dashboard:view_customers', description: 'Xem thống kê khách hàng' },
+    VIEW_INVENTORY: { key: 'dashboard:view_inventory', description: 'Xem thống kê tồn kho' }
   }
 
 };
