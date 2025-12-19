@@ -7,7 +7,7 @@ import {
 } from './common.validation.js';
 // cân nhắc sửa message
 const roleFullNameSchema = Joi.string().max(15).optional().messages({
-  'string.max': 'Full Name không được vượt quá 15 ký tự'
+  'string.max': 'Tên đầy đủ không được vượt quá 15 ký tự'
 });
 // cân nhắc sửa message
 const roleDescriptionSchema = Joi.string().max(500).optional().messages({

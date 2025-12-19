@@ -5,6 +5,7 @@ import {
   buildSort, 
   formatPaginatedResponse 
 } from '../utils/query-builder.js';
+import { RequestStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -112,6 +113,15 @@ class CreditRequestRepository {
 
     return formatPaginatedResponse(items, total, page, take);
   }
+
+  findPendingByUserId(userId) {
+  return prisma.creditRequest.findFirst({
+    where: {
+      userId,
+      status: RequestStatus.PENDING
+    }
+  });
+}
 }
 
 export const creditRequestRepository = new CreditRequestRepository();
