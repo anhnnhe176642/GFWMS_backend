@@ -146,9 +146,9 @@ export const dobSchema = Joi.date()
 
 // Role validation
 export const roleSchema = Joi.string()
-  .max(10)
+  .max(20)
   .messages({
-    'string.max': 'Tên Vai trò không được vượt quá 10 ký tự',
+    'string.max': 'Tên Vai trò không được vượt quá 20 ký tự',
     'any.required': 'Vai trò là bắt buộc'
   }).uppercase();
 

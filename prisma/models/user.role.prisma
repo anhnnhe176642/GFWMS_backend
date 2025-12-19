@@ -1,6 +1,6 @@
 model Role {
-    name String  @id @db.VarChar(10)
-    fullName String? @unique @db.VarChar(15)
+    name String  @id @db.VarChar(20)
+    fullName String? @unique @db.VarChar(25)
     description String? @db.VarChar(500)
     users User[]
     rolePermissions  RolePermission[]
