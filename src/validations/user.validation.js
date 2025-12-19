@@ -81,3 +81,10 @@ export const userQuerySchema = querySchema.keys({
     'date.min': 'createdTo phải lớn hơn hoặc bằng createdFrom'
   })
 });
+
+// Schema validation cho search users by phone
+export const searchUserByPhoneSchema = Joi.object({
+  phone: Joi.string().trim().required().messages({
+    'string.empty': 'Số điện thoại không được để trống'
+  })
+});

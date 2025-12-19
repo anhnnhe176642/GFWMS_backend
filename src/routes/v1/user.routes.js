@@ -1,12 +1,12 @@
 import express from 'express';
-import { getAllUsers, createUser, getUserById, updateUserStatus, updateUserRole, deleteUser } from '../../controllers/user.controller.js';
+import { getAllUsers, createUser, getUserById, updateUserStatus, updateUserRole, deleteUser, searchUsersByPhone } from '../../controllers/user.controller.js';
 import { 
   getUserStats,
   getDashboardMetrics
 } from '../../controllers/userActivity.controller.js';
 import { authenticateToken, requirePermission, requireOwnershipOrPermission } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
-import { createUserSchema, updateUserStatusSchema, updateUserRoleSchema, uuidParamSchema, userQuerySchema, userIdParamSchema } from '../../validations/user.validation.js';
+import { createUserSchema, updateUserStatusSchema, updateUserRoleSchema, uuidParamSchema, userQuerySchema, userIdParamSchema, searchUserByPhoneSchema } from '../../validations/user.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -983,6 +983,109 @@ router.get('/:userId/stats',
 router.get('/:userId/activity/dashboard',
   validate(userIdParamSchema, 'params'),
   getDashboardMetrics
+);
+
+/**
+ * @swagger
+ * /users/search/by-phone:
+ *   get:
+ *     summary: Search users by phone number
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: phone
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Phone number or partial phone number to search
+ *         example: "0123"
+ *     responses:
+ *       200:
+ *         description: Users found successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - message
+ *                 - data
+ *                 - total
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Tìm kiếm users theo số điện thoại thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       username:
+ *                         type: string
+ *                       phone:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       fullname:
+ *                         type: string
+ *                       avatar:
+ *                         type: string
+ *                       gender:
+ *                         type: string
+ *                         enum: [MALE, FEMALE, OTHER]
+ *                       address:
+ *                         type: string
+ *                       dob:
+ *                         type: string
+ *                         format: date-time
+ *                       status:
+ *                         type: string
+ *                         enum: [ACTIVE, INACTIVE, DELETED, SUSPENDED]
+ *                       role:
+ *                         type: string
+ *                       emailVerified:
+ *                         type: boolean
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       creditRegistration:
+ *                         type: object
+ *                         nullable: true
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           creditLimit:
+ *                             type: number
+ *                           creditUsed:
+ *                             type: number
+ *                           status:
+ *                             type: string
+ *                             enum: [PENDING, APPROVED, REJECTED]
+ *                           approvalDate:
+ *                             type: string
+ *                             format: date-time
+ *                           isLocked:
+ *                             type: boolean
+ *                           note:
+ *                             type: string
+ *                 total:
+ *                   type: integer
+ *                   example: 5
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+router.get('/search/by-phone',
+  validate(searchUserByPhoneSchema, 'query'),
+  searchUsersByPhone
 );
 
 export default router;

@@ -245,7 +245,7 @@ const lengthSchema = Joi.number()
  * Schema cho mỗi item trong mảng allocations
  */
 const allocateFabricItemSchema = Joi.object({
-  categoryId: fabricCategoryIdSchema,
+  categoryId: fabricCategoryIdSchema.required(),
   quantity: quantitySchema,
   unit: unitSchema,
   colorId: fabricColorIdSchema.optional(),

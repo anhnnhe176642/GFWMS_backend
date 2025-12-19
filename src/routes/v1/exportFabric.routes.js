@@ -849,8 +849,8 @@ router.get(
   validate(exportFabricIdParamSchema, 'params'),
   requireWarehouseAccess(async (req) => {
     const { id } = req.params;
-    const { exportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
-    const repo = new exportFabricRepository();
+    const { ExportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
+    const repo = new ExportFabricRepository();
     const exportFabric = await repo.findById(parseInt(id));
     return exportFabric?.warehouseId;
   }),
@@ -1144,7 +1144,9 @@ router.patch(
   requireWarehouseAccess(async (req) => {
     // Lấy warehouseId từ export fabric record
     const { id } = req.params;
-    const exportFabric = await (await import('../../repositories/exportFabric.repository.js')).exportFabricRepository.findById(parseInt(id));
+    const { ExportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
+    const repo = new ExportFabricRepository();
+    const exportFabric = await repo.findById(parseInt(id));
     return exportFabric?.warehouseId;
   }),
   updateExportFabricStatus
@@ -1223,7 +1225,9 @@ router.post(
   requireStoreAccess(async (req) => {
     // Lấy storeId từ export fabric record
     const { id } = req.params;
-    const exportFabric = await (await import('../../repositories/exportFabric.repository.js')).exportFabricRepository.findById(parseInt(id));
+    const { ExportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
+    const repo = new ExportFabricRepository();
+    const exportFabric = await repo.findById(parseInt(id));
     return exportFabric?.storeId;
   }),
   completeExportFabric

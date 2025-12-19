@@ -55,3 +55,17 @@ export const getUserByEmail = async (email) => {
 export const getAllUsersAdvanced = async (queryOptions) => {
   return await userRepository.findWithAdvancedQuery(queryOptions);
 };
+
+export const searchUsersByPhone = async (phone) => {
+  if (!phone || phone.trim() === '') {
+    throw new Error('Vui lòng nhập số điện thoại');
+  }
+  
+  const users = await userRepository.findByPhoneContaining(phone.trim());
+  
+  if (!users || users.length === 0) {
+    return [];
+  }
+  
+  return users;
+};

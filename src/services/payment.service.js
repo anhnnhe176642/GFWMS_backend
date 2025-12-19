@@ -4,6 +4,7 @@ import { userActivityService } from './userActivity.service.js';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 import QRCode from 'qrcode';
+import { generatePaymentCode, generatePaymentCodeWithInvoice } from '../utils/payment-code.js';
 
 const prisma = new PrismaClient();
 
@@ -87,9 +88,12 @@ export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
     gatewayResponse: {}
   });
 
-  // Tạo payment link với PayOS (dùng paymentId làm orderCode - đảm bảo unique và là số)
+  // Tạo random payment code thay vì dùng payment ID
+  const paymentCode = generatePaymentCodeWithInvoice(invoiceId);
+
+  // Tạo payment link với PayOS (dùng payment code làm orderCode - đảm bảo là string)
   const paymentLink = await payOSService.createPaymentLink({
-    orderCode: payment.id,
+    orderCode: paymentCode,
     amount: amountToPay,
     description: `Thanh toán hóa đơn #${invoiceId} - GFWMS`
   });
@@ -116,7 +120,7 @@ export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
       qrCodeUrl: paymentLink.qrCodeUrl,
       qrCodeBase64,
       paymentLinkId: paymentLink.paymentLinkId,
-      orderCode: payment.id,
+      orderCode: paymentCode,
       createdAt: new Date(),
       expiresAt: paymentLink.expiresAt
     }
@@ -196,9 +200,11 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
     // Cancel payment cũ nếu PENDING
     if (existingPayment && existingPayment.status === 'PENDING') {
       try {
-        const oldOrderCode = existingPayment.gatewayResponse?.orderCode || (creditInvoiceId * 1000000);
+        const oldOrderCode = existingPayment.gatewayResponse?.orderCode;
         
-        await payOSService.cancelPaymentLink(oldOrderCode);
+        if (oldOrderCode) {
+          await payOSService.cancelPaymentLink(oldOrderCode);
+        }
         
         await prisma.payment.update({
           where: { id: existingPayment.id },
@@ -208,18 +214,17 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
           }
         });
         
-        console. log('  - Old payment cancelled successfully');
+        console.log('  - Old payment cancelled successfully');
       } catch (cancelError) {
-        console.error('  - Failed to cancel:', cancelError. message);
+        console.error('  - Failed to cancel:', cancelError.message);
       }
     }
     
-    // Tạo orderCode
-    const timestamp = Date.now();
-    const orderCode = creditInvoiceId * 1000000 + (timestamp % 1000000);
+    // Tạo random payment code thay vì tính toán từ ID
+    const paymentCode = generatePaymentCode();
     
     const paymentLink = await payOSService.createPaymentLink({
-      orderCode,
+      orderCode: paymentCode,
       amount: amountToPay,
       description: `Thanh toán Credit Invoice #${creditInvoiceId} - ${creditInvoice.invoice.length} hóa đơn`
     });
@@ -255,7 +260,7 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
             qrCodeUrl: paymentLink.qrCodeUrl,
             qrCodeBase64,
             paymentLinkId: paymentLink.paymentLinkId,
-            orderCode,
+            orderCode: paymentCode,
             createdAt: new Date(),
             expiresAt: paymentLink.expiresAt
           }
@@ -276,7 +281,7 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
             qrCodeUrl: paymentLink.qrCodeUrl,
             qrCodeBase64,
             paymentLinkId: paymentLink.paymentLinkId,
-            orderCode,
+            orderCode: paymentCode,
             createdAt: new Date(),
             expiresAt: paymentLink.expiresAt
           }
@@ -326,18 +331,55 @@ export const handlePayOSWebhook = async (webhookData) => {
     const { orderCode, amount, paymentLinkId, reference } = data;
     const transactionId = paymentLinkId || reference;
   
+    // Lookup payment by orderCode (stored in gatewayResponse.orderCode)
+    // Fetch all pending/recent payments and filter by orderCode
+    const recentPayments = await prisma.payment.findMany({
+      where: {
+        status: { in: ['PENDING', 'SUCCESS'] },
+        createdAt: {
+          gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+        }
+      },
+      include: {
+        invoice: true,
+        creditInvoice: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+
+    // Filter by orderCode from gatewayResponse
+    let payment = recentPayments.find(p => {
+      const storedOrderCode = p.gatewayResponse?.orderCode;
+      return storedOrderCode === orderCode || storedOrderCode === String(orderCode);
+    });
     
-    // Phân biệt Invoice hay Credit Invoice dựa vào orderCode
-    const isCreditInvoice = orderCode >= 1000000; 
+    if (!payment) {
+      // Try to find by transactionId as fallback
+      const paymentByTxId = await prisma.payment.findFirst({
+        where: { transactionId },
+        include: {
+          invoice: true,
+          creditInvoice: true
+        }
+      });
+      
+      if (!paymentByTxId) {
+        throw new NotFoundError('Không tìm thấy payment với orderCode hoặc transactionId này');
+      }
+      
+      payment = paymentByTxId;
+    }
     
-    if (isCreditInvoice) {
-      const creditInvoiceId = Math.floor(orderCode / 1000000);
-      const result = await handleCreditInvoiceWebhook(creditInvoiceId, transactionId, amount, code, desc, webhookData);
+    // Phân biệt Invoice hay Credit Invoice
+    if (payment.creditInvoiceId && !payment.invoiceId) {
+      const result = await handleCreditInvoiceWebhook(payment.creditInvoiceId, transactionId, amount, code, desc, webhookData, payment);
+      return result;
+    } else if (payment.invoiceId) {
+      const result = await handleInvoiceWebhook(payment.invoiceId, transactionId, amount, code, desc, webhookData, payment);
       return result;
     } else {
-      const invoiceId = parseInt(orderCode);
-      const result = await handleInvoiceWebhook(invoiceId, transactionId, amount, code, desc, webhookData);
-      return result;
+      throw new BadRequestError('Payment không liên kết với invoice hoặc credit invoice');
     }
   } catch (error) {
     console.error('[Webhook] ERROR:', {
@@ -349,7 +391,7 @@ export const handlePayOSWebhook = async (webhookData) => {
 };
 
 // Xử lý webhook cho Invoice thường
-const handleInvoiceWebhook = async (invoiceId, transactionId, amount, code, desc, webhookData) => {
+const handleInvoiceWebhook = async (invoiceId, transactionId, amount, code, desc, webhookData, payment) => {
   try {
     
     // Lấy invoice
@@ -368,15 +410,18 @@ const handleInvoiceWebhook = async (invoiceId, transactionId, amount, code, desc
     }
     
     
-    // Check idempotency
-    const existingPayment = await paymentRepository.findByTransactionId(transactionId);
+    // Check idempotency - dùng payment object nếu có
+    let existingPayment = payment;
+    if (!existingPayment) {
+      existingPayment = await paymentRepository.findByTransactionId(transactionId);
+    }
     
     if (existingPayment && existingPayment.status === 'SUCCESS') {
       return { success: true, message: 'Đã xử lý trước đó' };
     }
     
-    // Validate amount
-    const expectedAmount = invoice.totalAmount - invoice.creditAmount - invoice.paidAmount;
+    // Validate amount - so sánh với payment.amount nếu có
+    const expectedAmount = payment?.amount || (invoice.totalAmount - invoice.creditAmount - invoice.paidAmount);
     
     if (Math.abs(amount - expectedAmount) > 1) {
       throw new BadRequestError('Số tiền thanh toán không hợp lệ');
@@ -389,7 +434,7 @@ const handleInvoiceWebhook = async (invoiceId, transactionId, amount, code, desc
       await processInvoicePaymentSuccess(invoice, transactionId, amount, webhookData);
       return { success: true, message: 'Đã xử lý thanh toán Invoice thành công' };
     } else {
-      await processPaymentFailed(invoice. id, null, transactionId, code, desc, webhookData);
+      await processPaymentFailed(invoice.id, null, transactionId, code, desc, webhookData);
       return { success: true, message: 'Xác nhận thanh toán thất bại' };
     }
   } catch (error) {
@@ -403,10 +448,10 @@ const handleInvoiceWebhook = async (invoiceId, transactionId, amount, code, desc
 
 
 // Xử lý webhook cho Credit Invoice
-const handleCreditInvoiceWebhook = async (creditInvoiceId, transactionId, amount, code, desc, webhookData) => {
+const handleCreditInvoiceWebhook = async (creditInvoiceId, transactionId, amount, code, desc, webhookData, payment) => {
   
   // Lấy credit invoice
-  const creditInvoice = await prisma. creditInvoice.findUnique({
+  const creditInvoice = await prisma.creditInvoice.findUnique({
     where: { id: creditInvoiceId },
     include: {
       credit: true,
@@ -422,16 +467,19 @@ const handleCreditInvoiceWebhook = async (creditInvoiceId, transactionId, amount
     throw new NotFoundError('Không tìm thấy Credit Invoice');
   }
   
-  // ✅ Check idempotency bằng transactionId
-  const existingPayment = await prisma.payment. findFirst({
-    where: { 
-      transactionId: transactionId,
-      creditInvoiceId: creditInvoice. id
-    }
-  });
+  // ✅ Check idempotency bằng transactionId hoặc dùng payment object
+  let existingPayment = payment;
+  if (!existingPayment) {
+    existingPayment = await prisma.payment.findFirst({
+      where: { 
+        transactionId: transactionId,
+        creditInvoiceId: creditInvoice.id
+      }
+    });
+  }
   
   
-  if (existingPayment && existingPayment. status === 'SUCCESS') {
+  if (existingPayment && existingPayment.status === 'SUCCESS') {
     return { success: true, message: 'Đã xử lý trước đó' };
   }
   
@@ -439,8 +487,8 @@ const handleCreditInvoiceWebhook = async (creditInvoiceId, transactionId, amount
     return { success: true, message: 'Đã xử lý trước đó qua webhook' };
   }
   
-  // Validate amount
-  const expectedAmount = creditInvoice.totalCreditAmount - creditInvoice.creditPaidAmount;
+  // Validate amount - so sánh với payment.amount nếu có
+  const expectedAmount = payment?.amount || (creditInvoice.totalCreditAmount - creditInvoice.creditPaidAmount);
   
   if (Math.abs(amount - expectedAmount) > 1) {
     throw new BadRequestError('Số tiền thanh toán không hợp lệ');

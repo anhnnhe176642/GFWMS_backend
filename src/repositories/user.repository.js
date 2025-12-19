@@ -489,6 +489,36 @@ export class UserRepository {
     // Hoặc nếu user manage warehouse đó, mặc định cũng có thể quản lý managers
     return await this.canManageWarehouse(userId, warehouseId);
   }
+
+  // Tìm kiếm users theo số điện thoại (hoặc một phần của số điện thoại)
+  async findByPhoneContaining(phone) {
+    return await prisma.user.findMany({
+      where: {
+        phone: {
+          contains: phone
+        },
+        ...this.#notDeletedWhere
+      },
+      select: {
+        ...this.#userSelectOptions,
+        creditRegistration: {
+          select: {
+            id: true,
+            creditLimit: true,
+            creditUsed: true,
+            status: true,
+            approvalDate: true,
+            isLocked: true,
+            note: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 10
+    });
+  }
 }
 
 // Export singleton instance

@@ -92,6 +92,10 @@ export class WarehouseRepository {
     if (userId) {
       const hasAccess = await userRepository.hasPermission(userId, PERMISSIONS.WAREHOUSES_MANAGER.MANAGER.key);
       if (hasAccess) {
+        const warehouseCount = await prisma.warehouseManage.count({
+          where: { userId: userId }
+        });
+        if (warehouseCount > 0)
         where.warehouseManages = {
           some: {
             userId: userId
