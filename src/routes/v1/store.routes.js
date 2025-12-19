@@ -6,7 +6,7 @@ import {
   updateStore,
   deleteStore
 } from '../../controllers/store.controller.js';
-import { authenticateToken, requirePermission, requireStoreAccess } from '../../middlewares/permission.middleware.js';
+import { authenticateToken, requireAnyPermission, requirePermission, requireStoreAccess } from '../../middlewares/permission.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { 
   createStoreSchema, 
@@ -69,7 +69,7 @@ router.use(authenticateToken);
  *               type: object
  */
 router.get('/',
-  requirePermission(PERMISSIONS.STORES.VIEW_LIST),
+  requireAnyPermission([PERMISSIONS.STORES.VIEW_LIST, PERMISSIONS.CUSTOMERS.VIEW_STORES]),
   validate(storeQuerySchema, 'query'),
   getAllStores
 );
