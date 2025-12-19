@@ -27,22 +27,29 @@ class PayOSService {
   /**
    * Tạo payment link và QR code
    */
-  async createPaymentLink({ orderCode, amount,}) {
+  async createPaymentLink({ orderCode, amount, retryCount = 0 }) {
     try {
-      if (!orderCode || !amount || amount <= 0) {
+      // Ensure orderCode is a number for PayOS API
+      const orderCodeNum = Number(orderCode);
+      
+      if (!orderCodeNum || orderCodeNum <= 0 || !Number.isInteger(orderCodeNum) || orderCodeNum > 9007199254740991) {
+        throw new AppError('Invalid orderCode: must be a positive integer <= 9007199254740991', 400);
+      }
+      
+      if (!amount || amount <= 0) {
         throw new AppError('Invalid payment parameters', 400);
       }
 
       const paymentData = {
-        orderCode,
+        orderCode: orderCodeNum,
         amount: Math.round(amount),
-        description: `DH${orderCode}`,  
-        returnUrl: `${this.frontendUrl}/orders/${orderCode}/payment-success`,
-        cancelUrl: `${this.frontendUrl}/orders/${orderCode}/payment-cancel`
+        description: `DH${orderCodeNum}`,  
+        returnUrl: `${this.frontendUrl}/orders/${orderCodeNum}/payment-success`,
+        cancelUrl: `${this.frontendUrl}/orders/${orderCodeNum}/payment-cancel`
       };
 
-      const paymentLink = await this.client. createPaymentLink(paymentData);
-      const qrCodeImage = await this.generateQRCode(paymentLink. checkoutUrl);
+      const paymentLink = await this.client.createPaymentLink(paymentData);
+      const qrCodeImage = await this.generateQRCode(paymentLink.checkoutUrl);
 
       return {
         paymentLinkId: paymentLink.paymentLinkId,
@@ -50,26 +57,14 @@ class PayOSService {
         qrCodeUrl: paymentLink.qrCode,
         qrCodeImage,
         amount,
+        orderCode: orderCodeNum,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000)
       };
     } catch (error) {
-      // Nếu đơn thanh toán đã tồn tại, query và return thông tin cũ
-      if (error.message?.includes('Đơn thanh toán đã tồn tại') || error.code === 'DUPLICATE_PAYMENT') {
-        try {
-          const paymentInfo = await this.client.getPaymentLinkInformation(orderCode);
-          const qrCodeImage = await this.generateQRCode(paymentInfo.checkoutUrl);
-          return {
-            paymentLinkId: paymentInfo.paymentLinkId,
-            paymentUrl: paymentInfo.checkoutUrl,
-            qrCodeUrl: paymentInfo.qrCode,
-            qrCodeImage,
-            amount: paymentInfo.amount,
-            expiresAt: paymentInfo.expiresAt,
-            isDuplicate: true
-          };
-        } catch (queryError) {
-          throw new AppError(`PayOS Error: ${queryError.message}`, queryError.statusCode || 500);
-        }
+      // Nếu đơn thanh toán đã tồn tại, tạo code mới và thử lại
+      if ((error.message?.includes('Đơn thanh toán đã tồn tại') || error.code === 'DUPLICATE_PAYMENT') && retryCount < 3) {
+        const newOrderCode = Date.now() + Math.floor(Math.random() * 10000);
+        return this.createPaymentLink({ orderCode: newOrderCode, amount, retryCount: retryCount + 1 });
       }
       throw new AppError(`PayOS Error: ${error.message}`, error.statusCode || 500);
     }

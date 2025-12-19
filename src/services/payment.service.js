@@ -4,6 +4,7 @@ import { userActivityService } from './userActivity.service.js';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 import QRCode from 'qrcode';
+import { generatePaymentCode, generatePaymentCodeWithInvoice } from '../utils/payment-code.js';
 
 const prisma = new PrismaClient();
 
@@ -87,9 +88,12 @@ export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
     gatewayResponse: {}
   });
 
-  // Tạo payment link với PayOS (dùng paymentId làm orderCode - đảm bảo unique và là số)
+  // Tạo random payment code thay vì dùng payment ID
+  const paymentCode = generatePaymentCodeWithInvoice(invoiceId);
+
+  // Tạo payment link với PayOS (dùng payment code làm orderCode - đảm bảo là string)
   const paymentLink = await payOSService.createPaymentLink({
-    orderCode: payment.id,
+    orderCode: paymentCode,
     amount: amountToPay,
     description: `Thanh toán hóa đơn #${invoiceId} - GFWMS`
   });
@@ -116,7 +120,7 @@ export const createInvoicePaymentQR = async (invoiceId, userId, userRole) => {
       qrCodeUrl: paymentLink.qrCodeUrl,
       qrCodeBase64,
       paymentLinkId: paymentLink.paymentLinkId,
-      orderCode: payment.id,
+      orderCode: paymentCode,
       createdAt: new Date(),
       expiresAt: paymentLink.expiresAt
     }
@@ -196,9 +200,11 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
     // Cancel payment cũ nếu PENDING
     if (existingPayment && existingPayment.status === 'PENDING') {
       try {
-        const oldOrderCode = existingPayment.gatewayResponse?.orderCode || (creditInvoiceId * 1000000);
+        const oldOrderCode = existingPayment.gatewayResponse?.orderCode;
         
-        await payOSService.cancelPaymentLink(oldOrderCode);
+        if (oldOrderCode) {
+          await payOSService.cancelPaymentLink(oldOrderCode);
+        }
         
         await prisma.payment.update({
           where: { id: existingPayment.id },
@@ -208,18 +214,17 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
           }
         });
         
-        console. log('  - Old payment cancelled successfully');
+        console.log('  - Old payment cancelled successfully');
       } catch (cancelError) {
-        console.error('  - Failed to cancel:', cancelError. message);
+        console.error('  - Failed to cancel:', cancelError.message);
       }
     }
     
-    // Tạo orderCode
-    const timestamp = Date.now();
-    const orderCode = creditInvoiceId * 1000000 + (timestamp % 1000000);
+    // Tạo random payment code thay vì tính toán từ ID
+    const paymentCode = generatePaymentCode();
     
     const paymentLink = await payOSService.createPaymentLink({
-      orderCode,
+      orderCode: paymentCode,
       amount: amountToPay,
       description: `Thanh toán Credit Invoice #${creditInvoiceId} - ${creditInvoice.invoice.length} hóa đơn`
     });
@@ -255,7 +260,7 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
             qrCodeUrl: paymentLink.qrCodeUrl,
             qrCodeBase64,
             paymentLinkId: paymentLink.paymentLinkId,
-            orderCode,
+            orderCode: paymentCode,
             createdAt: new Date(),
             expiresAt: paymentLink.expiresAt
           }
@@ -276,7 +281,7 @@ export const createCreditInvoicePaymentQR = async (creditInvoiceId, userId, user
             qrCodeUrl: paymentLink.qrCodeUrl,
             qrCodeBase64,
             paymentLinkId: paymentLink.paymentLinkId,
-            orderCode,
+            orderCode: paymentCode,
             createdAt: new Date(),
             expiresAt: paymentLink.expiresAt
           }
