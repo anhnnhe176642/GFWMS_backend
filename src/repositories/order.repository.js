@@ -675,45 +675,17 @@ export class OrderRepository {
   }
 
   // LẤY DANH SÁCH ĐƠN HÀNG THEO CỬA HÀNG
-  async findByStoreIdWithQuery(storeId, queryOptions = {}) {
-    const { 
-      page = 1, 
-      limit = 10, 
-      search = '', 
-      sortBy = 'createdAt', 
-      order = 'desc',
-      filters = {}
-    } = queryOptions;
-
-    const searchableFields = ['customerPhone'];
-    const filterMapping = {
-      paymentType: 'invoice.paymentType'
-    };
-    
-    const where = buildWhereClause(
-      { search, ...filters },
-      searchableFields,
-      filterMapping
+  async updateById(orderId, data) {
+    return await withPrismaErrorHandling(
+      () => prisma.order.update({
+        where: { id: orderId },
+        data,
+        select:  this.#orderSelectOptions
+      })
     );
-    
-    where.storeId = parseInt(storeId);
-
-    const { skip, take } = buildPagination(page, limit);
-    const orderBy = buildSort(sortBy, order);
-
-    const [orders, total] = await Promise.all([
-      prisma.order.findMany({
-        where,
-        skip,
-        take,
-        select: this.#orderSelectOptions,
-        orderBy
-      }),
-      prisma.order.count({ where })
-    ]);
-
-    return formatPaginatedResponse(orders, total, page, take);
   }
+
+
 }
 
 export const orderRepository = new OrderRepository();
