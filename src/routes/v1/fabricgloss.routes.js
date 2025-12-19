@@ -105,8 +105,8 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticateToken,
-  requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_GLOSS, PERMISSIONS.CUSTOMERS.VIEW_FABRICS_GLOSS]),
+  // authenticateToken,
+  // requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_GLOSS, PERMISSIONS.CUSTOMERS.VIEW_FABRICS_GLOSS]),
   validate(fabricGlossIdParamSchema, 'params'),
   getFabricGlossById
 );

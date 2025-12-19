@@ -93,8 +93,8 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticateToken,
-  requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_CATEGORIES, PERMISSIONS.CUSTOMERS.VIEW_FABRIC_CATEGORIES]),
+  // authenticateToken,
+  // requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_CATEGORIES, PERMISSIONS.CUSTOMERS.VIEW_FABRIC_CATEGORIES]),
   validate(fabricCategoryIdParamSchema, 'params'),
   getFabricCategoryById
 );

@@ -139,8 +139,8 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticateToken,
-  requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_COLORS, PERMISSIONS.CUSTOMERS.VIEW_FABRIC_COLORS]),
+  // authenticateToken,
+  // requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_COLORS, PERMISSIONS.CUSTOMERS.VIEW_FABRIC_COLORS]),
   validate(fabricColorIdParamSchema, 'params'),
   getFabricColorById
 );

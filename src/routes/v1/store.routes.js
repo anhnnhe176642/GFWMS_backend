@@ -18,8 +18,6 @@ import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
 
-router.use(authenticateToken);
-
 /**
  * @swagger
  * /stores:
@@ -69,7 +67,7 @@ router.use(authenticateToken);
  *               type: object
  */
 router.get('/',
-  requireAnyPermission([PERMISSIONS.STORES.VIEW_LIST, PERMISSIONS.CUSTOMERS.VIEW_STORES]),
+  // requireAnyPermission([PERMISSIONS.STORES.VIEW_LIST, PERMISSIONS.CUSTOMERS.VIEW_STORES]),
   validate(storeQuerySchema, 'query'),
   getAllStores
 );
@@ -114,6 +112,7 @@ router.get('/',
  *               type: object
  */
 router.post('/',
+  authenticateToken,
   requirePermission(PERMISSIONS.STORES.CREATE),
   validate(createStoreSchema, 'body'),
   createStore
@@ -143,6 +142,7 @@ router.post('/',
  *               type: object
  */
 router.get('/:id',
+  authenticateToken,
   validate(storeIdSchema, 'params'),
   requirePermission(PERMISSIONS.STORES.VIEW_DETAIL),
   requireStoreAccess(req => Promise.resolve(parseInt(req.params.id))),
@@ -197,6 +197,7 @@ router.get('/:id',
  *               type: object
  */
 router.put('/:id',
+  authenticateToken,
   validate(storeIdSchema, 'params'),
   validate(updateStoreSchema, 'body'),
   requirePermission(PERMISSIONS.STORES.UPDATE),
@@ -241,6 +242,7 @@ router.put('/:id',
  *         description: Không tìm thấy cửa hàng
  */
 router.delete('/:id',
+  authenticateToken,
   validate(storeIdSchema, 'params'),
   requirePermission(PERMISSIONS.STORES.DELETE),
   requireStoreAccess(req => Promise.resolve(parseInt(req.params.id))),
