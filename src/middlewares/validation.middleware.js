@@ -57,6 +57,39 @@ const formatValidationErrors = (error, sourcePrefix = '') => {
 };
 
 /**
+ * Middleware để parse JSON fields từ multipart/form-data
+ * Chuyển JSON string thành array/object
+ * 
+ * @example
+ * // Trong route: 
+ * parseJSONFields(['items']),
+ * // Sau đó items sẽ được parse từ "[...]" string thành array
+ */
+export const parseJSONFields = (fieldNames = []) => {
+  return (req, res, next) => {
+    try {
+      if (!req.body) {
+        return next();
+      }
+
+      for (const fieldName of fieldNames) {
+        if (req.body[fieldName] && typeof req.body[fieldName] === 'string') {
+          try {
+            req.body[fieldName] = JSON.parse(req.body[fieldName]);
+          } catch (parseError) {
+            // Nếu không parse được, giữ nguyên giá trị string
+            console.warn(`Warning: Failed to parse JSON field "${fieldName}":`, parseError.message);
+          }
+        }
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+/**
  * Middleware validation sử dụng Joi
  * Hỗ trợ validate multiple sources trong một lần gọi
  * 

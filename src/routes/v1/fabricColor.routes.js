@@ -7,7 +7,7 @@ import {
   deleteFabricColor
 } from '../../controllers/fabricColor.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
-import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { requireAnyPermission, requirePermission } from '../../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import { 
@@ -139,8 +139,8 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_COLORS),
+  // authenticateToken,
+  // requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_COLORS, PERMISSIONS.CUSTOMERS.VIEW_FABRIC_COLORS]),
   validate(fabricColorIdParamSchema, 'params'),
   getFabricColorById
 );

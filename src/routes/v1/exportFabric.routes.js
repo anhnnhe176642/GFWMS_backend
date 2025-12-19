@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getAllExportFabrics,
+  getAllExportFabricRequests,
   getExportFabricDetailForWarehouse,
   getExportFabricDetailForStore,
   createExportFabric,
@@ -210,7 +211,7 @@ router.get(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRIC_REQUESTS.VIEW_LIST),
   validate(exportFabricQuerySchema, 'query'),
-  getAllExportFabrics
+  getAllExportFabricRequests
 );
 
 /**
@@ -846,6 +847,13 @@ router.get(
   authenticateToken,
   requirePermission(PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL_WAREHOUSE),
   validate(exportFabricIdParamSchema, 'params'),
+  requireWarehouseAccess(async (req) => {
+    const { id } = req.params;
+    const { ExportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
+    const repo = new ExportFabricRepository();
+    const exportFabric = await repo.findById(parseInt(id));
+    return exportFabric?.warehouseId;
+  }),
   getExportFabricDetailForWarehouse
 );
 
@@ -1136,7 +1144,9 @@ router.patch(
   requireWarehouseAccess(async (req) => {
     // Lấy warehouseId từ export fabric record
     const { id } = req.params;
-    const exportFabric = await (await import('../../repositories/exportFabric.repository.js')).exportFabricRepository.findById(parseInt(id));
+    const { ExportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
+    const repo = new ExportFabricRepository();
+    const exportFabric = await repo.findById(parseInt(id));
     return exportFabric?.warehouseId;
   }),
   updateExportFabricStatus
@@ -1215,7 +1225,9 @@ router.post(
   requireStoreAccess(async (req) => {
     // Lấy storeId từ export fabric record
     const { id } = req.params;
-    const exportFabric = await (await import('../../repositories/exportFabric.repository.js')).exportFabricRepository.findById(parseInt(id));
+    const { ExportFabricRepository } = await import('../../repositories/exportFabric.repository.js');
+    const repo = new ExportFabricRepository();
+    const exportFabric = await repo.findById(parseInt(id));
     return exportFabric?.storeId;
   }),
   completeExportFabric

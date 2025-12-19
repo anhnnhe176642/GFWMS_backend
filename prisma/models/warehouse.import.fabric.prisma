@@ -1,12 +1,14 @@
 model ImportFabric {
-    id            Int       @id @default(autoincrement())
-    warehouseId   Int
-    importDate    DateTime  @default(now())
-    importer      String
-    totalPrice    Float     
-    status        ImportFabricStatus @default(PENDING)
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
+    id                      Int       @id @default(autoincrement())
+    warehouseId             Int
+    importDate              DateTime  @default(now())
+    importer                String
+    totalPrice              Float     
+    status                  ImportFabricStatus @default(PENDING)
+    signatureImageUrl       String?   @db.LongText
+    signatureImagePublicId  String?
+    createdAt               DateTime  @default(now())
+    updatedAt               DateTime  @updatedAt
 
     warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
     importUser    User      @relation("Importer", fields: [importer], references: [id])

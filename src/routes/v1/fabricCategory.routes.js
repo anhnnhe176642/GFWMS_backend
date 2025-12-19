@@ -8,7 +8,7 @@ import {
   uploadCategoryImage
 } from '../../controllers/fabricCategory.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
-import { requirePermission } from '../../middlewares/permission.middleware.js';
+import { requirePermission, requireAnyPermission } from '../../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import {
@@ -93,8 +93,8 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticateToken,
-  requirePermission(PERMISSIONS.FABRICS.MANAGE_CATEGORIES),
+  // authenticateToken,
+  // requireAnyPermission([PERMISSIONS.FABRICS.MANAGE_CATEGORIES, PERMISSIONS.CUSTOMERS.VIEW_FABRIC_CATEGORIES]),
   validate(fabricCategoryIdParamSchema, 'params'),
   getFabricCategoryById
 );

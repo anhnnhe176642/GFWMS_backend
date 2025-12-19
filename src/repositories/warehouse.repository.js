@@ -90,8 +90,12 @@ export class WarehouseRepository {
     // If userId provided, check if user has manager_all permission
     // Only filter by assigned warehouses if they don't have global access
     if (userId) {
-      const hasGlobalAccess = await userRepository.hasPermission(userId, PERMISSIONS.WAREHOUSES_MANAGER.MANAGER_ALL.key);
-      if (!hasGlobalAccess) {
+      const hasAccess = await userRepository.hasPermission(userId, PERMISSIONS.WAREHOUSES_MANAGER.MANAGER.key);
+      if (hasAccess) {
+        const warehouseCount = await prisma.warehouseManage.count({
+          where: { userId: userId }
+        });
+        if (warehouseCount > 0)
         where.warehouseManages = {
           some: {
             userId: userId

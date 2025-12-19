@@ -1,8 +1,9 @@
 import express from 'express';
 import { authenticateToken, requirePermission, requireWarehouseAccessFromBody, requireWarehouseAccess } from '../../middlewares/permission.middleware.js';
 import { createImportFabric, getAllImportFabrics, getImportFabricById, getFabricSellingPrice, updateImportFabricStatus  } from '../../controllers/importFabric.controller.js';
-import { validate } from '../../middlewares/validation.middleware.js';
+import { validate, parseJSONFields } from '../../middlewares/validation.middleware.js';
 import { createImportFabricSchema, importFabricQuerySchema, importFabricIdSchema, getFabricSellingPriceSchema, updateImportFabricStatusSchema } from '../../validations/importFabric.validation.js';
+import { uploadSignatureImage, handleSignatureImageUploadError } from '../../middlewares/upload.middleware.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
 
 const router = express.Router();
@@ -19,7 +20,7 @@ const router = express.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -31,104 +32,13 @@ const router = express.Router();
  *                 description: ID của kho
  *                 example: "5"
  *               items:
- *                 type: array
- *                 description: Danh sách vải cần nhập (tối thiểu 1 item)
- *                 minItems: 1
- *                 items:
- *                   type: object
- *                   required:
- *                     - thickness
- *                     - glossId
- *                     - length
- *                     - width
- *                     - weight
- *                     - categoryId
- *                     - colorId
- *                     - supplierId
- *                     - quantity
- *                     - price
- *                   properties:
- *                     thickness:
- *                       type: string
- *                       description: Độ dày (mm)
- *                       example: "1.5"
- *                     glossId:
- *                       type: string
- *                       description: ID độ bóng (phải tồn tại trong hệ thống)
- *                       example: "1"
- *                     length:
- *                       type: string
- *                       description: Chiều dài (m)
- *                       example: "100"
- *                     width:
- *                       type: string
- *                       description: Chiều rộng (cm)
- *                       example: "150"
- *                     weight:
- *                       type: string
- *                       description: Trọng lượng (g/m²)
- *                       example: "200"
- *                     categoryId:
- *                       type: string
- *                       description: ID danh mục (phải tồn tại trong hệ thống)
- *                       example: "2"
- *                     colorId:
- *                       type: string
- *                       description: ID màu (string, phải tồn tại trong hệ thống)
- *                       example: "3"
- *                     supplierId:
- *                       type: string
- *                       description: ID nhà cung cấp (phải tồn tại trong hệ thống)
- *                       example: "5"
- *                     quantity:
- *                       type: string
- *                       description: Số lượng nhập (phải > 0)
- *                       example: "100"
- *                     price:
- *                       type: string
- *                       description: Đơn giá nhập (VNĐ, phải >= 0)
- *                       example: "50000"
- *           examples:
- *             example1:
- *               summary: Nhập 1 loại vải
- *               value:
- *                 warehouseId: "5"
- *                 items:
- *                   - thickness: "1.5"
- *                     glossId: "1"
- *                     length: "100"
- *                     width: "150"
- *                     weight: "200"
- *                     categoryId: "2"
- *                     colorId: "3"
- *                     supplierId: "5"
- *                     quantity: "100"
- *                     price: "50000"
- *             example2:
- *               summary: Nhập nhiều loại vải
- *               value:
- *                 warehouseId: "5"
- *                 items:
- *                   - thickness: "1.5"
- *                     glossId: "1"
- *                     length: "100"
- *                     width: "150"
- *                     weight: "200"
- *                     categoryId: "2"
- *                     colorId: "3"
- *                     supplierId: "5"
- *                     quantity: "100"
- *                     price: "50000"
- *                   - thickness: "2.0"
- *                     glossId: "2"
- *                     length: "120"
- *                     width: "160"
- *                     weight: "250"
- *                     categoryId: "3"
- *                     colorId: "5"
- *                     supplierId: "7"
- *                     quantity: "50"
- *                     price: "80000"
+ *                 type: string
+ *                 description: JSON array của các vải cần nhập (tối thiểu 1 item)
+ *                 example: '[{"thickness": "1.5", "glossId": "1", "length": "100", "width": "150", "weight": "200", "categoryId": "2", "colorId": "3", "supplierId": "5", "quantity": "100", "price": "50000"}]'
+ *               signatureImage:
+ *                 type: string
+ *                 format: binary
+ *                 description: Ảnh hoá đơn (chữ ký) - optional, max 10MB (JPEG, PNG, GIF, WEBP)
  *     responses:
  *       201:
  *         description: Tạo phiếu nhập kho thành công
@@ -160,6 +70,11 @@ const router = express.Router();
  *                     totalPrice:
  *                       type: number
  *                       example: 9000000
+ *                     signatureImageUrl:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "https://res.cloudinary.com/..."
+ *                       description: URL ảnh hoá đơn (chữ ký)
  *       400:
  *         description: Dữ liệu không hợp lệ
  *       401:
@@ -172,6 +87,9 @@ const router = express.Router();
 router.post('/',
   authenticateToken,
   requirePermission(PERMISSIONS.IMPORT_FABRICS.CREATE),
+  uploadSignatureImage,
+  handleSignatureImageUploadError,
+  parseJSONFields(['items']),
   validate(createImportFabricSchema),
   requireWarehouseAccessFromBody,
   createImportFabric
@@ -285,6 +203,11 @@ router.post('/',
  *                           fullname:
  *                             type: string
  *                             example: "System Administrator"
+ *                       signatureImageUrl:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "https://res.cloudinary.com/..."
+ *                         description: URL ảnh hoá đơn (chữ ký)
  *                       createdAt:
  *                         type: string
  *                         example: "2025-10-28T08:07:59.567Z"
@@ -409,6 +332,78 @@ router.get('/fabric-selling-price',
  *     responses:
  *       200:
  *         description: Lấy chi tiết thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy chi tiết phiếu nhập thành công"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 18
+ *                     warehouseId:
+ *                       type: integer
+ *                       example: 5
+ *                     importer:
+ *                       type: string
+ *                       example: "user-id-uuid"
+ *                     importDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-10-28T08:07:59.567Z"
+ *                     totalPrice:
+ *                       type: number
+ *                       example: 9000000
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, COMPLETED, CANCELLED]
+ *                       example: "PENDING"
+ *                     signatureImageUrl:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "https://res.cloudinary.com/..."
+ *                       description: URL ảnh hoá đơn (chữ ký)
+ *                     signatureImagePublicId:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "import-fabrics/signatures/abc123"
+ *                       description: Cloudinary public ID
+ *                     warehouse:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 5
+ *                         name:
+ *                           type: string
+ *                           example: "Kho Bắc Ninh"
+ *                         address:
+ *                           type: string
+ *                           example: "Bắc Ninh"
+ *                     importUser:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "user-uuid"
+ *                         fullname:
+ *                           type: string
+ *                           example: "System Administrator"
+ *                         email:
+ *                           type: string
+ *                           example: "admin@example.com"
+ *                         phone:
+ *                           type: string
+ *                           example: "+84123456789"
+ *                     importItems:
+ *                       type: array
+ *                       items:
+ *                         type: object
  *       404:
  *         description: Không tìm thấy phiếu nhập
  */
@@ -416,6 +411,12 @@ router.get('/:id',
   authenticateToken,
   requirePermission(PERMISSIONS.IMPORT_FABRICS.VIEW_DETAIL),
   validate(importFabricIdSchema, 'params'),
+  requireWarehouseAccess(async (req) => {
+    const { id } = req.params;
+    const { importFabricRepository } = await import('../../repositories/importFabric.repository.js');
+    const importFabric = await importFabricRepository.findById(parseInt(id));
+    return importFabric?.warehouseId;
+  }),
   getImportFabricById
 );
 

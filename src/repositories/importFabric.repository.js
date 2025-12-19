@@ -2,6 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { withPrismaErrorHandling } from '../utils/prisma-error-handler.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { buildPagination, buildSort, formatPaginatedResponse, buildWhereClause } from '../utils/query-builder.js';
+import { userRepository } from './user.repository.js';
+import { PERMISSIONS } from '../constants/permissions.js';
 
 const prisma = new PrismaClient();
 
@@ -13,6 +15,7 @@ class ImportFabricRepository {
     importDate: true,
     totalPrice: true,
     status: true,
+    signatureImageUrl: true,
     warehouse: {
       select: {
         id: true,
@@ -35,6 +38,8 @@ class ImportFabricRepository {
     importDate: true,
     totalPrice: true,
     status: true,
+    signatureImageUrl: true,
+    signatureImagePublicId: true,
     warehouse: {
       select: {
         id: true,
@@ -74,7 +79,7 @@ class ImportFabricRepository {
   };
 
 // Lít ImportFabric
-  async findAllImportFabric(queryOptions = {}) {
+  async findAllImportFabric(queryOptions = {}, userId = null) {
     const { 
       page = 1, 
       limit = 10, 
@@ -90,6 +95,21 @@ class ImportFabricRepository {
       { search, ... filters },
       searchableFields
     );
+
+    // If userId provided, check warehouse access
+    if (userId) {
+      const hasGlobalAccess = await userRepository.hasPermission(userId, PERMISSIONS.WAREHOUSES_MANAGER.MANAGER_ALL.key);
+      if (!hasGlobalAccess) {
+        // User can only see import records for warehouses they manage
+        where.warehouse = {
+          warehouseManages: {
+            some: {
+              userId: userId
+            }
+          }
+        };
+      }
+    }
 
     const { skip, take } = buildPagination(page, limit);
     const orderBy = buildSort(sortBy, order);
@@ -163,7 +183,9 @@ class ImportFabricRepository {
           data: {
             warehouseId: data.warehouseId,
             importer: data.importer,
-            totalPrice: totalPrice
+            totalPrice: totalPrice,
+            signatureImageUrl: data.signatureImageUrl || null,
+            signatureImagePublicId: data.signatureImagePublicId || null
           }
         });
 
