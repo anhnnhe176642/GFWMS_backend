@@ -11,7 +11,7 @@ import {
   suggestAllocation,
   createBatchExportFabric
 } from '../../controllers/exportFabric.controller.js';
-import { authenticateToken, requirePermission, requireWarehouseAccess, requireStoreAccess, requireWarehouseAccessFromBody, requireStoreAccessFromBody } from '../../middlewares/permission.middleware.js';
+import { authenticateToken, requirePermission, requireWarehouseAccess, requireStoreAccess, requireWarehouseAccessFromBody, requireStoreAccessFromBody, requireAnyPermission } from '../../middlewares/permission.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
 import {
   exportFabricIdParamSchema,
@@ -771,7 +771,7 @@ router.post(
 router.get(
   '/:id',
   authenticateToken,
-  requirePermission(PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL),
+  requireAnyPermission([PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL, PERMISSIONS.EXPORT_FABRICS.VIEW_DETAIL_WAREHOUSE]),
   validate(exportFabricIdParamSchema, 'params'),
   getExportFabricDetailForStore
 );
