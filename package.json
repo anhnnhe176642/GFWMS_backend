@@ -11,6 +11,7 @@
     "test": "vitest --reporter=verbose",
     "seed": "node prisma/seed.js",
     "mock": "node prisma/mock-data.js",
+    "mock:flow": "node prisma/mock-flow.js",
     "seed:all": "pnpm run seed && pnpm run mock",
     "prisma:merge": "npx prisma-merge --baseFile=prisma/schema.prisma --schemaFilePatterns=prisma/**/*.prisma --outputFile=prisma/schema.merged.prisma",
     "prisma:gen": "pnpm run prisma:merge && npx prisma generate --schema=prisma/schema.merged.prisma",
