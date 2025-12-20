@@ -213,7 +213,7 @@ main() {
     
     # Verify
     if verify_installation; then
-        print_header "✅ Installation Complete!"
+        print_header " Installation Complete!"
         print_success "All packages installed successfully!"
         echo ""
         print_info "Next steps:"

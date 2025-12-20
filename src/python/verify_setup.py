@@ -115,7 +115,7 @@ elif not os.path.exists(model_path):
     print(f"   {model_path}")
 else:
     gpu_status = "with GPU" if (HAS_TORCH and torch.cuda.is_available()) else "on CPU"
-    print(f"✅ SETUP COMPLETE! (Running {gpu_status})")
+    print(f" SETUP COMPLETE! (Running {gpu_status})")
     print("   You can now:")
     print("   1. Start the server: pnpm run dev")
     print("   2. Test the API: curl http://localhost:3000/api/yolo/health")

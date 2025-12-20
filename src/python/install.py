@@ -230,7 +230,7 @@ def main():
     
     # Verify installation
     if verify_installation():
-        print_header("✅ Installation Complete!")
+        print_header(" Installation Complete!")
         print_success("All packages installed successfully!")
         print()
         print_info("Next steps:")

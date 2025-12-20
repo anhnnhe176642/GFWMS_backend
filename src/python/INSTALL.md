@@ -68,7 +68,7 @@ Script sẽ tự động:
 - ✓ Cài đặt các packages khác
 - ✓ Xác minh cài đặt thành công
 
-## ✅ Xác Minh Cài Đặt
+##  Xác Minh Cài Đặt
 
 Sau khi cài đặt, hãy chạy script kiểm tra:
 
@@ -86,7 +86,7 @@ Script sẽ kiểm tra:
 
 **Output thành công:**
 ```
-✅ SETUP COMPLETE! (Running with GPU)
+ SETUP COMPLETE! (Running with GPU)
    You can now:
    1. Start the server: pnpm run dev
    2. Test the API: curl http://localhost:3000/api/yolo/health
@@ -235,10 +235,10 @@ YOLO_CONFIDENCE=0.5
 
 ## 🎯 Bước Tiếp Theo
 
-1. ✅ Chạy `python verify_setup.py` để xác minh
-2. ✅ Khởi động server: `pnpm run dev`
-3. ✅ Kiểm tra API: `curl http://localhost:3000/api/yolo/health`
-4. ✅ Đọc tài liệu API: http://localhost:3000/api-docs
+1.  Chạy `python verify_setup.py` để xác minh
+2.  Khởi động server: `pnpm run dev`
+3.  Kiểm tra API: `curl http://localhost:3000/api/yolo/health`
+4.  Đọc tài liệu API: http://localhost:3000/api-docs
 
 ---
 

@@ -61,7 +61,7 @@ def main():
     
     # Print results
     if result['success']:
-        print("✅ Detection successful!")
+        print(" Detection successful!")
         print()
         print(json.dumps(result, indent=2, ensure_ascii=False))
         print()

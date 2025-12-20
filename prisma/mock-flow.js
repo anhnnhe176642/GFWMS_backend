@@ -102,17 +102,17 @@ async function fetchBaseData() {
   const stores = await prisma.store.findMany({ where: { isActive: true } });
   const shelves = await prisma.shelf.findMany();
 
-  console.log(`   ✅ Users with import permission: ${usersWithImportPermission.length}`);
-  console.log(`   ✅ Users with export permission: ${usersWithExportPermission.length}`);
-  console.log(`   ✅ Users with approve permission: ${usersWithApprovePermission.length}`);
-  console.log(`   ✅ Users with receive permission: ${usersWithReceivePermission.length}`);
-  console.log(`   ✅ Categories: ${categories.length}`);
-  console.log(`   ✅ Colors: ${colors.length}`);
-  console.log(`   ✅ Glosses: ${glosses.length}`);
-  console.log(`   ✅ Suppliers: ${suppliers.length}`);
-  console.log(`   ✅ Warehouses: ${warehouses.length}`);
-  console.log(`   ✅ Stores: ${stores.length}`);
-  console.log(`   ✅ Shelves: ${shelves.length}`);
+  console.log(`    Users with import permission: ${usersWithImportPermission.length}`);
+  console.log(`    Users with export permission: ${usersWithExportPermission.length}`);
+  console.log(`    Users with approve permission: ${usersWithApprovePermission.length}`);
+  console.log(`    Users with receive permission: ${usersWithReceivePermission.length}`);
+  console.log(`    Categories: ${categories.length}`);
+  console.log(`    Colors: ${colors.length}`);
+  console.log(`    Glosses: ${glosses.length}`);
+  console.log(`    Suppliers: ${suppliers.length}`);
+  console.log(`    Warehouses: ${warehouses.length}`);
+  console.log(`    Stores: ${stores.length}`);
+  console.log(`    Shelves: ${shelves.length}`);
 
   if (usersWithImportPermission.length === 0) {
     throw new Error('Không tìm thấy user nào có quyền tạo đơn nhập. Hãy chạy seed trước.');
@@ -191,7 +191,7 @@ async function createImportFabric(data) {
   const mockUser = { id: importer.id };
   const createdImport = await importFabricService.createImport(importData, items, mockUser);
 
-  console.log(`   ✅ Created ImportFabric ID: ${createdImport.id}`);
+  console.log(`    Created ImportFabric ID: ${createdImport.id}`);
   console.log(`   💰 Total Price: ${createdImport.totalPrice.toLocaleString('vi-VN')} VND`);
 
   return { createdImport, warehouse, importer };
@@ -312,7 +312,7 @@ async function allocateFabricsToShelves(importResult, data) {
         importFabricId,
         shelves: allocations
       });
-      console.log(`   ✅ Allocated to ${allocations.length} shelves`);
+      console.log(`    Allocated to ${allocations.length} shelves`);
     } catch (error) {
       console.log(`   ❌ Allocation error: ${error.message}`);
       throw error;
@@ -321,7 +321,7 @@ async function allocateFabricsToShelves(importResult, data) {
 
   // Cập nhật trạng thái đơn nhập thành COMPLETED
   await importFabricService.updateStatus(importFabricId, 'COMPLETED', importResult.importer.id);
-  console.log(`\n   ✅ Import #${importFabricId} marked as COMPLETED`);
+  console.log(`\n    Import #${importFabricId} marked as COMPLETED`);
 
   return { importFabricId };
 }
@@ -408,7 +408,7 @@ async function createExportFabric(data) {
   try {
     const suggestion = await exportFabricService.suggestOptimalAllocation(fabricItemsForAPI, 'MIN_WAREHOUSES');
     
-    console.log(`   ✅ Suggestion received for ${suggestion.fabrics.length} fabrics`);
+    console.log(`    Suggestion received for ${suggestion.fabrics.length} fabrics`);
 
     // Build warehouseAllocations từ suggestion
     const warehouseMap = new Map();
@@ -463,7 +463,7 @@ async function createExportFabric(data) {
       warehouseAllocations
     });
 
-    console.log(`   ✅ Created ${batchResult.exports.length} export orders`);
+    console.log(`    Created ${batchResult.exports.length} export orders`);
     
     return {
       exports: batchResult.exports,
@@ -546,7 +546,7 @@ async function processExportFabrics(exportResult, data) {
     }
 
     // Duyệt phiếu - cần lấy thông tin pickup
-    console.log(`   ✅ APPROVING...`);
+    console.log(`    APPROVING...`);
 
     // Gọi API pickup cho từng fabric
     const batchPickupDetails = [];
@@ -607,7 +607,7 @@ async function processExportFabrics(exportResult, data) {
         batchPickupDetails,
         approvedById: approver.id
       });
-      console.log(`   ✅ Export #${exportId} APPROVED (${fabricCount} fabrics, ${totalQuantity} rolls)`);
+      console.log(`    Export #${exportId} APPROVED (${fabricCount} fabrics, ${totalQuantity} rolls)`);
       processedExports.push({ exportId, status: 'APPROVED', fabricCount, totalQuantity });
     } catch (error) {
       console.log(`   ⚠️ Approve error: ${error.message}`);
@@ -648,7 +648,7 @@ async function completeExportFabrics(processedExports, data) {
         exportFabricId: exportId,
         receivedById: receiver.id
       });
-      console.log(`   ✅ Export #${exportId} COMPLETED`);
+      console.log(`    Export #${exportId} COMPLETED`);
       completedExports.push({ exportId, status: 'COMPLETED' });
     } catch (error) {
       console.log(`   ⚠️ Complete error: ${error.message}`);
@@ -748,13 +748,13 @@ async function main() {
     const totalRollsApproved = allStats.reduce((sum, s) => sum + (s.totalRollsApproved || 0), 0);
 
     console.log(`   📦 Total iterations: ${ITERATION_COUNT}`);
-    console.log(`   ✅ Imports created: ${totalImports}`);
-    console.log(`   ✅ Allocations completed: ${totalAllocated}`);
-    console.log(`   ✅ Export orders created: ${totalExportsCreated}`);
+    console.log(`    Imports created: ${totalImports}`);
+    console.log(`    Allocations completed: ${totalAllocated}`);
+    console.log(`    Export orders created: ${totalExportsCreated}`);
     console.log(`      - Fabric types requested: ${totalFabricTypesRequested}`);
     console.log(`      - Approved: ${totalExportsApproved} (${totalFabricsApproved} fabric types, ${totalRollsApproved} rolls)`);
     console.log(`      - Rejected: ${totalExportsRejected}`);
-    console.log(`   ✅ Export orders completed: ${totalExportsCompleted}`);
+    console.log(`    Export orders completed: ${totalExportsCompleted}`);
 
     if (ITERATION_COUNT > 1) {
       console.log('\n   📋 Import IDs created:');

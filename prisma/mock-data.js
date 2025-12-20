@@ -371,7 +371,7 @@ async function main() {
 
   // Lấy roles có sẵn từ seed
   const roles = await prisma.role.findMany();
-  console.log(`✅ Found ${roles.length} existing roles`);
+  console.log(` Found ${roles.length} existing roles`);
 
   // 1. TẠO USERS
   console.log('\n📝 Preparing users data...');
@@ -411,7 +411,7 @@ async function main() {
   }
   
   const usersResult = await prisma.user.createMany({ data: usersToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${usersResult.count} users`);
+  console.log(` Created ${usersResult.count} users`);
   const allUsers = await prisma.user.findMany();
 
   // 2. TẠO FABRIC CATEGORIES
@@ -435,7 +435,7 @@ async function main() {
   }
   
   const categoriesResult = await prisma.fabricCategory.createMany({ data: categoriesToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${categoriesResult.count} fabric categories`);
+  console.log(` Created ${categoriesResult.count} fabric categories`);
   const allCategories = await prisma.fabricCategory.findMany();
 
   // 3. TẠO FABRIC COLORS
@@ -545,7 +545,7 @@ async function main() {
   }
   
   const colorsResult = await prisma.fabricColor.createMany({ data: colorsToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${colorsResult.count} fabric colors`);
+  console.log(` Created ${colorsResult.count} fabric colors`);
   const allColors = await prisma.fabricColor.findMany();
 
   // 4. TẠO FABRIC GLOSS
@@ -566,7 +566,7 @@ async function main() {
   }
   
   const glossesResult = await prisma.fabricGloss.createMany({ data: glossesToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${glossesResult.count} fabric gloss levels`);
+  console.log(` Created ${glossesResult.count} fabric gloss levels`);
   const allGlosses = await prisma.fabricGloss.findMany();
 
   // 5. TẠO SUPPLIERS
@@ -590,7 +590,7 @@ async function main() {
   }
   
   const suppliersResult = await prisma.supplier.createMany({ data: suppliersToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${suppliersResult.count} suppliers`);
+  console.log(` Created ${suppliersResult.count} suppliers`);
   const allSuppliers = await prisma.supplier.findMany();
 
   // 6. TẠO WAREHOUSES
@@ -617,7 +617,7 @@ async function main() {
   }
   
   const warehousesResult = await prisma.warehouse.createMany({ data: warehousesToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${warehousesResult.count} warehouses`);
+  console.log(` Created ${warehousesResult.count} warehouses`);
   const allWarehouses = await prisma.warehouse.findMany();
 
   // 7. TẠO STORES
@@ -639,7 +639,7 @@ async function main() {
   }
   
   const storesResult = await prisma.store.createMany({ data: storesToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${storesResult.count} stores`);
+  console.log(` Created ${storesResult.count} stores`);
   const allStores = await prisma.store.findMany();
 
   // 8. TẠO SHELVES
@@ -667,7 +667,7 @@ async function main() {
   }
   
   const shelvesResult = await prisma.shelf.createMany({ data: shelvesToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${shelvesResult.count} shelves`);
+  console.log(` Created ${shelvesResult.count} shelves`);
   const allShelves = await prisma.shelf.findMany();
 
   // 9. TẠO FABRICS (quantityInStock = 0, sẽ được cập nhật sau khi nhập kho)
@@ -690,7 +690,7 @@ async function main() {
   }
   
   const fabricsResult = await prisma.fabric.createMany({ data: fabricsToCreate });
-  console.log(`✅ Created ${fabricsResult.count} fabrics`);
+  console.log(` Created ${fabricsResult.count} fabrics`);
   const allFabrics = await prisma.fabric.findMany();
 
   // 10. TẠO IMPORT FABRICS (Đơn nhập kho)
@@ -719,7 +719,7 @@ async function main() {
   }
   
   const importFabricsResult = await prisma.importFabric.createMany({ data: importFabricsToCreate });
-  console.log(`✅ Created ${importFabricsResult.count} import fabric records (PENDING)`);
+  console.log(` Created ${importFabricsResult.count} import fabric records (PENDING)`);
   const allImportFabrics = await prisma.importFabric.findMany({ include: { warehouse: true } });
 
   // 11. TẠO IMPORT FABRIC ITEMS (Các mặt hàng trong đơn nhập)
@@ -754,7 +754,7 @@ async function main() {
   }
   
   const importItemsResult = await prisma.importFabricItem.createMany({ data: importItemsToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${importItemsResult.count} import fabric items (PENDING)`);
+  console.log(` Created ${importItemsResult.count} import fabric items (PENDING)`);
   
   // Cập nhật totalPrice cho các đơn nhập
   console.log('\n📝 Updating import total prices...');
@@ -768,7 +768,7 @@ async function main() {
     );
   }
   await Promise.all(importPriceUpdates);
-  console.log(`✅ Updated ${importPriceUpdates.length} import total prices`);
+  console.log(` Updated ${importPriceUpdates.length} import total prices`);
 
   // 12. XẾP VẢI VÀO KỆ (Tạo FabricShelf với importId)
   // Logic: Xếp vải vào kệ sao cho không vượt quá maxQuantity của kệ
@@ -904,7 +904,7 @@ async function main() {
     data: fabricShelvesToCreate, 
     skipDuplicates: true 
   });
-  console.log(`✅ Created ${fabricShelvesResult.count} fabric-shelf relationships`);
+  console.log(` Created ${fabricShelvesResult.count} fabric-shelf relationships`);
   
   // Cập nhật currentQuantity cho các kệ
   console.log('\n📝 Updating shelf quantities...');
@@ -918,7 +918,7 @@ async function main() {
     );
   }
   await batchUpdate(shelfUpdates, 50, 'updating shelf quantities');
-  console.log(`✅ Updated ${shelfUpdates.length} shelf quantities`);
+  console.log(` Updated ${shelfUpdates.length} shelf quantities`);
   
   // Cập nhật quantityInStock cho các vải
   console.log('\n📝 Updating fabric stock quantities...');
@@ -932,7 +932,7 @@ async function main() {
     );
   }
   await batchUpdate(fabricUpdates, 50, 'updating fabric quantities');
-  console.log(`✅ Updated ${fabricUpdates.length} fabric stock quantities`);
+  console.log(` Updated ${fabricUpdates.length} fabric stock quantities`);
   
   // Cập nhật status của ImportFabricItem thành STORED
   console.log('\n📝 Marking import items as STORED...');
@@ -951,7 +951,7 @@ async function main() {
     );
   }
   await batchUpdate(itemStatusUpdates, 50, 'marking items as STORED');
-  console.log(`✅ Marked ${itemStatusUpdates.length} import items as STORED`);
+  console.log(` Marked ${itemStatusUpdates.length} import items as STORED`);
   
   // Cập nhật status của ImportFabric thành COMPLETED
   console.log('\n📝 Marking imports as COMPLETED...');
@@ -979,12 +979,12 @@ async function main() {
     }
   }
   await batchUpdate(importStatusUpdates, 50, 'marking imports as COMPLETED');
-  console.log(`✅ Marked ${importStatusUpdates.length} imports as COMPLETED`);
+  console.log(` Marked ${importStatusUpdates.length} imports as COMPLETED`);
   
   // Tạo activities cho imports
   if (importActivities.length > 0) {
     await prisma.userActivity.createMany({ data: importActivities, skipDuplicates: true });
-    console.log(`✅ Created ${importActivities.length} import activities`);
+    console.log(` Created ${importActivities.length} import activities`);
   }
 
   // 13. FABRIC STORES sẽ được tạo/cập nhật dựa trên COMPLETED exports (xem phần 16)
@@ -1014,7 +1014,7 @@ async function main() {
   }
   
   const warehouseManagesResult = await prisma.warehouseManage.createMany({ data: warehouseManagesToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${warehouseManagesResult.count} warehouse manager assignments`);
+  console.log(` Created ${warehouseManagesResult.count} warehouse manager assignments`);
 
   // 16. TẠO EXPORT FABRICS & ITEMS + CẬP NHẬT FABRIC STORES
   console.log('\n📝 Preparing export fabric records and items...');
@@ -1124,7 +1124,7 @@ async function main() {
   const exportFabricsCreateData = exportFabricsToCreate.map(({ id, ...rest }) => rest);
   
   const exportFabricsResult = await prisma.exportFabric.createMany({ data: exportFabricsCreateData });
-  console.log(`✅ Created ${exportFabricsResult.count} export fabric records`);
+  console.log(` Created ${exportFabricsResult.count} export fabric records`);
   
   // Lấy ID thực của các export fabrics vừa tạo để update export items
   const allExportFabrics = await prisma.exportFabric.findMany({ orderBy: { id: 'asc' } });
@@ -1136,7 +1136,7 @@ async function main() {
   }
   
   const exportItemsResult = await prisma.exportFabricItem.createMany({ data: exportItemsToCreate });
-  console.log(`✅ Created ${exportItemsResult.count} export fabric items`);
+  console.log(` Created ${exportItemsResult.count} export fabric items`);
   
   // Tạo UserActivity cho exports ngay sau khi tạo
   console.log('\n📝 Creating user activities for exports...');
@@ -1168,7 +1168,7 @@ async function main() {
   }
   if (exportActivities.length > 0) {
     await prisma.userActivity.createMany({ data: exportActivities, skipDuplicates: true });
-    console.log(`✅ Created ${exportActivities.length} export activities`);
+    console.log(` Created ${exportActivities.length} export activities`);
   }
   
   // Cập nhật FabricStore dựa trên các phiếu xuất COMPLETED
@@ -1224,7 +1224,7 @@ async function main() {
   
   if (fabricStoreOps.length > 0) {
     await Promise.all(fabricStoreOps);
-    console.log(`✅ Updated/Created ${fabricStoreOps.length} fabric-store records from completed exports`);
+    console.log(` Updated/Created ${fabricStoreOps.length} fabric-store records from completed exports`);
   } else {
     console.log(`⚠️  No completed exports to populate fabric stores`);
   }
@@ -1248,7 +1248,7 @@ async function main() {
   }
   
   const ordersResult = await prisma.order.createMany({ data: ordersToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${ordersResult.count} orders`);
+  console.log(` Created ${ordersResult.count} orders`);
   
   // Lấy tất cả orders vừa tạo
   const allOrders = await prisma.order.findMany({ orderBy: { id: 'asc' } });
@@ -1265,7 +1265,7 @@ async function main() {
     createdAt: order.orderDate,
   }));
   await prisma.userActivity.createMany({ data: orderActivities, skipDuplicates: true });
-  console.log(`✅ Created ${orderActivities.length} order activities`);
+  console.log(` Created ${orderActivities.length} order activities`);
 
   // 19. TẠO ORDER ITEMS
   console.log('\n📝 Preparing order items...');
@@ -1302,7 +1302,7 @@ async function main() {
   }
   
   const orderItemsResult = await prisma.orderItem.createMany({ data: orderItemsToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${orderItemsResult.count} order items`);
+  console.log(` Created ${orderItemsResult.count} order items`);
 
   // Update order total amounts
   console.log('\n📝 Updating order totals...');
@@ -1316,7 +1316,7 @@ async function main() {
     );
   }
   await batchUpdate(orderUpdatePromises, 50, 'updating order totals');
-  console.log(`✅ Updated ${orderUpdatePromises.length} order totals`);
+  console.log(` Updated ${orderUpdatePromises.length} order totals`);
 
   // 20. TẠO INVOICES (90% của orders)
   console.log('\n📝 Preparing invoices...');
@@ -1354,7 +1354,7 @@ async function main() {
   }
   
   const invoicesResult = await prisma.invoice.createMany({ data: invoicesToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${invoicesResult.count} invoices`);
+  console.log(` Created ${invoicesResult.count} invoices`);
   
   // Lấy tất cả invoices vừa tạo
   const allInvoices = await prisma.invoice.findMany({ orderBy: { id: 'asc' } });
@@ -1406,7 +1406,7 @@ async function main() {
   }
   
   const paymentsResult = await prisma.payment.createMany({ data: paymentsToCreate, skipDuplicates: true });
-  console.log(`✅ Created ${paymentsResult.count} payments`);
+  console.log(` Created ${paymentsResult.count} payments`);
   
   // Tạo UserActivity cho payments ngay sau khi tạo
   console.log('\n📝 Creating user activities for payments...');
@@ -1436,7 +1436,7 @@ async function main() {
   }
   if (paymentActivities.length > 0) {
     await prisma.userActivity.createMany({ data: paymentActivities, skipDuplicates: true });
-    console.log(`✅ Created ${paymentActivities.length} payment activities`);
+    console.log(` Created ${paymentActivities.length} payment activities`);
   }
 
   // Lấy tổng số cho các bảng relationships
