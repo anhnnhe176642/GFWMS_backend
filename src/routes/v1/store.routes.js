@@ -15,6 +15,7 @@ import {
   storeIdSchema 
 } from '../../validations/store.validation.js';
 import { PERMISSIONS } from '../../constants/permissions.js';
+import { optionalAuth } from '../../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -67,6 +68,7 @@ const router = express.Router();
  *               type: object
  */
 router.get('/',
+  optionalAuth,
   // requireAnyPermission([PERMISSIONS.STORES.VIEW_LIST, PERMISSIONS.CUSTOMERS.VIEW_STORES]),
   validate(storeQuerySchema, 'query'),
   getAllStores

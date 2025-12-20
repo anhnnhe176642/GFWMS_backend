@@ -1,8 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
 import process from 'process';
+import { userRepository } from '../repositories/user.repository.js';
 
-const prisma = new PrismaClient();
 
 export { 
   authenticateToken,
@@ -14,22 +13,22 @@ export {
 } from './permission.middleware.js';
 
 export const optionalAuth = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (token) {
-    try {
+  try {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+      // Verify JWT token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        include: { role: true }
-      });
-      req.user = user;
+      
+      // Lấy thông tin user cơ bản từ database
+      const user = await userRepository.findById(decoded.userId);
+      
+      // Attach user info vào request 
+      req.user = user
+      
+      next();
     // eslint-disable-next-line no-unused-vars
     } catch (error) {
-      // Token không hợp lệ, nhưng không trả về lỗi
+      // Nếu không có token hoặc token không hợp lệ, tiếp tục mà không gán req.user
+      next();
     }
-  }
-  
-  next();
 };
