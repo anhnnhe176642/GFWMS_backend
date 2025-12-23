@@ -15,16 +15,8 @@ class YOLOService {
     // Đường dẫn đến model - bạn sẽ đặt file .pt vào đây
     this.defaultModelPath = path.join(__dirname, '../python/models/best.pt');
     this.tempDir = path.join(process.cwd(), 'temp', 'uploads');
-    
-    // Python executable from virtualenv (cross-platform)
-    const venvPath = path.join(process.cwd(), 'src/python/venv');
-    if (process.platform === 'win32') {
-      // Windows: venv/Scripts/python.exe
-      this.pythonBin = path.join(venvPath, 'Scripts', 'python.exe');
-    } else {
-      // Unix/Linux/Mac: venv/bin/python
-      this.pythonBin = path.join(venvPath, 'bin', 'python');
-    }
+    // Python from mise (production) or system PATH (dev)
+    this.pythonBin = 'python';
   }
 
   /**
