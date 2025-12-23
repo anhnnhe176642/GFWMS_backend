@@ -24,7 +24,13 @@
     "python:install:gpu": "pip install -r src/python/requirements-gpu.txt",
     "python:verify": "python src/python/verify_setup.py",
     "yolo:detect": "python src/python/yolo_detector.py",
-    "yolo:test": "python src/python/test_detector.py"
+    "yolo:test": "python src/python/test_detector.py",
+    "python3:install": "python3 src/python/install.py",
+    "python3:install:cpu": "pip3 install -r src/python/requirements.txt",
+    "python3:install:gpu": "pip3 install -r src/python/requirements-gpu.txt",
+    "python3:verify": "python3 src/python/verify_setup.py",
+    "yolo3:detect": "python3 src/python/yolo_detector.py",
+    "yolo3:test": "python3 src/python/test_detector.py"
   },
   "keywords": [],
   "author": "",
