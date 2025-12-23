@@ -1,7 +1,6 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs/promises';
-import fsSync from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { AppError } from '../utils/errors.js';
@@ -21,42 +20,24 @@ class YOLOService {
 
   /**
    * Check which Python command is available (python3 or python)
+   * Python is available in PATH when running via: mise exec -- node src/server.js
    * @returns {string} - Available Python command
    */
   getAvailablePythonCommand() {
     if (this.pythonCommand) {
       return this.pythonCommand;
     }
+    // Try python3 first, fallback to python if needed
+    this.pythonCommand = "python3";
+    return this.pythonCommand;
+  }
 
-    // Priority 1: Check PYTHON_BIN from env
-    if (process.env.PYTHON_BIN && fsSync.existsSync(process.env.PYTHON_BIN)) {
-      this.pythonCommand = process.env.PYTHON_BIN;
-      console.log("Using Python:", process.env.PYTHON_BIN);
-      return process.env.PYTHON_BIN;
-    }
-
-    // Priority 2: Check hardcoded mise path (for Railway/Linux)
-    const misePath = "/app/.local/share/mise/installs/python/3.11.14/bin/python3";
-    if (fsSync.existsSync(misePath)) {
-      this.pythonCommand = misePath;
-      console.log("Using Python:", misePath);
-      return misePath;
-    }
-
-    // Priority 3: On Windows (development), try system python
-    if (process.platform === "win32") {
-      // Try python3 first, then python
-      const pythonCmd = "python3";
-      this.pythonCommand = pythonCmd;
-      console.log("Using Python:", pythonCmd, "(from PATH on Windows)");
-      return pythonCmd;
-    }
-
-    // On Linux/Railway without proper PYTHON_BIN, fail
-    throw new AppError(
-      "Python binary not found. Set PYTHON_BIN env variable or install Python via mise.",
-      500
-    );
+  /**
+   * Get fallback Python command if primary fails
+   * @returns {string} - Fallback Python command
+   */
+  getPythonFallback() {
+    return "python";
   }
 
   /**
@@ -151,54 +132,63 @@ class YOLOService {
       const pythonScript = path.join(this.pythonScriptPath);
       const args = [pythonScript, imagePath, modelToUse, confidence.toString()];
 
-      const python = spawn(pythonCmd, args, {
-        timeout: 300000, // 5 minutes
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
+      const tryPython = (cmd, isFallback = false) => {
+        const python = spawn(cmd, args, {
+          timeout: 300000, // 5 minutes
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
 
-      let stdout = '';
-      let stderr = '';
+        let stdout = '';
+        let stderr = '';
 
-      python.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
+        python.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
 
-      python.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
+        python.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
 
-      python.on('error', (err) => {
-        reject(new AppError(`Failed to start Python process: ${err.message}`, 500));
-      });
+        python.on('error', (err) => {
+          // If python3 fails and we haven't tried fallback, try python
+          if (!isFallback && cmd === 'python3' && err.code === 'ENOENT') {
+            console.log('python3 not found, trying python...');
+            return tryPython(this.getPythonFallback(), true);
+          }
+          reject(new AppError(`Failed to start Python process: ${err.message}`, 500));
+        });
 
-      python.on('close', (code) => {
-        if (code !== 0) {
-          return reject(new AppError(`Python script exited with code ${code}: ${stderr}`, 500));
-        }
+        python.on('close', (code) => {
+          if (code !== 0) {
+            return reject(new AppError(`Python script exited with code ${code}: ${stderr}`, 500));
+          }
 
-        try {
-          // Filter out warnings and non-JSON output from stdout
-          const lines = stdout.trim().split('\n');
-          let jsonStr = '';
-          
-          for (const line of lines) {
-            // Skip warning lines and other non-JSON output
-            if (line.startsWith('{') || line.startsWith('[') || (jsonStr && line.trim())) {
-              jsonStr += line;
+          try {
+            // Filter out warnings and non-JSON output from stdout
+            const lines = stdout.trim().split('\n');
+            let jsonStr = '';
+            
+            for (const line of lines) {
+              // Skip warning lines and other non-JSON output
+              if (line.startsWith('{') || line.startsWith('[') || (jsonStr && line.trim())) {
+                jsonStr += line;
+              }
             }
+
+            const result = JSON.parse(jsonStr);
+
+            if (!result.success) {
+              return reject(new AppError(`Detection error: ${result.error}`, 500));
+            }
+
+            resolve(result);
+          } catch (parseErr) {
+            return reject(new AppError(`Failed to parse detection results: ${parseErr.message}`, 500));
           }
+        });
+      };
 
-          const result = JSON.parse(jsonStr);
-
-          if (!result.success) {
-            return reject(new AppError(`Detection error: ${result.error}`, 500));
-          }
-
-          resolve(result);
-        } catch (parseErr) {
-          return reject(new AppError(`Failed to parse detection results: ${parseErr.message}`, 500));
-        }
-      });
+      tryPython(pythonCmd);
     });
   }
 
