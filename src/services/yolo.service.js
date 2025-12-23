@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { AppError } from '../utils/errors.js';
@@ -20,64 +21,32 @@ class YOLOService {
 
   /**
    * Check which Python command is available (python3 or python)
-   * @returns {Promise<string>} - Available Python command
+   * @returns {string} - Available Python command
    */
-  async getAvailablePythonCommand() {
+  getAvailablePythonCommand() {
     // Return cached result if already determined
     if (this.pythonCommand) {
       return this.pythonCommand;
     }
 
-    // Try python3 first
-    try {
-      await new Promise((resolve, reject) => {
-        const python = spawn('python3', ['--version'], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          timeout: 5000
-        });
+    const candidates = [
+      "/app/.local/share/mise/installs/python/3.11.14/bin/python3",
+      "python3",
+      "python"
+    ];
 
-        python.on('error', reject);
-        python.on('close', (code) => {
-          if (code === 0) {
-            resolve();
-          } else {
-            reject(new Error('python3 not available'));
-          }
-        });
-      });
-
-      this.pythonCommand = 'python3';
-      console.log('Using python3');
-      return 'python3';
-    } catch {
-      // Fallback to python
-      try {
-        await new Promise((resolve, reject) => {
-          const python = spawn('python', ['--version'], {
-            stdio: ['pipe', 'pipe', 'pipe'],
-            timeout: 5000
-          });
-
-          python.on('error', reject);
-          python.on('close', (code) => {
-            if (code === 0) {
-              resolve();
-            } else {
-              reject(new Error('python not available'));
-            }
-          });
-        });
-
-        this.pythonCommand = 'python';
-        console.log('Using python');
-        return 'python';
-      } catch {
-        throw new AppError(
-          'Neither python3 nor python is available. Please install Python.',
-          500
-        );
+    for (const cmd of candidates) {
+      if (fsSync.existsSync(cmd) || cmd === "python3" || cmd === "python") {
+        this.pythonCommand = cmd;
+        console.log(`Using ${cmd}`);
+        return cmd;
       }
     }
+
+    throw new AppError(
+      'Neither python3 nor python is available. Please install Python.',
+      500
+    );
   }
 
   /**
@@ -166,7 +135,7 @@ class YOLOService {
     }
 
     // Get available Python command before creating Promise
-    const pythonCmd = await this.getAvailablePythonCommand();
+    const pythonCmd = this.getAvailablePythonCommand();
 
     return new Promise((resolve, reject) => {
       const pythonScript = path.join(this.pythonScriptPath);
