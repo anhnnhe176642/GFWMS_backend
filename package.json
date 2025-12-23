@@ -26,7 +26,7 @@
     "yolo:detect": "python src/python/yolo_detector.py",
     "yolo:test": "python src/python/test_detector.py",
     "python3:install": "python3 src/python/install.py",
-    "python3:install:cpu": "python3 -m ensurepip --user && python3 -m pip install --user -r src/python/requirements.txt",
+    "python3:install:cpu": "python3 -m pip install -r src/python/requirements.txt",
     "python3:install:gpu": "python3 -m pip install -r src/python/requirements-gpu.txt",
     "python3:verify": "python3 src/python/verify_setup.py",
     "yolo3:detect": "python3 src/python/yolo_detector.py",
