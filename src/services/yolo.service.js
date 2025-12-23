@@ -20,9 +20,9 @@ class YOLOService {
 
   /**
    * Get Python executable path based on environment
-   * Production (Railway): uses mise Python at fixed path, no fallback
+   * Production (Railway): uses mise exec -- python3
    * Development: uses system python3/python
-   * @returns {Promise<string>} - Path to Python executable
+   * @returns {Promise<string>} - Python command to use (either 'mise' or 'python3'/'python')
    */
   async getAvailablePythonCommand() {
     // Return cached result if already determined
@@ -33,11 +33,10 @@ class YOLOService {
     const isProduction = process.env.NODE_ENV === 'production';
 
     if (isProduction) {
-      // Production: use mise Python (Railway)
-      const misePythonPath = '/mise/installs/python/3.11.14/bin/python3';
+      // Production: verify mise is available
       try {
         await new Promise((resolve, reject) => {
-          const python = spawn(misePythonPath, ['--version'], {
+          const python = spawn('mise', ['exec', '--', 'python3', '--version'], {
             stdio: ['pipe', 'pipe', 'pipe'],
             timeout: 5000
           });
@@ -47,17 +46,17 @@ class YOLOService {
             if (code === 0) {
               resolve();
             } else {
-              reject(new Error('mise python check failed'));
+              reject(new Error('mise exec -- python3 check failed'));
             }
           });
         });
 
-        this.pythonCommand = misePythonPath;
-        console.log(`[PRODUCTION] Using mise Python: ${misePythonPath}`);
-        return misePythonPath;
+        this.pythonCommand = 'mise';
+        console.log('[PRODUCTION] Using mise exec -- python3');
+        return 'mise';
       } catch (err) {
         throw new AppError(
-          `Production environment: mise Python not found at ${misePythonPath}. ${err.message}`,
+          `Production environment: mise not found or python3 not available via mise. ${err.message}`,
           500
         );
       }
@@ -206,7 +205,16 @@ class YOLOService {
       const pythonScript = path.join(this.pythonScriptPath);
       const args = [pythonScript, imagePath, modelToUse, confidence.toString()];
 
-      const python = spawn(pythonCmd, args, {
+      // Build spawn args based on python command
+      let spawnCmd = pythonCmd;
+      let spawnArgs = args;
+      
+      if (pythonCmd === 'mise') {
+        // Production: use mise exec -- python3
+        spawnArgs = ['exec', '--', 'python3', ...args];
+      }
+
+      const python = spawn(spawnCmd, spawnArgs, {
         timeout: 300000, // 5 minutes
         stdio: ['pipe', 'pipe', 'pipe']
       });
