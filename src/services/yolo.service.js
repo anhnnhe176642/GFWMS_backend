@@ -20,24 +20,10 @@ class YOLOService {
 
   /**
    * Check which Python command is available (python3 or python)
-   * Python is available in PATH when running via: mise exec -- node src/server.js
    * @returns {string} - Available Python command
    */
   getAvailablePythonCommand() {
-    if (this.pythonCommand) {
-      return this.pythonCommand;
-    }
-    // Try python3 first, fallback to python if needed
-    this.pythonCommand = "python3";
-    return this.pythonCommand;
-  }
-
-  /**
-   * Get fallback Python command if primary fails
-   * @returns {string} - Fallback Python command
-   */
-  getPythonFallback() {
-    return "python";
+    return "python3";
   }
 
   /**
@@ -105,9 +91,7 @@ class YOLOService {
    * @returns {Promise<Object>} - Detection results
    */
   async detectObjects(imagePath, options = {}) {
-
     const { confidence = 0.5, modelPath = null } = options;
-    
     const modelToUse = modelPath || this.defaultModelPath;
 
     // Verify files exist
@@ -125,94 +109,64 @@ class YOLOService {
       );
     }
 
-    // Get available Python command before creating Promise
-    const pythonCmd = this.getAvailablePythonCommand();
-
     return new Promise((resolve, reject) => {
-      const pythonScript = path.join(this.pythonScriptPath);
+      // Determine how to spawn Python
+      const useMise = process.env.NODE_ENV === 'production' || process.env.USE_MISE === '1';
+      let spawnCmd = useMise ? 'mise' : 'python3';
+      let spawnArgs = useMise
+        ? ['exec', '--', 'python3', this.pythonScriptPath, imagePath, modelToUse, confidence.toString()]
+        : [this.pythonScriptPath, imagePath, modelToUse, confidence.toString()];
 
-      const tryPython = (cmd, isFallback = false, useMise = false) => {
-        let spawnCmd = cmd;
-        let spawnArgs = [pythonScript, imagePath, modelToUse, confidence.toString()];
+      const python = spawn(spawnCmd, spawnArgs, {
+        cwd: process.cwd(),
+        env: process.env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 300000
+      });
 
-        // Use mise exec if in production (Railway)
-        if (useMise) {
-          spawnCmd = "mise";
-          spawnArgs = ["exec", "--", cmd, pythonScript, imagePath, modelToUse, confidence.toString()];
+      let stdout = '';
+      let stderr = '';
+
+      python.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      python.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      python.on('error', (err) => {
+        reject(new AppError(`Failed to start Python process: ${err.message}`, 500));
+      });
+
+      python.on('close', (code) => {
+        if (code !== 0) {
+          return reject(new AppError(`Python script exited with code ${code}: ${stderr}`, 500));
         }
 
-        const python = spawn(spawnCmd, spawnArgs, {
-          timeout: 300000, // 5 minutes
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
-
-        let stdout = '';
-        let stderr = '';
-
-        python.stdout.on('data', (data) => {
-          stdout += data.toString();
-        });
-
-        python.stderr.on('data', (data) => {
-          stderr += data.toString();
-        });
-
-        python.on('error', (err) => {
-          // If mise exec fails, try direct spawn (for dev)
-          if (useMise && err.code === 'ENOENT') {
-            console.log('mise not found, trying python directly...');
-            return tryPython(cmd, isFallback, false);
-          }
-          // If python3 fails and we haven't tried fallback, try python
-          if (!isFallback && cmd === 'python3' && err.code === 'ENOENT') {
-            console.log('python3 not found, trying python...');
-            return tryPython(this.getPythonFallback(), true, useMise);
-          }
-          reject(new AppError(`Failed to start Python process: ${err.message}`, 500));
-        });
-
-        python.on('close', (code) => {
-          if (code !== 0) {
-            // Don't retry on ModuleNotFoundError - that's a package installation issue
-            if (stderr && stderr.includes('ModuleNotFoundError')) {
-              return reject(new AppError(`Python script exited with code ${code}: ${stderr}`, 500));
+        try {
+          // Filter out warnings and non-JSON output from stdout
+          const lines = stdout.trim().split('\n');
+          let jsonStr = '';
+          
+          for (const line of lines) {
+            // Skip warning lines and other non-JSON output
+            if (line.startsWith('{') || line.startsWith('[') || (jsonStr && line.trim())) {
+              jsonStr += line;
             }
-            // Retry with fallback only if command failed
-            if (!isFallback && cmd === 'python3' && stderr && stderr.includes('not found')) {
-              console.log('python3 failed, trying python...');
-              return tryPython(this.getPythonFallback(), true);
-            }
-            return reject(new AppError(`Python script exited with code ${code}: ${stderr}`, 500));
           }
 
-          try {
-            // Filter out warnings and non-JSON output from stdout
-            const lines = stdout.trim().split('\n');
-            let jsonStr = '';
-            
-            for (const line of lines) {
-              // Skip warning lines and other non-JSON output
-              if (line.startsWith('{') || line.startsWith('[') || (jsonStr && line.trim())) {
-                jsonStr += line;
-              }
-            }
+          const result = JSON.parse(jsonStr);
 
-            const result = JSON.parse(jsonStr);
-
-            if (!result.success) {
-              return reject(new AppError(`Detection error: ${result.error}`, 500));
-            }
-
-            resolve(result);
-          } catch (parseErr) {
-            return reject(new AppError(`Failed to parse detection results: ${parseErr.message}`, 500));
+          if (!result.success) {
+            return reject(new AppError(`Detection error: ${result.error}`, 500));
           }
-        });
-      };
 
-      // Detect if running in production (Railway) - if yes, try mise first
-      const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT_NAME;
-      tryPython(pythonCmd, false, isProduction);
+          resolve(result);
+        } catch (parseErr) {
+          return reject(new AppError(`Failed to parse detection results: ${parseErr.message}`, 500));
+        }
+      });
     });
   }
 
