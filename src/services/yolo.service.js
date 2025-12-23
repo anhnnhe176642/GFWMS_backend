@@ -15,6 +15,69 @@ class YOLOService {
     // Đường dẫn đến model - bạn sẽ đặt file .pt vào đây
     this.defaultModelPath = path.join(__dirname, '../python/models/best.pt');
     this.tempDir = path.join(process.cwd(), 'temp', 'uploads');
+    this.pythonCommand = null; // Cache for available python command
+  }
+
+  /**
+   * Check which Python command is available (python3 or python)
+   * @returns {Promise<string>} - Available Python command
+   */
+  async getAvailablePythonCommand() {
+    // Return cached result if already determined
+    if (this.pythonCommand) {
+      return this.pythonCommand;
+    }
+
+    // Try python3 first
+    try {
+      await new Promise((resolve, reject) => {
+        const python = spawn('python3', ['--version'], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          timeout: 5000
+        });
+
+        python.on('error', reject);
+        python.on('close', (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error('python3 not available'));
+          }
+        });
+      });
+
+      this.pythonCommand = 'python3';
+      console.log('Using python3');
+      return 'python3';
+    } catch {
+      // Fallback to python
+      try {
+        await new Promise((resolve, reject) => {
+          const python = spawn('python', ['--version'], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            timeout: 5000
+          });
+
+          python.on('error', reject);
+          python.on('close', (code) => {
+            if (code === 0) {
+              resolve();
+            } else {
+              reject(new Error('python not available'));
+            }
+          });
+        });
+
+        this.pythonCommand = 'python';
+        console.log('Using python');
+        return 'python';
+      } catch {
+        throw new AppError(
+          'Neither python3 nor python is available. Please install Python.',
+          500
+        );
+      }
+    }
   }
 
   /**
@@ -102,11 +165,14 @@ class YOLOService {
       );
     }
 
+    // Get available Python command before creating Promise
+    const pythonCmd = await this.getAvailablePythonCommand();
+
     return new Promise((resolve, reject) => {
       const pythonScript = path.join(this.pythonScriptPath);
       const args = [pythonScript, imagePath, modelToUse, confidence.toString()];
 
-      const python = spawn('python', args, {
+      const python = spawn(pythonCmd, args, {
         timeout: 300000, // 5 minutes
         stdio: ['pipe', 'pipe', 'pipe']
       });
