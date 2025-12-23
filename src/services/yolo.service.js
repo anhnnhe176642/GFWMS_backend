@@ -20,10 +20,64 @@ class YOLOService {
 
   /**
    * Check which Python command is available (python3 or python)
-   * @returns {string} - Available Python command
+   * @returns {Promise<string>} - Available Python command
    */
-  getAvailablePythonCommand() {
-    return "python3";
+  async getAvailablePythonCommand() {
+    // Return cached result if already determined
+    if (this.pythonCommand) {
+      return this.pythonCommand;
+    }
+
+    // Try python3 first
+    try {
+      await new Promise((resolve, reject) => {
+        const python = spawn('python3', ['--version'], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          timeout: 5000
+        });
+
+        python.on('error', reject);
+        python.on('close', (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error('python3 not available'));
+          }
+        });
+      });
+
+      this.pythonCommand = 'python3';
+      console.log('Using python3');
+      return 'python3';
+    } catch {
+      // Fallback to python
+      try {
+        await new Promise((resolve, reject) => {
+          const python = spawn('python', ['--version'], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            timeout: 5000
+          });
+
+          python.on('error', reject);
+          python.on('close', (code) => {
+            if (code === 0) {
+              resolve();
+            } else {
+              reject(new Error('python not available'));
+            }
+          });
+        });
+
+        this.pythonCommand = 'python';
+        console.log('Using python');
+        return 'python';
+      } catch {
+        throw new AppError(
+          'Neither python3 nor python is available. Please install Python.',
+          500
+        );
+      }
+    }
   }
 
   /**
@@ -91,7 +145,9 @@ class YOLOService {
    * @returns {Promise<Object>} - Detection results
    */
   async detectObjects(imagePath, options = {}) {
+
     const { confidence = 0.5, modelPath = null } = options;
+    
     const modelToUse = modelPath || this.defaultModelPath;
 
     // Verify files exist
@@ -109,19 +165,16 @@ class YOLOService {
       );
     }
 
-    return new Promise((resolve, reject) => {
-      // Determine how to spawn Python
-      const useMise = process.env.NODE_ENV === 'production' || process.env.USE_MISE === '1';
-      let spawnCmd = useMise ? 'mise' : 'python3';
-      let spawnArgs = useMise
-        ? ['exec', '--', 'python3', this.pythonScriptPath, imagePath, modelToUse, confidence.toString()]
-        : [this.pythonScriptPath, imagePath, modelToUse, confidence.toString()];
+    // Get available Python command before creating Promise
+    const pythonCmd = await this.getAvailablePythonCommand();
 
-      const python = spawn(spawnCmd, spawnArgs, {
-        cwd: process.cwd(),
-        env: process.env,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        timeout: 300000
+    return new Promise((resolve, reject) => {
+      const pythonScript = path.join(this.pythonScriptPath);
+      const args = [pythonScript, imagePath, modelToUse, confidence.toString()];
+
+      const python = spawn(pythonCmd, args, {
+        timeout: 300000, // 5 minutes
+        stdio: ['pipe', 'pipe', 'pipe']
       });
 
       let stdout = '';
