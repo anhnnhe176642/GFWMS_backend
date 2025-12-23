@@ -15,101 +15,15 @@ class YOLOService {
     // Đường dẫn đến model - bạn sẽ đặt file .pt vào đây
     this.defaultModelPath = path.join(__dirname, '../python/models/best.pt');
     this.tempDir = path.join(process.cwd(), 'temp', 'uploads');
-    this.pythonCommand = null; // Cache for available python command
-  }
-
-  /**
-   * Get Python executable path based on environment
-   * Production (Railway): uses mise exec -- python3
-   * Development: uses system python3/python
-   * @returns {Promise<string>} - Python command to use (either 'mise' or 'python3'/'python')
-   */
-  async getAvailablePythonCommand() {
-    // Return cached result if already determined
-    if (this.pythonCommand) {
-      return this.pythonCommand;
-    }
-
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    if (isProduction) {
-      // Production: verify mise is available
-      try {
-        await new Promise((resolve, reject) => {
-          const python = spawn('mise', ['exec', '--', 'python3', '--version'], {
-            stdio: ['pipe', 'pipe', 'pipe'],
-            timeout: 5000
-          });
-
-          python.on('error', reject);
-          python.on('close', (code) => {
-            if (code === 0) {
-              resolve();
-            } else {
-              reject(new Error('mise exec -- python3 check failed'));
-            }
-          });
-        });
-
-        this.pythonCommand = 'mise';
-        console.log('[PRODUCTION] Using mise exec -- python3');
-        return 'mise';
-      } catch (err) {
-        throw new AppError(
-          `Production environment: mise not found or python3 not available via mise. ${err.message}`,
-          500
-        );
-      }
+    
+    // Python executable from virtualenv (cross-platform)
+    const venvPath = path.join(process.cwd(), 'src/python/venv');
+    if (process.platform === 'win32') {
+      // Windows: venv/Scripts/python.exe
+      this.pythonBin = path.join(venvPath, 'Scripts', 'python.exe');
     } else {
-      // Development: try python3 first, then python
-      try {
-        await new Promise((resolve, reject) => {
-          const python = spawn('python3', ['--version'], {
-            stdio: ['pipe', 'pipe', 'pipe'],
-            timeout: 5000
-          });
-
-          python.on('error', reject);
-          python.on('close', (code) => {
-            if (code === 0) {
-              resolve();
-            } else {
-              reject(new Error('python3 not available'));
-            }
-          });
-        });
-
-        this.pythonCommand = 'python3';
-        console.log('[DEV] Using system python3');
-        return 'python3';
-      } catch {
-        try {
-          await new Promise((resolve, reject) => {
-            const python = spawn('python', ['--version'], {
-              stdio: ['pipe', 'pipe', 'pipe'],
-              timeout: 5000
-            });
-
-            python.on('error', reject);
-            python.on('close', (code) => {
-              if (code === 0) {
-                resolve();
-              } else {
-                reject(new Error('python not available'));
-              }
-            });
-          });
-
-          this.pythonCommand = 'python';
-          console.log('[DEV] Using system python');
-          return 'python';
-        } catch {
-          throw new AppError(
-            'Development environment: neither python3 nor python found. Please install Python.',
-            500
-          );
-        }
-      }
+      // Unix/Linux/Mac: venv/bin/python
+      this.pythonBin = path.join(venvPath, 'bin', 'python');
     }
   }
 
@@ -198,23 +112,11 @@ class YOLOService {
       );
     }
 
-    // Get available Python command before creating Promise
-    const pythonCmd = await this.getAvailablePythonCommand();
-
     return new Promise((resolve, reject) => {
       const pythonScript = path.join(this.pythonScriptPath);
       const args = [pythonScript, imagePath, modelToUse, confidence.toString()];
 
-      // Build spawn args based on python command
-      let spawnCmd = pythonCmd;
-      let spawnArgs = args;
-      
-      if (pythonCmd === 'mise') {
-        // Production: use mise exec -- python3
-        spawnArgs = ['exec', '--', 'python3', ...args];
-      }
-
-      const python = spawn(spawnCmd, spawnArgs, {
+      const python = spawn(this.pythonBin, args, {
         timeout: 300000, // 5 minutes
         stdio: ['pipe', 'pipe', 'pipe']
       });

@@ -3,8 +3,8 @@
 
 # PyTorch CPU-only (BẮT BUỘC cho Railway)
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.2.2+cpu
-torchvision==0.17.2+cpu
+torch>=2.0.0
+torchvision>=0.15.0
 
 # Core YOLO Framework
 ultralytics>=8.0.0
