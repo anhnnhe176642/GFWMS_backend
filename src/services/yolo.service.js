@@ -24,27 +24,37 @@ class YOLOService {
    * @returns {string} - Available Python command
    */
   getAvailablePythonCommand() {
-    // Return cached result if already determined
     if (this.pythonCommand) {
       return this.pythonCommand;
     }
 
-    const candidates = [
-      "/app/.local/share/mise/installs/python/3.11.14/bin/python3",
-      "python3",
-      "python"
-    ];
-
-    for (const cmd of candidates) {
-      if (fsSync.existsSync(cmd) || cmd === "python3" || cmd === "python") {
-        this.pythonCommand = cmd;
-        console.log(`Using ${cmd}`);
-        return cmd;
-      }
+    // Priority 1: Check PYTHON_BIN from env
+    if (process.env.PYTHON_BIN && fsSync.existsSync(process.env.PYTHON_BIN)) {
+      this.pythonCommand = process.env.PYTHON_BIN;
+      console.log("Using Python:", process.env.PYTHON_BIN);
+      return process.env.PYTHON_BIN;
     }
 
+    // Priority 2: Check hardcoded mise path (for Railway/Linux)
+    const misePath = "/app/.local/share/mise/installs/python/3.11.14/bin/python3";
+    if (fsSync.existsSync(misePath)) {
+      this.pythonCommand = misePath;
+      console.log("Using Python:", misePath);
+      return misePath;
+    }
+
+    // Priority 3: On Windows (development), try system python
+    if (process.platform === "win32") {
+      // Try python3 first, then python
+      const pythonCmd = "python3";
+      this.pythonCommand = pythonCmd;
+      console.log("Using Python:", pythonCmd, "(from PATH on Windows)");
+      return pythonCmd;
+    }
+
+    // On Linux/Railway without proper PYTHON_BIN, fail
     throw new AppError(
-      'Neither python3 nor python is available. Please install Python.',
+      "Python binary not found. Set PYTHON_BIN env variable or install Python via mise.",
       500
     );
   }
