@@ -130,10 +130,18 @@ class YOLOService {
 
     return new Promise((resolve, reject) => {
       const pythonScript = path.join(this.pythonScriptPath);
-      const args = [pythonScript, imagePath, modelToUse, confidence.toString()];
 
-      const tryPython = (cmd, isFallback = false) => {
-        const python = spawn(cmd, args, {
+      const tryPython = (cmd, isFallback = false, useMise = false) => {
+        let spawnCmd = cmd;
+        let spawnArgs = [pythonScript, imagePath, modelToUse, confidence.toString()];
+
+        // Use mise exec if in production (Railway)
+        if (useMise) {
+          spawnCmd = "mise";
+          spawnArgs = ["exec", "--", cmd, pythonScript, imagePath, modelToUse, confidence.toString()];
+        }
+
+        const python = spawn(spawnCmd, spawnArgs, {
           timeout: 300000, // 5 minutes
           stdio: ['pipe', 'pipe', 'pipe']
         });
@@ -150,16 +158,30 @@ class YOLOService {
         });
 
         python.on('error', (err) => {
+          // If mise exec fails, try direct spawn (for dev)
+          if (useMise && err.code === 'ENOENT') {
+            console.log('mise not found, trying python directly...');
+            return tryPython(cmd, isFallback, false);
+          }
           // If python3 fails and we haven't tried fallback, try python
           if (!isFallback && cmd === 'python3' && err.code === 'ENOENT') {
             console.log('python3 not found, trying python...');
-            return tryPython(this.getPythonFallback(), true);
+            return tryPython(this.getPythonFallback(), true, useMise);
           }
           reject(new AppError(`Failed to start Python process: ${err.message}`, 500));
         });
 
         python.on('close', (code) => {
           if (code !== 0) {
+            // Don't retry on ModuleNotFoundError - that's a package installation issue
+            if (stderr && stderr.includes('ModuleNotFoundError')) {
+              return reject(new AppError(`Python script exited with code ${code}: ${stderr}`, 500));
+            }
+            // Retry with fallback only if command failed
+            if (!isFallback && cmd === 'python3' && stderr && stderr.includes('not found')) {
+              console.log('python3 failed, trying python...');
+              return tryPython(this.getPythonFallback(), true);
+            }
             return reject(new AppError(`Python script exited with code ${code}: ${stderr}`, 500));
           }
 
@@ -188,7 +210,9 @@ class YOLOService {
         });
       };
 
-      tryPython(pythonCmd);
+      // Detect if running in production (Railway) - if yes, try mise first
+      const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT_NAME;
+      tryPython(pythonCmd, false, isProduction);
     });
   }
 
