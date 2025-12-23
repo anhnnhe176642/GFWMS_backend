@@ -19,8 +19,9 @@ class YOLOService {
   }
 
   /**
-   * Get Python executable path
-   * Priority: mise python (production/Railway) -> system python3/python (dev)
+   * Get Python executable path based on environment
+   * Production (Railway): uses mise Python at fixed path, no fallback
+   * Development: uses system python3/python
    * @returns {Promise<string>} - Path to Python executable
    */
   async getAvailablePythonCommand() {
@@ -29,30 +30,39 @@ class YOLOService {
       return this.pythonCommand;
     }
 
-    // Try mise Python path first (production/Railway)
-    const misePythonPath = '/mise/installs/python/3.11.14/bin/python3';
-    try {
-      await new Promise((resolve, reject) => {
-        const python = spawn(misePythonPath, ['--version'], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          timeout: 5000
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    if (isProduction) {
+      // Production: use mise Python (Railway)
+      const misePythonPath = '/mise/installs/python/3.11.14/bin/python3';
+      try {
+        await new Promise((resolve, reject) => {
+          const python = spawn(misePythonPath, ['--version'], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            timeout: 5000
+          });
+
+          python.on('error', reject);
+          python.on('close', (code) => {
+            if (code === 0) {
+              resolve();
+            } else {
+              reject(new Error('mise python check failed'));
+            }
+          });
         });
 
-        python.on('error', reject);
-        python.on('close', (code) => {
-          if (code === 0) {
-            resolve();
-          } else {
-            reject(new Error('mise python not available'));
-          }
-        });
-      });
-
-      this.pythonCommand = misePythonPath;
-      console.log(`Using mise Python: ${misePythonPath}`);
-      return misePythonPath;
-    } catch {
-      // Fallback to system python3 (dev environment)
+        this.pythonCommand = misePythonPath;
+        console.log(`[PRODUCTION] Using mise Python: ${misePythonPath}`);
+        return misePythonPath;
+      } catch (err) {
+        throw new AppError(
+          `Production environment: mise Python not found at ${misePythonPath}. ${err.message}`,
+          500
+        );
+      }
+    } else {
+      // Development: try python3 first, then python
       try {
         await new Promise((resolve, reject) => {
           const python = spawn('python3', ['--version'], {
@@ -71,10 +81,9 @@ class YOLOService {
         });
 
         this.pythonCommand = 'python3';
-        console.log('Using system python3 (dev environment)');
+        console.log('[DEV] Using system python3');
         return 'python3';
       } catch {
-        // Final fallback to python
         try {
           await new Promise((resolve, reject) => {
             const python = spawn('python', ['--version'], {
@@ -93,11 +102,11 @@ class YOLOService {
           });
 
           this.pythonCommand = 'python';
-          console.log('Using system python (dev environment)');
+          console.log('[DEV] Using system python');
           return 'python';
         } catch {
           throw new AppError(
-            'Python not found. Tried: mise Python, python3, python',
+            'Development environment: neither python3 nor python found. Please install Python.',
             500
           );
         }
